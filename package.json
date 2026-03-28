@@ -12,6 +12,7 @@
     "dev:mobile": "turbo dev --filter=@offdex/mobile",
     "dev:web": "turbo dev --filter=@offdex/web",
     "lint": "turbo lint",
+    "test": "turbo test",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
