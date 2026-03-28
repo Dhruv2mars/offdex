@@ -10,67 +10,35 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { OffdexThread, RuntimeTarget } from "@offdex/protocol";
+import type { OffdexThread } from "@offdex/protocol";
 import { mobileTabs, offdexTagline } from "./src/app-config";
-import {
-  fetchBridgeHealth,
-  fetchBridgeSnapshot,
-  normalizeBridgeBaseUrl,
-  sendBridgeTurn,
-  selectBridgeRuntime,
-  subscribeToBridgeSnapshots,
-} from "./src/bridge-client";
-import { DemoWorkspaceController } from "./src/demo-workspace-controller";
+import { bridgePreferences } from "./src/bridge-preferences";
+import { BridgeWorkspaceController } from "./src/bridge-workspace-controller";
 
 type AppTab = (typeof mobileTabs)[number];
 
 export default function App() {
-  const controller = useMemo(() => new DemoWorkspaceController(), []);
-  const [runtimeTarget, setRuntimeTarget] = useState<RuntimeTarget>("cli");
-  const [snapshot, setSnapshot] = useState(() => controller.getSnapshot());
+  const controller = useMemo(
+    () => new BridgeWorkspaceController({ preferences: bridgePreferences }),
+    []
+  );
+  const [workspaceState, setWorkspaceState] = useState(() => controller.getState());
   const [activeTab, setActiveTab] = useState<AppTab>("Chats");
+  const { snapshot, runtimeTarget, bridgeBaseUrl, connectedBridgeUrl, bridgeStatus, isBusy } =
+    workspaceState;
   const [selectedThreadId, setSelectedThreadId] = useState(
     snapshot.threads[0]?.id ?? ""
   );
   const [draft, setDraft] = useState("");
-  const [bridgeBaseUrl, setBridgeBaseUrl] = useState("http://127.0.0.1:42420");
-  const [connectedBridgeUrl, setConnectedBridgeUrl] = useState<string | null>(null);
-  const [bridgeStatus, setBridgeStatus] = useState("Not connected");
-  const [isBridgeBusy, setIsBridgeBusy] = useState(false);
-
-  useEffect(() => controller.subscribe((nextSnapshot) => setSnapshot(nextSnapshot)), [controller]);
 
   useEffect(() => {
-    if (!connectedBridgeUrl) {
-      controller.setRuntimeTarget(runtimeTarget);
-    }
-  }, [connectedBridgeUrl, controller, runtimeTarget]);
-
-  useEffect(() => {
-    if (!connectedBridgeUrl) {
-      return;
-    }
-
-    return subscribeToBridgeSnapshots(connectedBridgeUrl, {
-      onSnapshot(nextSnapshot) {
-        controller.replaceSnapshot(nextSnapshot);
-        setRuntimeTarget(nextSnapshot.pairing.runtimeTarget);
-      },
-      onStatusChange(status) {
-        if (status === "open") {
-          setBridgeStatus(`Connected to ${connectedBridgeUrl}`);
-          return;
-        }
-
-        if (status === "closed") {
-          setBridgeStatus(`Disconnected from ${connectedBridgeUrl}`);
-          return;
-        }
-
-        setBridgeStatus(`Bridge error at ${connectedBridgeUrl}`);
-      },
-    });
-  }, [connectedBridgeUrl, controller]);
+    const unsubscribe = controller.subscribe((nextState) => setWorkspaceState(nextState));
+    void controller.hydrate();
+    return () => {
+      unsubscribe();
+      controller.dispose();
+    };
+  }, [controller]);
 
   useEffect(() => {
     if (!selectedThreadId && snapshot.threads[0]?.id) {
@@ -95,6 +63,7 @@ export default function App() {
           <View>
             <Text style={styles.brand}>OFFDEX</Text>
             <Text style={styles.heroTitle}>{offdexTagline.replace("Offdex: ", "")}</Text>
+            <Text style={styles.heroStatus}>{bridgeStatus}</Text>
           </View>
           <View style={styles.runtimeCluster}>
             {snapshot.capabilityMatrix.runtimes.map((target) => (
@@ -102,20 +71,7 @@ export default function App() {
                 key={target}
                 onPress={() => {
                   startTransition(() => {
-                    void (async () => {
-                      const nextBridgeUrl =
-                        connectedBridgeUrl ?? normalizeBridgeBaseUrl(bridgeBaseUrl);
-                      try {
-                        const result = await selectBridgeRuntime(nextBridgeUrl, target);
-                        controller.replaceSnapshot(result.snapshot);
-                        setRuntimeTarget(result.snapshot.pairing.runtimeTarget);
-                        setConnectedBridgeUrl(nextBridgeUrl);
-                        setBridgeStatus(`Connected to ${nextBridgeUrl}`);
-                      } catch {
-                        setRuntimeTarget(target);
-                        controller.setRuntimeTarget(target);
-                      }
-                    })();
+                    void controller.setRuntimeTarget(target).catch(() => {});
                   });
                 }}
                 style={[
@@ -232,25 +188,9 @@ export default function App() {
                           void (async () => {
                             const nextDraft = draft;
                             setDraft("");
-
-                            if (connectedBridgeUrl) {
-                              try {
-                                await sendBridgeTurn(
-                                  connectedBridgeUrl,
-                                  selectedThread.id,
-                                  nextDraft
-                                );
-                                return;
-                              } catch (error) {
-                                const message =
-                                  error instanceof Error
-                                    ? error.message
-                                    : "Bridge turn failed.";
-                                setBridgeStatus(message);
-                              }
-                            }
-
-                            controller.sendUserTurn(selectedThread.id, nextDraft);
+                            await controller.sendTurn(selectedThread.id, nextDraft).catch(() => {
+                              setDraft(nextDraft);
+                            });
                           })();
                         }}
                       >
@@ -275,7 +215,7 @@ export default function App() {
             <SectionCard
               eyebrow="Current machine"
               title={snapshot.pairing.macName}
-              body="Use the local bridge when it is reachable. If not, the app stays usable on the demo controller while the pairing and transport layer are still being built out."
+              body="Use the local bridge when it is reachable. If it drops, Offdex keeps the last live view on screen and makes reconnect explicit instead of acting blank."
             />
             <View style={styles.sectionCard}>
               <Text style={styles.sectionEyebrow}>Bridge</Text>
@@ -286,37 +226,35 @@ export default function App() {
                 placeholderTextColor="#69726d"
                 style={styles.bridgeInput}
                 value={bridgeBaseUrl}
-                onChangeText={setBridgeBaseUrl}
+                onChangeText={(value) => controller.setBridgeBaseUrl(value)}
               />
               <View style={styles.bridgeActionRow}>
                 <Pressable
                   style={styles.connectButton}
                   onPress={() => {
-                    void (async () => {
-                      setIsBridgeBusy(true);
-                      try {
-                        const nextBridgeUrl = normalizeBridgeBaseUrl(bridgeBaseUrl);
-                        const [health, nextSnapshot] = await Promise.all([
-                          fetchBridgeHealth(nextBridgeUrl),
-                          fetchBridgeSnapshot(nextBridgeUrl),
-                        ]);
-                        controller.replaceSnapshot(nextSnapshot);
-                        setRuntimeTarget(nextSnapshot.pairing.runtimeTarget);
-                        setConnectedBridgeUrl(nextBridgeUrl);
-                        setBridgeStatus(`${health.transport} live at ${nextBridgeUrl}`);
-                      } catch (error) {
-                        const message =
-                          error instanceof Error ? error.message : "Bridge connect failed.";
-                        setBridgeStatus(message);
-                      } finally {
-                        setIsBridgeBusy(false);
-                      }
-                    })();
+                    void controller.connect().catch(() => {});
                   }}
                 >
-                  <Text style={styles.connectButtonText}>Connect to bridge</Text>
+                  <Text style={styles.connectButtonText}>
+                    {connectedBridgeUrl ? "Reconnect bridge" : "Connect to bridge"}
+                  </Text>
                 </Pressable>
-                {isBridgeBusy ? <ActivityIndicator color="#d6ff72" /> : null}
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={() => {
+                    if (connectedBridgeUrl) {
+                      void controller.refresh().catch(() => {});
+                      return;
+                    }
+
+                    controller.disconnect();
+                  }}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    {connectedBridgeUrl ? "Refresh" : "Reset"}
+                  </Text>
+                </Pressable>
+                {isBusy ? <ActivityIndicator color="#d6ff72" /> : null}
               </View>
               <Text style={styles.bridgeStatusText}>{bridgeStatus}</Text>
             </View>
@@ -469,6 +407,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     letterSpacing: -0.7,
+  },
+  heroStatus: {
+    marginTop: 6,
+    color: "#88928d",
+    fontSize: 13,
+    maxWidth: 220,
+    lineHeight: 18,
   },
   runtimeCluster: {
     flexDirection: "row",
@@ -773,6 +718,19 @@ const styles = StyleSheet.create({
     color: "#0b0d0c",
     fontSize: 13,
     fontWeight: "800",
+  },
+  secondaryButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#28302c",
+    backgroundColor: "#151916",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  secondaryButtonText: {
+    color: "#d5ddd8",
+    fontSize: 13,
+    fontWeight: "700",
   },
   bridgeStatusText: {
     color: "#97a19c",
