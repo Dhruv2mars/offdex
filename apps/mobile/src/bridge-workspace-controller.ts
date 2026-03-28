@@ -143,6 +143,7 @@ export class BridgeWorkspaceController {
           this.#replaceSnapshot(nextSnapshot);
         },
         onStatusChange: (status) => {
+          this.#patchPairingState(status === "open" ? "paired" : "reconnecting");
           this.#setState({
             connectedBridgeUrl: normalized,
             connectionState: status === "open" ? "live" : "degraded",
@@ -162,6 +163,13 @@ export class BridgeWorkspaceController {
         bridgeStatus: `${health.transport} live at ${normalized}`,
         isBusy: false,
       });
+      this.#patchPairingProfile({
+        bridgeUrl: health.bridgeUrl,
+        bridgeHints: health.bridgeHints,
+        macName: health.macName,
+        state: "paired",
+        lastSeenAt: "Just now",
+      });
       return this.getState();
     } catch (error) {
       this.#setState({
@@ -178,6 +186,7 @@ export class BridgeWorkspaceController {
   disconnect() {
     this.#unsubscribeLive?.();
     this.#unsubscribeLive = null;
+    this.#patchPairingState("unpaired");
     this.#setState({
       connectedBridgeUrl: null,
       connectionState: "idle",
@@ -254,6 +263,26 @@ export class BridgeWorkspaceController {
 
   #replaceSnapshot(snapshot: OffdexWorkspaceSnapshot) {
     this.#demoController.replaceSnapshot(snapshot);
+  }
+
+  #patchPairingProfile(
+    patch: Partial<OffdexWorkspaceSnapshot["pairing"]>
+  ) {
+    const snapshot = this.#state.snapshot;
+    this.#replaceSnapshot({
+      ...snapshot,
+      pairing: {
+        ...snapshot.pairing,
+        ...patch,
+      },
+    });
+  }
+
+  #patchPairingState(state: OffdexWorkspaceSnapshot["pairing"]["state"]) {
+    this.#patchPairingProfile({
+      state,
+      lastSeenAt: state === "paired" ? "Just now" : state === "reconnecting" ? "Reconnecting" : "Not connected",
+    });
   }
 
   #setState(patch: Partial<BridgeWorkspaceState>) {

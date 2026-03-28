@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   BridgeSessionStore,
+  buildBridgeHints,
   createBridgeSession,
   createBridgeWorkspaceStore,
   resolveRuntimeTarget,
@@ -52,6 +53,44 @@ describe("bridge session store", () => {
 });
 
 describe("bridge workspace store", () => {
+  test("builds local bridge hints with lan and loopback addresses", () => {
+    const hints = buildBridgeHints(
+      42420,
+      () => ({
+        en0: [
+          {
+            address: "192.168.1.8",
+            family: "IPv4",
+            internal: false,
+          },
+        ],
+        lo0: [
+          {
+            address: "127.0.0.1",
+            family: "IPv4",
+            internal: true,
+          },
+        ],
+      }),
+      () => "studio-macbook"
+    );
+
+    expect(hints[0]).toBe("http://192.168.1.8:42420");
+    expect(hints).toContain("http://studio-macbook.local:42420");
+    expect(hints).toContain("http://127.0.0.1:42420");
+  });
+
+  test("does not double-append the local suffix", () => {
+    const hints = buildBridgeHints(
+      42420,
+      () => ({}),
+      () => "d2m.local"
+    );
+
+    expect(hints).toContain("http://d2m.local:42420");
+    expect(hints).not.toContain("http://d2m.local.local:42420");
+  });
+
   test("starts with a foundation thread", () => {
     const store = createBridgeWorkspaceStore();
 

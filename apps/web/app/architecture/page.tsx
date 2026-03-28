@@ -9,12 +9,12 @@ const layers = [
   {
     name: "Shared protocol",
     detail:
-      "A single typed language for threads, pairing, runtime targeting, and live session state across mobile, web, bridge, and relay.",
+      "A single typed language for threads, local pairing, runtime state, and live session updates across mobile, web, bridge, and relay.",
   },
   {
     name: "Bridge",
     detail:
-      "The local machine control layer that decides whether Codex CLI or Codex Desktop is the right runtime for the current host.",
+      "The local machine control layer that runs Codex CLI, keeps thread truth fresh, and exposes stable local connection paths for the phone.",
   },
   {
     name: "Relay",

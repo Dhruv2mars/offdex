@@ -33,6 +33,9 @@ function createFakeClient() {
       return {
         ok: true,
         transport: "bridge",
+        bridgeUrl: "http://192.168.1.8:42420",
+        bridgeHints: ["http://192.168.1.8:42420", "http://127.0.0.1:42420"],
+        macName: "studio-macbook",
         desktopAvailable: false,
         session: null,
       };
@@ -106,6 +109,7 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().bridgeBaseUrl).toBe("http://192.168.1.8:42420");
     expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
     expect(controller.getState().connectionState).toBe("live");
+    expect(controller.getState().snapshot.pairing.state).toBe("paired");
   });
 
   test("falls back to demo turns when no bridge is connected", async () => {
@@ -158,6 +162,20 @@ describe("bridge workspace controller", () => {
     expect(state.connectionState).toBe("live");
     expect(state.snapshot.threads[0]?.title).toBe("Live thread");
     expect(state.snapshot.threads[0]?.messages[0]?.body).toBe("OFFDEX live");
+  });
+
+  test("marks pairing as reconnecting when live sync drops", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    fakeClient.emitStatus("closed");
+
+    expect(controller.getState().connectionState).toBe("degraded");
+    expect(controller.getState().snapshot.pairing.state).toBe("reconnecting");
   });
 
   test("switches runtime through the connected bridge", async () => {
