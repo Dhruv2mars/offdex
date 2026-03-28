@@ -5,6 +5,26 @@ import {
   makeMessage,
   type RuntimeTarget,
 } from "@offdex/protocol";
+import {
+  CodexBridgeRuntime,
+  NEW_THREAD_ID,
+  applyCodexNotification,
+  buildCodexExecutableCandidates,
+  createCodexSnapshot,
+  mapCodexThreadToOffdexThread,
+  resolveCodexExecutable,
+} from "./codex-app-server";
+
+export {
+  CodexAppServerClient,
+  CodexBridgeRuntime,
+  NEW_THREAD_ID,
+  applyCodexNotification,
+  buildCodexExecutableCandidates,
+  createCodexSnapshot,
+  mapCodexThreadToOffdexThread,
+  resolveCodexExecutable,
+} from "./codex-app-server";
 
 export interface RuntimeResolutionInput {
   hostPlatform: "darwin" | "linux" | "win32";
@@ -28,18 +48,20 @@ export interface BridgeTurnInput {
   body: string;
 }
 
+export type BridgeMode = "demo" | "codex";
+
 export function resolveRuntimeTarget(input: RuntimeResolutionInput): RuntimeResolution {
   if (input.preferredTarget === "desktop" && input.desktopAvailable && input.hostPlatform === "darwin") {
     return {
       target: "desktop",
-      reason: "Desktop runtime available on this Mac.",
+      reason: "Desktop runtime adapter available on this Mac.",
     };
   }
 
   if (input.preferredTarget === "desktop") {
     return {
       target: "cli",
-      reason: "Desktop runtime unavailable here. Falling back to Codex CLI.",
+      reason: "Desktop runtime adapter is not wired yet. Falling back to Codex CLI.",
     };
   }
 
@@ -77,6 +99,7 @@ export interface BridgeServerOptions {
   host?: string;
   port?: number;
   desktopAvailable?: boolean;
+  bridgeMode?: BridgeMode;
 }
 
 export function createBridgeWorkspaceStore(runtimeTarget: RuntimeTarget = "cli") {
@@ -92,23 +115,24 @@ export function recordBridgeTurn(
     return false;
   }
 
-  const thread = workspaceStore
-    .getSnapshot()
-    .threads.find((entry) => entry.id === input.threadId);
-
-  if (!thread) {
+  const snapshot = workspaceStore.getSnapshot();
+  const targetThreadId =
+    input.threadId === NEW_THREAD_ID || !snapshot.threads.some((entry) => entry.id === input.threadId)
+      ? snapshot.threads[0]?.id
+      : input.threadId;
+  if (!targetThreadId) {
     return false;
   }
 
   workspaceStore.appendMessage({
-    threadId: input.threadId,
+    threadId: targetThreadId,
     message: makeMessage(`user-${Date.now()}`, "user", trimmed, "Now"),
     state: "running",
     updatedAt: "Now",
   });
 
   workspaceStore.appendMessage({
-    threadId: input.threadId,
+    threadId: targetThreadId,
     message: makeMessage(
       `assistant-${Date.now()}`,
       "assistant",
@@ -126,10 +150,20 @@ export function recordBridgeTurn(
 export function startBridgeServer(options: BridgeServerOptions = {}) {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 42420;
-  const desktopAvailable = options.desktopAvailable ?? process.platform === "darwin";
+  const bridgeMode = options.bridgeMode ?? "demo";
+  const desktopAvailable =
+    options.desktopAvailable ?? Boolean(process.env.OFFDEX_DESKTOP_ENDPOINT);
   const workspaceStore = createBridgeWorkspaceStore();
   const sessionStore = new BridgeSessionStore();
   const listeners = new Set<ServerWebSocket<undefined>>();
+  const codexRuntime =
+    bridgeMode === "codex"
+      ? new CodexBridgeRuntime({
+          runtimeTarget: "cli",
+          workspaceStore,
+          cwd: process.cwd(),
+        })
+      : null;
 
   const publishSnapshot = () => {
     const payload = JSON.stringify({
@@ -142,37 +176,97 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     }
   };
 
+  const unsubscribe = workspaceStore.subscribe(() => {
+    publishSnapshot();
+  });
+
+  const withCors = (response: Response) => {
+    const headers = new Headers(response.headers);
+    headers.set("access-control-allow-origin", "*");
+    headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
+    headers.set("access-control-allow-headers", "content-type");
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  };
+
   const server = Bun.serve<undefined>({
     hostname: host,
     port,
     fetch(request, serverRef) {
       const url = new URL(request.url);
 
+      if (request.method === "OPTIONS") {
+        return withCors(new Response(null, { status: 204 }));
+      }
+
       if (url.pathname === "/health") {
-        return Response.json({
-          ok: true,
-          transport: "bridge",
-          desktopAvailable,
-          session: sessionStore.getActiveSession(),
-        });
+        return withCors(
+          Response.json({
+            ok: true,
+            transport: "bridge",
+            bridgeMode,
+            desktopAvailable,
+            codexConnected: codexRuntime?.client.isConnected ?? false,
+            session: sessionStore.getActiveSession(),
+          })
+        );
       }
 
       if (url.pathname === "/snapshot") {
-        return Response.json(workspaceStore.getSnapshot());
+        if (!codexRuntime) {
+          return withCors(Response.json(workspaceStore.getSnapshot()));
+        }
+
+        return codexRuntime
+          .refreshSnapshot()
+          .then((snapshot) => withCors(Response.json(snapshot)))
+          .catch((error) =>
+            withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Codex snapshot failed.",
+                },
+                { status: 502 }
+              )
+            )
+          );
       }
 
       if (url.pathname === "/runtime" && request.method === "POST") {
-        return request.json().then((rawBody) => {
+        return request.json().then(async (rawBody) => {
           const body = rawBody as { preferredTarget?: RuntimeTarget };
           const preferredTarget = body?.preferredTarget === "desktop" ? "desktop" : "cli";
           const resolution = resolveRuntimeTarget({
-            hostPlatform: process.platform === "darwin" ? "darwin" : process.platform === "win32" ? "win32" : "linux",
+            hostPlatform:
+              process.platform === "darwin"
+                ? "darwin"
+                : process.platform === "win32"
+                  ? "win32"
+                  : "linux",
             preferredTarget,
             desktopAvailable,
           });
 
-          const session = createBridgeSession(`OFFDEX-${resolution.target.toUpperCase()}`, resolution.target);
+          const session = createBridgeSession(
+            `OFFDEX-${resolution.target.toUpperCase()}`,
+            resolution.target
+          );
           sessionStore.connect(session);
+
+          if (codexRuntime) {
+            const snapshot = await codexRuntime.setRuntimeTarget(resolution.target);
+            return withCors(
+              Response.json({
+                session,
+                resolution,
+                snapshot,
+              })
+            );
+          }
+
           workspaceStore.setRuntimeTarget(resolution.target);
           workspaceStore.updatePairingState("paired", "Just now");
           workspaceStore.appendMessage({
@@ -186,44 +280,68 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
             state: "running",
             updatedAt: "Now",
           });
-          publishSnapshot();
 
-          return Response.json({
-            session,
-            resolution,
-            snapshot: workspaceStore.getSnapshot(),
-          });
+          return withCors(
+            Response.json({
+              session,
+              resolution,
+              snapshot: workspaceStore.getSnapshot(),
+            })
+          );
         });
       }
 
       if (url.pathname === "/turn" && request.method === "POST") {
-        return request.json().then((rawBody) => {
+        return request.json().then(async (rawBody) => {
           const body = rawBody as Partial<BridgeTurnInput>;
+
+          if (codexRuntime) {
+            try {
+              const snapshot = await codexRuntime.sendTurn(
+                body.threadId ?? NEW_THREAD_ID,
+                body.body ?? ""
+              );
+              return withCors(Response.json({ snapshot }));
+            } catch (error) {
+              return withCors(
+                Response.json(
+                  {
+                    error: error instanceof Error ? error.message : "Codex turn failed.",
+                  },
+                  { status: 502 }
+                )
+              );
+            }
+          }
+
           const accepted = recordBridgeTurn(workspaceStore, {
             threadId: body.threadId ?? "",
             body: body.body ?? "",
           });
 
           if (!accepted) {
-            return Response.json(
-              { error: "Turn rejected. Missing thread or empty body." },
-              { status: 400 }
+            return withCors(
+              Response.json(
+                { error: "Turn rejected. Missing thread or empty body." },
+                { status: 400 }
+              )
             );
           }
 
-          publishSnapshot();
-          return Response.json({
-            snapshot: workspaceStore.getSnapshot(),
-          });
+          return withCors(
+            Response.json({
+              snapshot: workspaceStore.getSnapshot(),
+            })
+          );
         });
       }
 
       if (url.pathname === "/live") {
         const upgraded = serverRef.upgrade(request);
-        return upgraded ? undefined : new Response("Upgrade failed", { status: 400 });
+        return upgraded ? undefined : withCors(new Response("Upgrade failed", { status: 400 }));
       }
 
-      return new Response("Not found", { status: 404 });
+      return withCors(new Response("Not found", { status: 404 }));
     },
     websocket: {
       open(socket) {
@@ -247,6 +365,8 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     workspaceStore,
     sessionStore,
     stop() {
+      unsubscribe();
+      void codexRuntime?.close();
       server.stop(true);
       listeners.clear();
     },

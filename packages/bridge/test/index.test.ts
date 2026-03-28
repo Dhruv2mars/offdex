@@ -84,4 +84,27 @@ describe("bridge workspace store", () => {
     expect(thread?.messages.at(-2)?.body).toBe("Wire this phone into the live bridge.");
     expect(thread?.messages.at(-1)?.role).toBe("assistant");
   });
+
+  test("serves browser-safe cors headers for web clients", async () => {
+    const bridge = startBridgeServer({ host: "127.0.0.1", port: 0 });
+    activeBridges.push(bridge);
+    const baseUrl = `http://127.0.0.1:${bridge.server.port}`;
+
+    const optionsResponse = await fetch(`${baseUrl}/runtime`, {
+      method: "OPTIONS",
+      headers: {
+        origin: "http://localhost:8083",
+        "access-control-request-method": "POST",
+      },
+    });
+    const healthResponse = await fetch(`${baseUrl}/health`, {
+      headers: {
+        origin: "http://localhost:8083",
+      },
+    });
+
+    expect(optionsResponse.status).toBe(204);
+    expect(optionsResponse.headers.get("access-control-allow-origin")).toBe("*");
+    expect(healthResponse.headers.get("access-control-allow-origin")).toBe("*");
+  });
 });
