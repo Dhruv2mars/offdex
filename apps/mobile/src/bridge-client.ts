@@ -3,6 +3,9 @@ import type { OffdexWorkspaceSnapshot, RuntimeTarget } from "@offdex/protocol";
 export interface BridgeHealth {
   ok: boolean;
   transport: string;
+  bridgeUrl: string;
+  bridgeHints: string[];
+  macName: string;
   desktopAvailable: boolean;
   session: {
     pairingCode: string;

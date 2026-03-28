@@ -1,5 +1,7 @@
+import { hostname, networkInterfaces } from "node:os";
 import type { ServerWebSocket } from "bun";
 import {
+  type OffdexPairingProfile,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   makeMessage,
@@ -102,8 +104,48 @@ export interface BridgeServerOptions {
   bridgeMode?: BridgeMode;
 }
 
-export function createBridgeWorkspaceStore(runtimeTarget: RuntimeTarget = "cli") {
-  return new WorkspaceSnapshotStore(makeDemoWorkspaceSnapshot(runtimeTarget));
+type BridgeAddressRecord = {
+  address: string;
+  family: string | number;
+  internal: boolean;
+};
+
+export function buildBridgeHints(
+  port: number,
+  readNetworkInterfaces: () => Record<string, BridgeAddressRecord[] | undefined> = networkInterfaces,
+  readHostname: typeof hostname = hostname
+) {
+  const urls = new Set<string>();
+  const interfaces = readNetworkInterfaces();
+
+  for (const addresses of Object.values(interfaces)) {
+    for (const address of addresses ?? []) {
+      if (address.family !== "IPv4" || address.internal) {
+        continue;
+      }
+
+      urls.add(`http://${address.address}:${port}`);
+    }
+  }
+
+  const localHostname = readHostname().trim();
+  if (localHostname && localHostname !== "localhost") {
+    const mdnsHostname = localHostname.endsWith(".local")
+      ? localHostname
+      : `${localHostname}.local`;
+    urls.add(`http://${mdnsHostname}:${port}`);
+  }
+
+  urls.add(`http://127.0.0.1:${port}`);
+  urls.add(`http://localhost:${port}`);
+  return [...urls];
+}
+
+export function createBridgeWorkspaceStore(
+  runtimeTarget: RuntimeTarget = "cli",
+  pairingProfile: Partial<OffdexPairingProfile> = {}
+) {
+  return new WorkspaceSnapshotStore(makeDemoWorkspaceSnapshot(runtimeTarget, pairingProfile));
 }
 
 export function recordBridgeTurn(
@@ -153,7 +195,11 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   const bridgeMode = options.bridgeMode ?? "demo";
   const desktopAvailable =
     options.desktopAvailable ?? Boolean(process.env.OFFDEX_DESKTOP_ENDPOINT);
-  const workspaceStore = createBridgeWorkspaceStore();
+  const workspaceStore = createBridgeWorkspaceStore("cli", {
+    bridgeUrl: `http://${host}:${port}`,
+    bridgeHints: [`http://${host}:${port}`],
+    macName: hostname(),
+  });
   const sessionStore = new BridgeSessionStore();
   const listeners = new Set<ServerWebSocket<undefined>>();
   const codexRuntime =
@@ -208,6 +254,9 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
             ok: true,
             transport: "bridge",
             bridgeMode,
+            bridgeUrl: workspaceStore.getSnapshot().pairing.bridgeUrl,
+            bridgeHints: workspaceStore.getSnapshot().pairing.bridgeHints,
+            macName: workspaceStore.getSnapshot().pairing.macName,
             desktopAvailable,
             codexConnected: codexRuntime?.client.isConnected ?? false,
             session: sessionStore.getActiveSession(),
@@ -255,6 +304,13 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
             resolution.target
           );
           sessionStore.connect(session);
+          workspaceStore.updatePairingProfile({
+            bridgeUrl: workspaceStore.getSnapshot().pairing.bridgeUrl,
+            bridgeHints: workspaceStore.getSnapshot().pairing.bridgeHints,
+            macName: workspaceStore.getSnapshot().pairing.macName,
+            state: "paired",
+            lastSeenAt: "Just now",
+          });
 
           if (codexRuntime) {
             const snapshot = await codexRuntime.setRuntimeTarget(resolution.target);
@@ -358,6 +414,14 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
         listeners.delete(socket);
       },
     },
+  });
+
+  const serverPort = server.port ?? port;
+  const bridgeHints = buildBridgeHints(serverPort);
+  workspaceStore.updatePairingProfile({
+    bridgeUrl: bridgeHints[0] ?? `http://${host}:${serverPort}`,
+    bridgeHints,
+    macName: hostname(),
   });
 
   return {

@@ -9,7 +9,8 @@ export interface DeviceCapabilityMatrix {
 }
 
 export interface OffdexPairingProfile {
-  relayUrl: string;
+  bridgeUrl: string;
+  bridgeHints: string[];
   macName: string;
   state: PairingState;
   lastSeenAt: string;
@@ -57,20 +58,23 @@ export function makeMessage(
 }
 
 export function makeDemoWorkspaceSnapshot(
-  runtimeTarget: RuntimeTarget = "cli"
+  runtimeTarget: RuntimeTarget = "cli",
+  pairingProfile: Partial<OffdexPairingProfile> = {}
 ): OffdexWorkspaceSnapshot {
   return {
     pairing: {
-      relayUrl: "wss://relay.offdex.dev/relay",
-      macName: "Dhruv’s machine",
-      state: "paired",
-      lastSeenAt: "Just now",
+      bridgeUrl: "http://127.0.0.1:42420",
+      bridgeHints: ["http://127.0.0.1:42420"],
+      macName: "This Mac",
+      state: "unpaired",
+      lastSeenAt: "Not connected",
       runtimeTarget,
+      ...pairingProfile,
     },
     capabilityMatrix: {
       mobile: "expo",
       web: "next",
-      runtimes: runtimeTarget === "desktop" ? ["desktop", "cli"] : ["cli", "desktop"],
+      runtimes: ["cli"],
     },
     threads: [
       {
@@ -157,9 +161,7 @@ export class WorkspaceSnapshotStore {
 
   setRuntimeTarget(runtimeTarget: RuntimeTarget) {
     this.#snapshot.pairing.runtimeTarget = runtimeTarget;
-    this.#snapshot.capabilityMatrix.runtimes = runtimeTarget === "desktop"
-      ? ["desktop", "cli"]
-      : ["cli", "desktop"];
+    this.#snapshot.capabilityMatrix.runtimes = ["cli"];
     this.#snapshot.threads = this.#snapshot.threads.map((thread) => ({
       ...thread,
       runtimeTarget: thread.id === "thread-linux" ? "cli" : runtimeTarget,
@@ -186,6 +188,14 @@ export class WorkspaceSnapshotStore {
   updatePairingState(state: PairingState, lastSeenAt: string) {
     this.#snapshot.pairing.state = state;
     this.#snapshot.pairing.lastSeenAt = lastSeenAt;
+    this.#emit();
+  }
+
+  updatePairingProfile(patch: Partial<OffdexPairingProfile>) {
+    this.#snapshot.pairing = {
+      ...this.#snapshot.pairing,
+      ...patch,
+    };
     this.#emit();
   }
 

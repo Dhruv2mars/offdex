@@ -65,31 +65,37 @@ export default function App() {
             <Text style={styles.heroTitle}>{offdexTagline.replace("Offdex: ", "")}</Text>
             <Text style={styles.heroStatus}>{bridgeStatus}</Text>
           </View>
-          <View style={styles.runtimeCluster}>
-            {snapshot.capabilityMatrix.runtimes.map((target) => (
-              <Pressable
-                key={target}
-                onPress={() => {
-                  startTransition(() => {
-                    void controller.setRuntimeTarget(target).catch(() => {});
-                  });
-                }}
-                style={[
-                  styles.runtimeChip,
-                  runtimeTarget === target && styles.runtimeChipActive,
-                ]}
-              >
-                <Text
+          {snapshot.capabilityMatrix.runtimes.length > 1 ? (
+            <View style={styles.runtimeCluster}>
+              {snapshot.capabilityMatrix.runtimes.map((target) => (
+                <Pressable
+                  key={target}
+                  onPress={() => {
+                    startTransition(() => {
+                      void controller.setRuntimeTarget(target).catch(() => {});
+                    });
+                  }}
                   style={[
-                    styles.runtimeChipText,
-                    runtimeTarget === target && styles.runtimeChipTextActive,
+                    styles.runtimeChip,
+                    runtimeTarget === target && styles.runtimeChipActive,
                   ]}
                 >
-                  {target === "cli" ? "CLI" : "Desktop"}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                  <Text
+                    style={[
+                      styles.runtimeChipText,
+                      runtimeTarget === target && styles.runtimeChipTextActive,
+                    ]}
+                  >
+                    {target === "cli" ? "CLI" : "Desktop"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.cliBadge}>
+              <Text style={styles.cliBadgeText}>CLI first</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.tabRow}>
@@ -215,7 +221,7 @@ export default function App() {
             <SectionCard
               eyebrow="Current machine"
               title={snapshot.pairing.macName}
-              body="Use the local bridge when it is reachable. If it drops, Offdex keeps the last live view on screen and makes reconnect explicit instead of acting blank."
+              body="Offdex is focused on the local bridge path for now. Connect to your Mac, stay live, and keep failure states obvious."
             />
             <View style={styles.sectionCard}>
               <Text style={styles.sectionEyebrow}>Bridge</Text>
@@ -259,15 +265,24 @@ export default function App() {
               <Text style={styles.bridgeStatusText}>{bridgeStatus}</Text>
             </View>
             <SectionCard
-              eyebrow="Relay"
-              title={snapshot.pairing.relayUrl}
-              body="Keep the transport generic, local-first, and replaceable. The app should never make the user think about infrastructure unless something is broken."
+              eyebrow="Bridge paths"
+              title={snapshot.pairing.bridgeUrl}
+              body="Use one of these local paths when you move from browser testing to your actual phone."
             />
-            <SectionCard
-              eyebrow="Next"
-              title="QR bootstrap, trusted reconnect, then live truth."
-              body="This tab will become the real pairing control surface: scan, trust, inspect session state, and recover without vague failure states."
-            />
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionEyebrow}>Local options</Text>
+              <View style={styles.hintWrap}>
+                {snapshot.pairing.bridgeHints.map((hint) => (
+                  <Pressable
+                    key={hint}
+                    onPress={() => controller.setBridgeBaseUrl(hint)}
+                    style={styles.hintChip}
+                  >
+                    <Text style={styles.hintChipText}>{hint}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
           </ScrollView>
         ) : null}
 
@@ -279,8 +294,8 @@ export default function App() {
           >
             <SectionCard
               eyebrow="Runtime target"
-              title={runtimeTarget === "cli" ? "Codex CLI" : "Codex Desktop"}
-              body="Users should be able to choose, but the app should always steer them toward the mode that actually works best on the current machine."
+              title="Codex CLI"
+              body="Desktop mode is intentionally out of the main flow for now. The goal is to make the CLI path feel complete before adding anything else."
             />
             <SectionCard
               eyebrow="Product bar"
@@ -290,7 +305,7 @@ export default function App() {
             <SectionCard
               eyebrow="Platform"
               title="Android first, cross-platform always"
-              body="Expo keeps iteration fast. Native modules stay on the table whenever they materially improve input, networking, rendering, or device integration."
+              body="Expo keeps iteration fast. Native modules stay on the table whenever they materially improve pairing, networking, rendering, or device integration."
             />
           </ScrollView>
         ) : null}
@@ -418,6 +433,19 @@ const styles = StyleSheet.create({
   runtimeCluster: {
     flexDirection: "row",
     gap: 8,
+  },
+  cliBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#2a312d",
+    backgroundColor: "#131715",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  cliBadgeText: {
+    color: "#d6ff72",
+    fontSize: 13,
+    fontWeight: "800",
   },
   runtimeChip: {
     borderRadius: 999,
@@ -736,6 +764,24 @@ const styles = StyleSheet.create({
     color: "#97a19c",
     fontSize: 13,
     lineHeight: 20,
+  },
+  hintWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  hintChip: {
+    borderRadius: 18,
+    backgroundColor: "#0d0f0e",
+    borderWidth: 1,
+    borderColor: "#1d2320",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  hintChipText: {
+    color: "#d7dfda",
+    fontSize: 13,
+    lineHeight: 18,
   },
   sectionEyebrow: {
     color: "#d6ff72",
