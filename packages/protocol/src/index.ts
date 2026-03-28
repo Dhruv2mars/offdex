@@ -40,6 +40,13 @@ export interface OffdexWorkspaceSnapshot {
   threads: OffdexThread[];
 }
 
+export interface WorkspaceMutationInput {
+  threadId: string;
+  message: OffdexMessage;
+  state?: TurnState;
+  updatedAt?: string;
+}
+
 export function makeMessage(
   id: string,
   role: OffdexMessage["role"],
@@ -122,4 +129,70 @@ export function makeDemoWorkspaceSnapshot(
       },
     ],
   };
+}
+
+export class WorkspaceSnapshotStore {
+  #snapshot: OffdexWorkspaceSnapshot;
+  #listeners = new Set<(snapshot: OffdexWorkspaceSnapshot) => void>();
+
+  constructor(initialSnapshot: OffdexWorkspaceSnapshot = makeDemoWorkspaceSnapshot()) {
+    this.#snapshot = structuredClone(initialSnapshot);
+  }
+
+  getSnapshot() {
+    return structuredClone(this.#snapshot);
+  }
+
+  replaceSnapshot(snapshot: OffdexWorkspaceSnapshot) {
+    this.#snapshot = structuredClone(snapshot);
+    this.#emit();
+  }
+
+  subscribe(listener: (snapshot: OffdexWorkspaceSnapshot) => void) {
+    this.#listeners.add(listener);
+    return () => {
+      this.#listeners.delete(listener);
+    };
+  }
+
+  setRuntimeTarget(runtimeTarget: RuntimeTarget) {
+    this.#snapshot.pairing.runtimeTarget = runtimeTarget;
+    this.#snapshot.capabilityMatrix.runtimes = runtimeTarget === "desktop"
+      ? ["desktop", "cli"]
+      : ["cli", "desktop"];
+    this.#snapshot.threads = this.#snapshot.threads.map((thread) => ({
+      ...thread,
+      runtimeTarget: thread.id === "thread-linux" ? "cli" : runtimeTarget,
+    }));
+    this.#emit();
+  }
+
+  appendMessage(input: WorkspaceMutationInput) {
+    this.#snapshot.threads = this.#snapshot.threads.map((thread) => {
+      if (thread.id !== input.threadId) {
+        return thread;
+      }
+
+      return {
+        ...thread,
+        state: input.state ?? thread.state,
+        updatedAt: input.updatedAt ?? thread.updatedAt,
+        messages: [...thread.messages, input.message],
+      };
+    });
+    this.#emit();
+  }
+
+  updatePairingState(state: PairingState, lastSeenAt: string) {
+    this.#snapshot.pairing.state = state;
+    this.#snapshot.pairing.lastSeenAt = lastSeenAt;
+    this.#emit();
+  }
+
+  #emit() {
+    const nextSnapshot = this.getSnapshot();
+    for (const listener of this.#listeners) {
+      listener(nextSnapshot);
+    }
+  }
 }

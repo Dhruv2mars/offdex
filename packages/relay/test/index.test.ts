@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RelayRegistry } from "../src";
+import { RelayRegistry, startRelayServer } from "../src";
 
 describe("relay registry", () => {
   test("tracks host and clients per room", () => {
@@ -23,5 +23,12 @@ describe("relay registry", () => {
     relay.disconnectClient("room-2", "client-a");
 
     expect(relay.snapshot("room-2").clientCount).toBe(0);
+  });
+
+  test("starts a relay server on a requested port", () => {
+    const relay = startRelayServer({ host: "127.0.0.1", port: 42555 });
+
+    expect(relay.server.port).toBe(42555);
+    relay.stop();
   });
 });

@@ -1,10 +1,12 @@
 node_modules/
 .turbo/
+**/.turbo/
 .DS_Store
 **/.DS_Store
 
 .expo/
 dist/
+**/dist/
 coverage/
 
 apps/web/.next/

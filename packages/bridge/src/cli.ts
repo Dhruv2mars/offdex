@@ -1,0 +1,20 @@
+#!/usr/bin/env bun
+
+import { startBridgeServer } from "./index";
+
+const port = Number(process.env.OFFDEX_BRIDGE_PORT || "42420");
+const host = process.env.OFFDEX_BRIDGE_HOST || "127.0.0.1";
+
+const bridge = startBridgeServer({ host, port });
+
+console.log(`[offdex-bridge] listening on http://${host}:${port}`);
+
+process.on("SIGINT", () => {
+  bridge.stop();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  bridge.stop();
+  process.exit(0);
+});
