@@ -15,6 +15,7 @@
         "@offdex/protocol": "workspace:*",
         "@react-native-async-storage/async-storage": "2.2.0",
         "expo": "55.0.10-canary-20260328-2049187",
+        "expo-build-properties": "55.0.11-canary-20260328-2049187",
         "expo-status-bar": "55.0.5-canary-20260328-2049187",
         "react": "19.2.0",
         "react-dom": "19.2.0",
@@ -943,6 +944,8 @@
     "expo": ["expo@55.0.10-canary-20260328-2049187", "", { "dependencies": { "@babel/runtime": "^7.20.0", "@expo/cli": "55.0.20-canary-20260328-2049187", "@expo/config": "55.0.12-canary-20260328-2049187", "@expo/config-plugins": "55.0.8-canary-20260328-2049187", "@expo/devtools": "55.0.3-canary-20260328-2049187", "@expo/fingerprint": "0.16.7-canary-20260328-2049187", "@expo/local-build-cache-provider": "55.0.8-canary-20260328-2049187", "@expo/log-box": "55.0.9-canary-20260328-2049187", "@expo/metro": "~54.2.0", "@expo/metro-config": "55.0.12-canary-20260328-2049187", "@expo/vector-icons": "^15.0.2", "@ungap/structured-clone": "^1.3.0", "babel-preset-expo": "55.0.14-canary-20260328-2049187", "expo-asset": "55.0.11-canary-20260328-2049187", "expo-constants": "55.0.10-canary-20260328-2049187", "expo-file-system": "55.0.13-canary-20260328-2049187", "expo-font": "55.0.5-canary-20260328-2049187", "expo-keep-awake": "55.0.5-canary-20260328-2049187", "expo-modules-autolinking": "55.0.13-canary-20260328-2049187", "expo-modules-core": "55.0.19-canary-20260328-2049187", "pretty-format": "^29.7.0", "react-refresh": "^0.14.2", "whatwg-url-minimum": "^0.1.1" }, "peerDependencies": { "@expo/dom-webview": "55.0.4-canary-20260328-2049187", "@expo/metro-runtime": "55.0.8-canary-20260328-2049187", "react": "*", "react-native": "*", "react-native-webview": "*" }, "optionalPeers": ["@expo/dom-webview", "@expo/metro-runtime", "react-native-webview"], "bin": { "expo": "bin/cli", "expo-modules-autolinking": "bin/autolinking", "fingerprint": "bin/fingerprint" } }, "sha512-98gWHe8BWedTDs3f4pK7qjEz58rrJhyByOVPWhdKbmEKmU5xNCS/XUxXV5t2QiLDybR7EWesrOspWiHFSV5eLw=="],
 
     "expo-asset": ["expo-asset@55.0.11-canary-20260328-2049187", "", { "dependencies": { "@expo/image-utils": "0.8.13-canary-20260328-2049187", "expo-constants": "55.0.10-canary-20260328-2049187" }, "peerDependencies": { "expo": "55.0.10-canary-20260328-2049187", "react": "*", "react-native": "*" } }, "sha512-HxNLQFWAs/NNh1gfHjVFH926bozPtv5vEeMiGKhh6unysaW3B85s9aoogram3Y9S8Wk3vcgrkS01/W2DQIE7Fw=="],
+
+    "expo-build-properties": ["expo-build-properties@55.0.11-canary-20260328-2049187", "", { "dependencies": { "@expo/schema-utils": "55.0.3-canary-20260328-2049187", "resolve-from": "^5.0.0", "semver": "^7.6.0" }, "peerDependencies": { "expo": "55.0.10-canary-20260328-2049187" } }, "sha512-qohtPq7I4VtU4ggLTamBdc3vKAuBLfO/bKDCfzw8Y5uACkedrHXptTXxuX12EcupKsCSwOEJ+hql0KmibXsD5w=="],
 
     "expo-constants": ["expo-constants@55.0.10-canary-20260328-2049187", "", { "dependencies": { "@expo/config": "55.0.12-canary-20260328-2049187", "@expo/env": "2.1.2-canary-20260328-2049187" }, "peerDependencies": { "expo": "55.0.10-canary-20260328-2049187", "react-native": "*" } }, "sha512-PzwmIKGUME5eLi/D+rkD2eL5Ce8Y7ZF7pdMsZpnjky0IvBiJwcJa+/muM8/YIsLjmO2VbndWUGhdWde3iz4pQQ=="],
 
