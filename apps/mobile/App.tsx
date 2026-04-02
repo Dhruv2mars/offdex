@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import type { OffdexThread } from "@offdex/protocol";
 import { mobileTabs, offdexTagline } from "./src/app-config";
+import { normalizeBridgeBaseUrl } from "./src/bridge-client";
 import { bridgePreferences } from "./src/bridge-preferences";
 import { BridgeWorkspaceController } from "./src/bridge-workspace-controller";
 
@@ -30,12 +32,28 @@ export default function App() {
     snapshot.threads[0]?.id ?? ""
   );
   const [draft, setDraft] = useState("");
+  const [pairingDraft, setPairingDraft] = useState("");
 
   useEffect(() => {
     const unsubscribe = controller.subscribe((nextState) => setWorkspaceState(nextState));
     void controller.hydrate();
+    const applyPairingUri = (uri: string | null) => {
+      if (!uri?.startsWith("offdex://pair?")) {
+        return;
+      }
+
+      setPairingDraft(uri);
+      void controller.connectFromPairingUri(uri).catch(() => {});
+    };
+
+    void Linking.getInitialURL().then((uri) => applyPairingUri(uri));
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      applyPairingUri(url);
+    });
+
     return () => {
       unsubscribe();
+      subscription.remove();
       controller.dispose();
     };
   }, [controller]);
@@ -119,6 +137,15 @@ export default function App() {
               contentContainerStyle={styles.threadRailContent}
               showsVerticalScrollIndicator={false}
             >
+              {snapshot.pairing.state !== "paired" ? (
+                <View style={styles.onboardingBanner}>
+                  <Text style={styles.onboardingEyebrow}>First run</Text>
+                  <Text style={styles.onboardingTitle}>Pair your Mac first</Text>
+                  <Text style={styles.onboardingBody}>
+                    Open the Pairing tab, use a local bridge address, or scan an Offdex pairing code.
+                  </Text>
+                </View>
+              ) : null}
               <SectionLabel title="Recent threads" subtitle={snapshot.pairing.lastSeenAt} />
               {snapshot.threads.map((thread) => (
                 <Pressable
@@ -263,6 +290,41 @@ export default function App() {
                 {isBusy ? <ActivityIndicator color="#d6ff72" /> : null}
               </View>
               <Text style={styles.bridgeStatusText}>{bridgeStatus}</Text>
+            </View>
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionEyebrow}>Pairing link</Text>
+              <TextInput
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="offdex://pair?bridge=..."
+                placeholderTextColor="#69726d"
+                style={styles.bridgeInput}
+                value={pairingDraft}
+                onChangeText={setPairingDraft}
+              />
+              <View style={styles.bridgeActionRow}>
+                <Pressable
+                  style={styles.connectButton}
+                  onPress={() => {
+                    void controller.connectFromPairingUri(pairingDraft).catch(() => {});
+                  }}
+                >
+                  <Text style={styles.connectButtonText}>Pair from link</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={() => {
+                    void Linking.openURL(
+                      `${normalizeBridgeBaseUrl(bridgeBaseUrl)}/pairing`
+                    ).catch(() => {});
+                  }}
+                >
+                  <Text style={styles.secondaryButtonText}>Open pairing page</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.bridgeStatusText}>
+                Scan the QR on your Mac or paste the same Offdex link here.
+              </Text>
             </View>
             <SectionCard
               eyebrow="Bridge paths"
@@ -502,6 +564,31 @@ const styles = StyleSheet.create({
   threadRailContent: {
     gap: 10,
     paddingBottom: 4,
+  },
+  onboardingBanner: {
+    borderRadius: 24,
+    backgroundColor: "#101412",
+    borderWidth: 1,
+    borderColor: "#233028",
+    padding: 16,
+    gap: 8,
+  },
+  onboardingEyebrow: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  onboardingTitle: {
+    color: "#eef2ef",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  onboardingBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 21,
   },
   sectionLabel: {
     flexDirection: "row",

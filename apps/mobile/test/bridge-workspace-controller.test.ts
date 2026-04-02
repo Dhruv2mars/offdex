@@ -178,6 +178,21 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().snapshot.pairing.state).toBe("reconnecting");
   });
 
+  test("connects from an offdex pairing link", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connectFromPairingUri(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&v=1"
+    );
+
+    expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
+    expect(controller.getState().snapshot.pairing.macName).toBe("studio-macbook");
+  });
+
   test("switches runtime through the connected bridge", async () => {
     const fakeClient = createFakeClient();
     const controller = new BridgeWorkspaceController({

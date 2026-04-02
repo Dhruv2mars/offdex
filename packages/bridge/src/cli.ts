@@ -3,7 +3,7 @@
 import { startBridgeServer } from "./index";
 
 const port = Number(process.env.OFFDEX_BRIDGE_PORT || "42420");
-const host = process.env.OFFDEX_BRIDGE_HOST || "127.0.0.1";
+const host = process.env.OFFDEX_BRIDGE_HOST || "0.0.0.0";
 const bridgeMode = (process.env.OFFDEX_BRIDGE_MODE || "codex") as "demo" | "codex";
 
 const bridge = startBridgeServer({ host, port, bridgeMode });

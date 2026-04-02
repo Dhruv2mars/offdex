@@ -1,8 +1,10 @@
 import { hostname, networkInterfaces } from "node:os";
 import type { ServerWebSocket } from "bun";
+import QRCode from "qrcode";
 import {
   type OffdexPairingProfile,
   WorkspaceSnapshotStore,
+  encodePairingUri,
   makeDemoWorkspaceSnapshot,
   makeMessage,
   type RuntimeTarget,
@@ -104,6 +106,13 @@ export interface BridgeServerOptions {
   bridgeMode?: BridgeMode;
 }
 
+export interface BridgePairingPayload {
+  bridgeUrl: string;
+  bridgeHints: string[];
+  macName: string;
+  pairingUri: string;
+}
+
 type BridgeAddressRecord = {
   address: string;
   family: string | number;
@@ -148,6 +157,79 @@ export function createBridgeWorkspaceStore(
   return new WorkspaceSnapshotStore(makeDemoWorkspaceSnapshot(runtimeTarget, pairingProfile));
 }
 
+export function createBridgePairingPayload(
+  pairingProfile: OffdexPairingProfile
+): BridgePairingPayload {
+  return {
+    bridgeUrl: pairingProfile.bridgeUrl,
+    bridgeHints: pairingProfile.bridgeHints,
+    macName: pairingProfile.macName,
+    pairingUri: encodePairingUri({
+      bridgeUrl: pairingProfile.bridgeUrl,
+      macName: pairingProfile.macName,
+    }),
+  };
+}
+
+async function renderPairingPage(payload: BridgePairingPayload) {
+  const qrSvg = await QRCode.toString(payload.pairingUri, {
+    type: "svg",
+    margin: 1,
+    width: 240,
+    color: {
+      dark: "#0b0d0c",
+      light: "#f2f6f3",
+    },
+  });
+
+  const hints = payload.bridgeHints
+    .map(
+      (hint) =>
+        `<li style="margin:0 0 10px;"><code style="font-size:14px;color:#dff5e5;background:#0f1311;padding:6px 8px;border-radius:10px;">${hint}</code></li>`
+    )
+    .join("");
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offdex Pairing</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background:#0b0d0c; color:#eef2ef; }
+      main { max-width:960px; margin:0 auto; padding:32px 20px 48px; }
+      .eyebrow { color:#d6ff72; letter-spacing:.28em; text-transform:uppercase; font-size:12px; font-weight:800; }
+      h1 { font-size:44px; line-height:1; margin:16px 0 14px; letter-spacing:-.05em; }
+      p { color:#98a39d; line-height:1.7; font-size:16px; }
+      .grid { display:grid; gap:20px; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); margin-top:28px; }
+      .card { border:1px solid #1c221f; background:#131715; border-radius:28px; padding:22px; }
+      .qr svg { width:100%; height:auto; display:block; border-radius:18px; background:#f2f6f3; padding:18px; box-sizing:border-box; }
+      code { word-break:break-all; }
+      @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } h1 { font-size:36px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Offdex Pairing</div>
+      <h1>Scan once. Stay local.</h1>
+      <p>Use your phone camera or paste the pairing link into Offdex. This page stays local to your Mac and points the app at your bridge.</p>
+      <div class="grid">
+        <section class="card qr">${qrSvg}</section>
+        <section class="card">
+          <div class="eyebrow">Pairing link</div>
+          <p><code>${payload.pairingUri}</code></p>
+          <div class="eyebrow" style="margin-top:20px;">Machine</div>
+          <p>${payload.macName}</p>
+          <div class="eyebrow" style="margin-top:20px;">Local bridge paths</div>
+          <ul style="padding-left:18px;margin:0;">${hints}</ul>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>`;
+}
+
 export function recordBridgeTurn(
   workspaceStore: WorkspaceSnapshotStore,
   input: BridgeTurnInput
@@ -190,7 +272,7 @@ export function recordBridgeTurn(
 }
 
 export function startBridgeServer(options: BridgeServerOptions = {}) {
-  const host = options.host ?? "127.0.0.1";
+  const host = options.host ?? "0.0.0.0";
   const port = options.port ?? 42420;
   const bridgeMode = options.bridgeMode ?? "demo";
   const desktopAvailable =
@@ -231,6 +313,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     headers.set("access-control-allow-origin", "*");
     headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
     headers.set("access-control-allow-headers", "content-type");
+    headers.set("access-control-allow-private-network", "true");
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
@@ -282,6 +365,26 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
               )
             )
           );
+      }
+
+      if (url.pathname === "/pairing.json") {
+        return withCors(
+          Response.json(createBridgePairingPayload(workspaceStore.getSnapshot().pairing))
+        );
+      }
+
+      if (url.pathname === "/pairing") {
+        return renderPairingPage(
+          createBridgePairingPayload(workspaceStore.getSnapshot().pairing)
+        ).then((html) =>
+          withCors(
+            new Response(html, {
+              headers: {
+                "content-type": "text/html; charset=utf-8",
+              },
+            })
+          )
+        );
       }
 
       if (url.pathname === "/runtime" && request.method === "POST") {

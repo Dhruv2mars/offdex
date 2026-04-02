@@ -1,4 +1,8 @@
-import type { OffdexWorkspaceSnapshot, RuntimeTarget } from "@offdex/protocol";
+import {
+  decodePairingUri,
+  type OffdexWorkspaceSnapshot,
+  type RuntimeTarget,
+} from "@offdex/protocol";
 import {
   fetchBridgeHealth,
   fetchBridgeSnapshot,
@@ -118,6 +122,15 @@ export class BridgeWorkspaceController {
 
   setBridgeBaseUrl(value: string) {
     this.#setState({ bridgeBaseUrl: value });
+  }
+
+  async connectFromPairingUri(uri: string) {
+    const payload = decodePairingUri(uri);
+    this.#patchPairingProfile({
+      bridgeUrl: payload.bridgeUrl,
+      macName: payload.macName,
+    });
+    return this.connect(payload.bridgeUrl);
   }
 
   async connect(bridgeBaseUrl = this.#state.bridgeBaseUrl) {
