@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "986974920d16",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T05:37:09.762889Z",
+  "branch": "feat/reconnect-recovery",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "25b486238927",
+  "token_usage": {
+    "input_tokens": 58858323,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 56878976,
+    "output_tokens": 285304,
+    "api_call_count": 469
+  },
+  "session_metrics": {
+    "turn_count": 1
+  }
+}
