@@ -4,6 +4,7 @@ import {
   applyCodexNotification,
   buildCodexExecutableCandidates,
   createCodexSnapshot,
+  findActiveTurnId,
   mapCodexThreadToOffdexThread,
   resolveCodexExecutable,
 } from "../src";
@@ -109,6 +110,32 @@ describe("codex snapshot adapter", () => {
     expect(snapshot.threads).toHaveLength(1);
     expect(snapshot.threads[0]?.id).toBe(NEW_THREAD_ID);
     expect(snapshot.threads[0]?.title).toContain("New");
+  });
+
+  test("finds the latest active turn in a thread", () => {
+    const thread = {
+      id: "thread-run",
+      preview: "Live thread",
+      ephemeral: false,
+      modelProvider: "openai",
+      createdAt: 1774702996,
+      updatedAt: 1774703010,
+      status: { type: "active" },
+      path: null,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+      cliVersion: "0.116.0",
+      source: "appServer",
+      agentNickname: null,
+      agentRole: null,
+      gitInfo: null,
+      name: "Live thread",
+      turns: [
+        { id: "turn-done", items: [], status: "completed", error: null },
+        { id: "turn-active", items: [], status: "inProgress", error: null },
+      ],
+    } as const;
+
+    expect(findActiveTurnId(thread)).toBe("turn-active");
   });
 
   test("merges live agent deltas into one assistant row", () => {

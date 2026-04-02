@@ -214,11 +214,19 @@ export default function App() {
                       <Pressable
                         style={[
                           styles.sendButton,
-                          !draft.trim() && styles.sendButtonDisabled,
+                          selectedThread.state !== "running" &&
+                            !draft.trim() &&
+                            styles.sendButtonDisabled,
+                          selectedThread.state === "running" && styles.stopButton,
                         ]}
-                        disabled={!draft.trim()}
+                        disabled={selectedThread.state !== "running" && !draft.trim()}
                         onPress={() => {
                           void (async () => {
+                            if (selectedThread.state === "running") {
+                              await controller.interruptThread(selectedThread.id).catch(() => {});
+                              return;
+                            }
+
                             const nextDraft = draft;
                             setDraft("");
                             await controller.sendTurn(selectedThread.id, nextDraft).catch(() => {
@@ -228,7 +236,7 @@ export default function App() {
                         }}
                       >
                         <Text style={styles.sendButtonText}>
-                          {selectedThread.state === "running" ? "Queue turn" : "Send"}
+                          {selectedThread.state === "running" ? "Stop" : "Send"}
                         </Text>
                       </Pressable>
                     </View>
@@ -783,6 +791,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#d6ff72",
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  stopButton: {
+    backgroundColor: "#ff8a63",
   },
   sendButtonDisabled: {
     opacity: 0.45,

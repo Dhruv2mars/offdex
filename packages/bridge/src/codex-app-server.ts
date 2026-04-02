@@ -238,6 +238,10 @@ function sortThreadsByUpdatedAt(threads: CodexThread[]) {
   return [...threads].sort((left, right) => right.updatedAt - left.updatedAt);
 }
 
+export function findActiveTurnId(thread: CodexThread) {
+  return [...thread.turns].reverse().find((turn) => turn.status === "inProgress")?.id ?? null;
+}
+
 function makePlaceholderThread(runtimeTarget: RuntimeTarget): OffdexThread {
   return {
     id: NEW_THREAD_ID,
@@ -679,8 +683,6 @@ export class CodexAppServerClient {
         "app-server",
         "--listen",
         wsUrl,
-        "--session-source",
-        "appServer",
       ],
       {
         stdout: "pipe",
@@ -810,6 +812,7 @@ export interface CodexBridgeRuntimeOptions {
 export class CodexBridgeRuntime {
   #unsubscribe: (() => void) | null = null;
   #runtimeTarget: RuntimeTarget;
+  #activeTurnIdByThread = new Map<string, string>();
   readonly client = new CodexAppServerClient();
 
   constructor(
@@ -826,6 +829,11 @@ export class CodexBridgeRuntime {
     await this.#ensureClient();
     const listed = await this.client.listThreads(this.options.cwd);
     const threads = await Promise.all(listed.map((thread) => this.client.readThread(thread.id)));
+    this.#activeTurnIdByThread = new Map(
+      threads
+        .map((thread) => [thread.id, findActiveTurnId(thread)] as const)
+        .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+    );
     const snapshot = createCodexSnapshot(
       this.#runtimeTarget,
       threads,
@@ -866,6 +874,21 @@ export class CodexBridgeRuntime {
     return this.options.workspaceStore.getSnapshot();
   }
 
+  async interruptThread(threadId: string) {
+    await this.#ensureClient();
+    const activeTurnId =
+      this.#activeTurnIdByThread.get(threadId) ??
+      findActiveTurnId(await this.client.readThread(threadId));
+
+    if (!activeTurnId) {
+      return this.options.workspaceStore.getSnapshot();
+    }
+
+    await this.client.interruptTurn(threadId, activeTurnId);
+    this.#activeTurnIdByThread.delete(threadId);
+    return this.options.workspaceStore.getSnapshot();
+  }
+
   async close() {
     this.#unsubscribe?.();
     this.#unsubscribe = null;
@@ -880,6 +903,23 @@ export class CodexBridgeRuntime {
     }
 
     this.#unsubscribe = this.client.subscribe((notification) => {
+      if (notification.method === "turn/started") {
+        const payload = (notification as TurnStartedNotification).params;
+        this.#activeTurnIdByThread.set(payload.threadId, payload.turn.id);
+      }
+
+      if (notification.method === "turn/completed") {
+        const payload = (notification as TurnCompletedNotification).params;
+        this.#activeTurnIdByThread.delete(payload.threadId);
+      }
+
+      if (notification.method === "error") {
+        const payload = (notification as ErrorNotification).params;
+        if (!payload.willRetry) {
+          this.#activeTurnIdByThread.delete(payload.threadId);
+        }
+      }
+
       const nextSnapshot = applyCodexNotification(
         this.options.workspaceStore.getSnapshot(),
         notification,
