@@ -1,4 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Clipboard from "expo-clipboard";
 import { StatusBar } from "expo-status-bar";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import {
@@ -21,8 +22,19 @@ import { mobileTabs, offdexTagline } from "./src/app-config";
 import { normalizeBridgeBaseUrl } from "./src/bridge-client";
 import { bridgePreferences } from "./src/bridge-preferences";
 import { BridgeWorkspaceController } from "./src/bridge-workspace-controller";
+import {
+  feedbackError,
+  feedbackSelection,
+  feedbackSuccess,
+  feedbackWarning,
+} from "./src/feedback";
 import { extractOffdexPairingUri } from "./src/pairing-scan";
-import { getChatReadiness, getMachineAvailabilityLabel } from "./src/session-readiness";
+import {
+  getChatReadiness,
+  getMachineAvailabilityLabel,
+  getMachineConnectionAction,
+  getPairingGuide,
+} from "./src/session-readiness";
 
 type AppTab = (typeof mobileTabs)[number];
 
@@ -73,10 +85,12 @@ export default function App() {
       void controller
         .connectFromPairingUri(pairingUri)
         .then(() => {
+          void feedbackSuccess();
           setScannerVisible(false);
           setScanLocked(false);
         })
         .catch((error) => {
+          void feedbackError();
           setScanStatus(error instanceof Error ? error.message : "Pairing failed.");
         });
     };
@@ -95,7 +109,9 @@ export default function App() {
         return;
       }
 
-      void controller.resume();
+      void controller.resume().catch(() => {
+        void feedbackError();
+      });
     });
 
     return () => {
@@ -176,8 +192,17 @@ export default function App() {
     codexReady,
     isDraftThread,
   });
+  const pairingGuide = getPairingGuide({
+    pairingState: snapshot.pairing.state,
+    connectionState,
+    trustedPairing,
+    codexReady,
+    hasManagedSession: Boolean(managedSession),
+    machineCount: machines.length,
+  });
 
   const openScanner = () => {
+    void feedbackSelection();
     setScanLocked(false);
     setScanStatus(null);
     setScannerVisible(true);
@@ -193,6 +218,7 @@ export default function App() {
 
     const pairingUri = extractOffdexPairingUri(value);
     if (!pairingUri) {
+      void feedbackError();
       setScanLocked(true);
       setScanStatus("That QR code is not an Offdex pairing code.");
       return;
@@ -204,12 +230,115 @@ export default function App() {
     void controller
       .connectFromPairingUri(pairingUri)
       .then(() => {
+        void feedbackSuccess();
         setScannerVisible(false);
         setScanLocked(false);
         setScanStatus(null);
       })
       .catch((error) => {
+        void feedbackError();
         setScanStatus(error instanceof Error ? error.message : "Pairing failed.");
+      });
+  };
+
+  const disconnectPhone = () => {
+    void feedbackWarning();
+    setPairingDraft("");
+    controller.disconnect();
+  };
+
+  const copyValue = (value: string) => {
+    void Clipboard.setStringAsync(value)
+      .then(() => {
+        setScanStatus("Copied to clipboard.");
+        return feedbackSuccess();
+      })
+      .catch(() => {
+        void feedbackError();
+      });
+  };
+
+  const runPairingPrimaryAction = () => {
+    void feedbackSelection();
+    switch (pairingGuide.primaryAction) {
+      case "scan":
+        setActiveTab("Pairing");
+        openScanner();
+        return;
+      case "nearby":
+      case "macStatus":
+        setActiveTab("Pairing");
+        return;
+      case "refreshMachines":
+        void controller
+          .refreshManagedMachines()
+          .then(() => {
+            void feedbackSuccess();
+          })
+          .catch(() => {
+            void feedbackError();
+          });
+        return;
+      case "refreshNow":
+        if (managedSession || connectionState === "degraded") {
+          void controller
+            .resume()
+            .then(() => {
+              void feedbackSuccess();
+            })
+            .catch(() => {
+              void feedbackError();
+            });
+          return;
+        }
+
+        if (isLiveConnection) {
+          void controller
+            .refresh()
+            .then(() => {
+              void feedbackSuccess();
+            })
+            .catch(() => {
+              void feedbackError();
+            });
+          return;
+        }
+
+        void controller
+          .connect()
+          .then(() => {
+            void feedbackSuccess();
+          })
+          .catch(() => {
+            void feedbackError();
+          });
+    }
+  };
+
+  const runPairingSecondaryAction = () => {
+    if (!pairingGuide.secondaryAction) {
+      return;
+    }
+
+    void feedbackSelection();
+    switch (pairingGuide.secondaryAction) {
+      case "nearby":
+        setActiveTab("Pairing");
+        return;
+      case "disconnect":
+        disconnectPhone();
+    }
+  };
+
+  const connectTrustedMachine = (machineId: string) => {
+    void feedbackSelection();
+    void controller
+      .connectManagedMachine(machineId)
+      .then(() => {
+        void feedbackSuccess();
+      })
+      .catch(() => {
+        void feedbackError();
       });
   };
 
@@ -234,6 +363,7 @@ export default function App() {
                     <Pressable
                       key={target}
                       onPress={() => {
+                        void feedbackSelection();
                         startTransition(() => {
                           void controller.setRuntimeTarget(target).catch(() => {});
                         });
@@ -265,7 +395,10 @@ export default function App() {
               {mobileTabs.map((tab) => (
                 <Pressable
                   key={tab}
-                  onPress={() => setActiveTab(tab)}
+                  onPress={() => {
+                    void feedbackSelection();
+                    setActiveTab(tab);
+                  }}
                   style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
                 >
                   <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
@@ -280,6 +413,7 @@ export default function App() {
             <ScrollView
               style={styles.threadRail}
               contentContainerStyle={styles.threadRailContent}
+              contentInsetAdjustmentBehavior="automatic"
               showsVerticalScrollIndicator={false}
             >
               <Pressable
@@ -304,6 +438,21 @@ export default function App() {
                   <Text style={styles.onboardingEyebrow}>{chatReadiness.onboarding.eyebrow}</Text>
                   <Text style={styles.onboardingTitle}>{chatReadiness.onboarding.title}</Text>
                   <Text style={styles.onboardingBody}>{chatReadiness.onboarding.body}</Text>
+                  <View style={styles.inlineActionRow}>
+                    <Pressable style={styles.connectButton} onPress={runPairingPrimaryAction}>
+                      <Text style={styles.connectButtonText}>{pairingGuide.primaryLabel}</Text>
+                    </Pressable>
+                    {pairingGuide.secondaryLabel ? (
+                      <Pressable
+                        style={styles.secondaryButton}
+                        onPress={runPairingSecondaryAction}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          {pairingGuide.secondaryLabel}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
               ) : null}
               {visibleThreads.length > 0 ? (
@@ -381,6 +530,7 @@ export default function App() {
                   <ScrollView
                     style={styles.messageList}
                     contentContainerStyle={styles.messageListContent}
+                    contentInsetAdjustmentBehavior="automatic"
                     showsVerticalScrollIndicator={false}
                   >
                     <View style={styles.readinessCard}>
@@ -436,11 +586,13 @@ export default function App() {
                         onPress={() => {
                           void (async () => {
                             if (!isLiveConnection || !codexReady) {
+                              void feedbackSelection();
                               setActiveTab("Pairing");
                               return;
                             }
 
                             if (activeThread.state === "running") {
+                              void feedbackWarning();
                               await controller.interruptThread(activeThread.id).catch(() => {});
                               return;
                             }
@@ -451,9 +603,11 @@ export default function App() {
                               setAwaitingNewThread(true);
                             }
 
+                            void feedbackSelection();
                             await controller
                               .sendTurn(activeThread.id, nextDraft)
                               .then((nextState) => {
+                                void feedbackSuccess();
                                 if (
                                   activeThread.id === OFFDEX_NEW_THREAD_ID &&
                                   nextState.snapshot.threads[0]?.id &&
@@ -464,6 +618,7 @@ export default function App() {
                                 }
                               })
                               .catch(() => {
+                                void feedbackError();
                                 setAwaitingNewThread(false);
                                 setDraft(nextDraft);
                               });
@@ -481,17 +636,24 @@ export default function App() {
                 </>
               ) : (
                 <View style={styles.emptyPane}>
-                  <Text style={styles.emptyPaneEyebrow}>First run</Text>
-                  <Text style={styles.emptyPaneTitle}>Connect to your Mac</Text>
-                  <Text style={styles.emptyPaneBody}>
-                    Offdex stays local. Pair the bridge, then your real Codex threads will show up here live.
-                  </Text>
-                  <Pressable
-                    onPress={() => setActiveTab("Pairing")}
-                    style={styles.connectButton}
-                  >
-                    <Text style={styles.connectButtonText}>Open pairing</Text>
-                  </Pressable>
+                  <Text style={styles.emptyPaneEyebrow}>{pairingGuide.eyebrow}</Text>
+                  <Text style={styles.emptyPaneTitle}>{chatReadiness.paneStatus.title}</Text>
+                  <Text style={styles.emptyPaneBody}>{chatReadiness.paneStatus.body}</Text>
+                  <View style={styles.inlineActionRow}>
+                    <Pressable onPress={runPairingPrimaryAction} style={styles.connectButton}>
+                      <Text style={styles.connectButtonText}>{pairingGuide.primaryLabel}</Text>
+                    </Pressable>
+                    {pairingGuide.secondaryLabel ? (
+                      <Pressable
+                        style={styles.secondaryButton}
+                        onPress={runPairingSecondaryAction}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          {pairingGuide.secondaryLabel}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
               )}
             </View>
@@ -502,8 +664,29 @@ export default function App() {
               <ScrollView
                 style={styles.stackPanel}
                 contentContainerStyle={styles.stackPanelContent}
+                contentInsetAdjustmentBehavior="automatic"
                 showsVerticalScrollIndicator={false}
               >
+                <View style={styles.guideCard}>
+                  <Text style={styles.guideEyebrow}>{pairingGuide.eyebrow}</Text>
+                  <Text style={styles.guideTitle}>{pairingGuide.title}</Text>
+                  <Text style={styles.guideBody}>{pairingGuide.body}</Text>
+                  <View style={styles.inlineActionRow}>
+                    <Pressable style={styles.connectButton} onPress={runPairingPrimaryAction}>
+                      <Text style={styles.connectButtonText}>{pairingGuide.primaryLabel}</Text>
+                    </Pressable>
+                    {pairingGuide.secondaryLabel ? (
+                      <Pressable
+                        style={styles.secondaryButton}
+                        onPress={runPairingSecondaryAction}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          {pairingGuide.secondaryLabel}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
                 <SectionCard
                   eyebrow="Current machine"
                   title={snapshot.pairing.macName}
@@ -520,29 +703,67 @@ export default function App() {
                       : "Scan the QR on a machine once. After that, Offdex stores a trusted device session and your machines appear here automatically."}
                   </Text>
                   {machines.length > 0 ? (
-                    <View style={styles.hintWrap}>
-                      {machines.map((machine) => (
-                        <Pressable
-                          key={machine.machineId}
-                          onPress={() => {
-                            void controller.connectManagedMachine(machine.machineId).catch(() => {});
-                          }}
-                          style={[
-                            styles.hintChip,
-                            machine.machineId === managedSession?.machineId && styles.hintChipActive,
-                          ]}
-                        >
-                          <Text style={styles.hintChipText}>
-                            {machine.macName} ·{" "}
-                            {getMachineAvailabilityLabel({
-                              machine,
-                              selectedMachineId: managedSession?.machineId ?? null,
-                              connectionState,
-                              codexReady,
-                            })}
-                          </Text>
-                        </Pressable>
-                      ))}
+                    <View style={styles.machineList}>
+                      {machines.map((machine) => {
+                        const availabilityLabel = getMachineAvailabilityLabel({
+                          machine,
+                          selectedMachineId: managedSession?.machineId ?? null,
+                          connectionState,
+                          codexReady,
+                        });
+                        const machineAction = getMachineConnectionAction({
+                          machine,
+                          selectedMachineId: managedSession?.machineId ?? null,
+                          connectionState,
+                          codexReady,
+                        });
+
+                        return (
+                          <View key={machine.machineId} style={styles.machineCard}>
+                            <View style={styles.machineCardHeader}>
+                              <View style={styles.machineCardCopy}>
+                                <Text style={styles.machineCardTitle}>{machine.macName}</Text>
+                                <Text style={styles.machineCardMeta}>
+                                  {availabilityLabel} · {machine.lastSeenAt}
+                                </Text>
+                              </View>
+                              <Pill
+                                label={machine.runtimeTarget === "cli" ? "CLI" : "Desktop"}
+                                tone="neutral"
+                              />
+                            </View>
+                            <Text style={styles.machineCardBody}>
+                              {machine.machineId === managedSession?.machineId
+                                ? codexReady
+                                  ? "This is the machine currently driving the live session."
+                                  : "This is the active machine, but Codex there still needs sign-in."
+                                : machine.online
+                                  ? "Trusted and online. You can move this phone back onto it immediately."
+                                  : "Trusted, but currently offline. Offdex will use it again once it comes back online."}
+                            </Text>
+                            <View style={styles.inlineActionRow}>
+                              <Pressable
+                                style={[
+                                  styles.machineActionButton,
+                                  machineAction.disabled && styles.machineActionButtonDisabled,
+                                ]}
+                                disabled={machineAction.disabled}
+                                onPress={() => connectTrustedMachine(machine.machineId)}
+                              >
+                                <Text style={styles.machineActionButtonText}>
+                                  {machineAction.label}
+                                </Text>
+                              </Pressable>
+                              <Pressable
+                                style={styles.secondaryButton}
+                                onPress={() => copyValue(machine.localBridgeUrl)}
+                              >
+                                <Text style={styles.secondaryButtonText}>Copy path</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        );
+                      })}
                     </View>
                   ) : null}
                 </View>
@@ -597,11 +818,19 @@ export default function App() {
                       style={styles.connectButton}
                       onPress={() => {
                         if (isLiveConnection) {
-                          void controller.refresh().catch(() => {});
+                          void controller.refresh().then(() => {
+                            void feedbackSuccess();
+                          }).catch(() => {
+                            void feedbackError();
+                          });
                           return;
                         }
 
-                        void controller.connect().catch(() => {});
+                        void controller.connect().then(() => {
+                          void feedbackSuccess();
+                        }).catch(() => {
+                          void feedbackError();
+                        });
                       }}
                     >
                       <Text style={styles.connectButtonText}>{pairingPrimaryLabel}</Text>
@@ -610,13 +839,13 @@ export default function App() {
                       style={styles.secondaryButton}
                       onPress={() => {
                         if (isLiveConnection || connectionState !== "idle" || connectedBridgeUrl) {
-                          controller.disconnect();
+                          disconnectPhone();
                           return;
                         }
 
                         controller.setBridgeBaseUrl("http://127.0.0.1:42420");
                         setPairingDraft("");
-                        controller.disconnect();
+                        disconnectPhone();
                       }}
                     >
                       <Text style={styles.secondaryButtonText}>{pairingSecondaryLabel}</Text>
@@ -640,7 +869,11 @@ export default function App() {
                     <Pressable
                       style={styles.connectButton}
                       onPress={() => {
-                        void controller.connectFromPairingUri(pairingDraft).catch(() => {});
+                        void controller.connectFromPairingUri(pairingDraft).then(() => {
+                          void feedbackSuccess();
+                        }).catch(() => {
+                          void feedbackError();
+                        });
                       }}
                     >
                       <Text style={styles.connectButtonText}>Pair from link</Text>
@@ -670,11 +903,15 @@ export default function App() {
                 />
                 <View style={styles.sectionCard}>
                   <Text style={styles.sectionEyebrow}>Local options</Text>
+                  <Text style={styles.sectionBody}>
+                    Tap a path to use it. Hold a path to copy it.
+                  </Text>
                   <View style={styles.hintWrap}>
                     {snapshot.pairing.bridgeHints.map((hint) => (
                       <Pressable
                         key={hint}
                         onPress={() => controller.setBridgeBaseUrl(hint)}
+                        onLongPress={() => copyValue(hint)}
                         style={styles.hintChip}
                       >
                         <Text style={styles.hintChipText}>{hint}</Text>
@@ -689,6 +926,7 @@ export default function App() {
               <ScrollView
                 style={styles.stackPanel}
                 contentContainerStyle={styles.stackPanelContent}
+                contentInsetAdjustmentBehavior="automatic"
                 showsVerticalScrollIndicator={false}
               >
                 <SectionCard
@@ -1085,6 +1323,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
+  inlineActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 4,
+  },
   sectionLabel: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1371,6 +1615,31 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 8,
   },
+  guideCard: {
+    borderRadius: 28,
+    backgroundColor: "#171c19",
+    borderWidth: 1,
+    borderColor: "#324138",
+    padding: 18,
+    gap: 8,
+  },
+  guideEyebrow: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  guideTitle: {
+    color: "#eef2ef",
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  guideBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 21,
+  },
   sectionCard: {
     borderRadius: 28,
     backgroundColor: "#131715",
@@ -1442,6 +1711,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  machineList: {
+    gap: 12,
+  },
+  machineCard: {
+    borderRadius: 24,
+    backgroundColor: "#101412",
+    borderWidth: 1,
+    borderColor: "#1f2522",
+    padding: 16,
+    gap: 10,
+  },
+  machineCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  machineCardCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  machineCardTitle: {
+    color: "#eef2ef",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  machineCardMeta: {
+    color: "#8e9893",
+    fontSize: 13,
+    textTransform: "capitalize",
+  },
+  machineCardBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  machineActionButton: {
+    borderRadius: 999,
+    backgroundColor: "#d6ff72",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  machineActionButtonDisabled: {
+    opacity: 0.45,
+  },
+  machineActionButtonText: {
+    color: "#0b0d0c",
+    fontSize: 13,
+    fontWeight: "800",
   },
   hintChip: {
     borderRadius: 18,
