@@ -15,8 +15,11 @@
     "dev:relay": "turbo dev --filter=@offdex/relay",
     "dev:web": "turbo dev --filter=@offdex/web",
     "lint": "turbo lint",
+    "pack:npm": "npm pack ./packages/npm",
+    "postinstall": "node scripts/patch-react-native-gradle-plugin.mjs",
     "release:tag": "node scripts/release-tag.mjs",
     "test": "turbo test",
+    "test:install-smoke": "node scripts/smoke-install.mjs",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {

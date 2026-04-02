@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import {
   assertSupportedPlatform,
   isSupportedPlatform,
-  supportedPlatformList
+  supportedPlatformList,
+  targetForPlatform,
 } from "../bin/install-lib.js";
 
 test("npm installer supports the expected public targets", () => {
@@ -28,4 +29,12 @@ test("npm installer rejects unsupported targets clearly", () => {
     /unsupported_platform:win32-arm64/
   );
   assert.equal(isSupportedPlatform("win32", "arm64"), false);
+});
+
+test("npm installer exposes the compile target for supported platforms", () => {
+  assert.equal(targetForPlatform("darwin", "arm64"), "bun-darwin-arm64");
+  assert.equal(targetForPlatform("darwin", "x64"), "bun-darwin-x64");
+  assert.equal(targetForPlatform("linux", "arm64"), "bun-linux-arm64");
+  assert.equal(targetForPlatform("linux", "x64"), "bun-linux-x64-baseline");
+  assert.equal(targetForPlatform("win32", "x64"), "bun-windows-x64-baseline");
 });

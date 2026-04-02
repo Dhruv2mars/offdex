@@ -40,6 +40,14 @@ offdex
 
 The npm package downloads the matching native bridge runtime for the current platform from GitHub Releases.
 
+CLI usage:
+
+```bash
+offdex bridge --host 0.0.0.0 --port 42420
+offdex bridge --control-plane-url https://control.example.com
+offdex --help
+```
+
 For the managed remote path, run the bridge against the control plane:
 
 ```bash
@@ -99,7 +107,25 @@ The npm installer pulls the correct release asset for the current platform when 
 npm install -g @dhruv2mars/offdex
 ```
 
+Local npm package smoke check:
+
+```bash
+bun run test:install-smoke
+```
+
 Windows `arm64` is not shipped yet because Bun does not currently support compiling that target.
+
+If you want GitHub Actions to sign Android builds automatically, the repo needs these secrets:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+If you want the tag workflow to publish npm automatically, pick one:
+
+- npm trusted publisher for `Dhruv2mars/offdex`
+- `NPM_TOKEN` GitHub secret
 
 ### Managed Remote
 
