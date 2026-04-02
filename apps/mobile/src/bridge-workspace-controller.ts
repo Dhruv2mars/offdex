@@ -6,6 +6,7 @@ import {
 import {
   fetchBridgeHealth,
   fetchBridgeSnapshot,
+  interruptBridgeTurn,
   normalizeBridgeBaseUrl,
   sendBridgeTurn,
   selectBridgeRuntime,
@@ -31,6 +32,10 @@ export interface BridgeClient {
     threadId: string,
     body: string
   ): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
+  interruptBridgeTurn(
+    baseUrl: string,
+    threadId: string
+  ): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
   subscribeToBridgeSnapshots(
     baseUrl: string,
     handlers: {
@@ -55,6 +60,7 @@ const defaultClient: BridgeClient = {
   fetchBridgeSnapshot,
   selectBridgeRuntime,
   sendBridgeTurn,
+  interruptBridgeTurn,
   subscribeToBridgeSnapshots,
 };
 
@@ -264,6 +270,29 @@ export class BridgeWorkspaceController {
     } catch (error) {
       this.#setState({
         bridgeStatus: error instanceof Error ? error.message : "Bridge turn failed.",
+      });
+      throw error;
+    }
+  }
+
+  async interruptThread(threadId: string) {
+    if (!this.#state.connectedBridgeUrl || !threadId) {
+      return this.getState();
+    }
+
+    try {
+      const result = await this.#client.interruptBridgeTurn(
+        this.#state.connectedBridgeUrl,
+        threadId
+      );
+      this.#replaceSnapshot(result.snapshot);
+      this.#setState({
+        bridgeStatus: `Stopping ${threadId.slice(0, 6)}...`,
+      });
+      return this.getState();
+    } catch (error) {
+      this.#setState({
+        bridgeStatus: error instanceof Error ? error.message : "Bridge interrupt failed.",
       });
       throw error;
     }

@@ -96,6 +96,24 @@ export async function sendBridgeTurn(
   }>;
 }
 
+export async function interruptBridgeTurn(baseUrl: string, threadId: string) {
+  const response = await fetch(`${normalizeBridgeBaseUrl(baseUrl)}/interrupt`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ threadId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Bridge interrupt failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<{
+    snapshot: OffdexWorkspaceSnapshot;
+  }>;
+}
+
 export function subscribeToBridgeSnapshots(
   baseUrl: string,
   handlers: {

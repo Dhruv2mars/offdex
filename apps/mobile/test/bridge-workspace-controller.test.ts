@@ -21,6 +21,7 @@ function createFakePreferences(savedBridgeUrl: string | null = null): BridgePref
 
 function createFakeClient() {
   const snapshot = makeDemoWorkspaceSnapshot("cli");
+  let interruptedThreadId: string | null = null;
   let liveHandlers:
     | {
         onSnapshot: (nextSnapshot: typeof snapshot) => void;
@@ -77,6 +78,22 @@ function createFakeClient() {
         },
       };
     },
+    async interruptBridgeTurn(_baseUrl, threadId) {
+      interruptedThreadId = threadId;
+      return {
+        snapshot: {
+          ...snapshot,
+          threads: snapshot.threads.map((thread, index) =>
+            index === 0
+              ? {
+                  ...thread,
+                  state: "idle",
+                }
+              : thread
+          ),
+        },
+      };
+    },
     subscribeToBridgeSnapshots(_baseUrl, handlers) {
       liveHandlers = handlers;
       return () => {
@@ -92,6 +109,9 @@ function createFakeClient() {
     },
     emitStatus(status: "open" | "closed" | "error") {
       liveHandlers?.onStatusChange?.(status);
+    },
+    getInterruptedThreadId() {
+      return interruptedThreadId;
     },
   };
 }
@@ -191,6 +211,20 @@ describe("bridge workspace controller", () => {
 
     expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
     expect(controller.getState().snapshot.pairing.macName).toBe("studio-macbook");
+  });
+
+  test("interrupts a running thread through the bridge", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    await controller.interruptThread("thread-foundation");
+
+    expect(fakeClient.getInterruptedThreadId()).toBe("thread-foundation");
+    expect(controller.getState().bridgeStatus).toContain("Stopping");
   });
 
   test("switches runtime through the connected bridge", async () => {

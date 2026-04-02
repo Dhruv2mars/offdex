@@ -15,6 +15,7 @@ import {
   applyCodexNotification,
   buildCodexExecutableCandidates,
   createCodexSnapshot,
+  findActiveTurnId,
   mapCodexThreadToOffdexThread,
   resolveCodexExecutable,
 } from "./codex-app-server";
@@ -26,6 +27,7 @@ export {
   applyCodexNotification,
   buildCodexExecutableCandidates,
   createCodexSnapshot,
+  findActiveTurnId,
   mapCodexThreadToOffdexThread,
   resolveCodexExecutable,
 } from "./codex-app-server";
@@ -492,6 +494,37 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
               snapshot: workspaceStore.getSnapshot(),
             })
           );
+        });
+      }
+
+      if (url.pathname === "/interrupt" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string };
+
+          if (codexRuntime) {
+            try {
+              const snapshot = await codexRuntime.interruptThread(body.threadId ?? "");
+              return withCors(Response.json({ snapshot }));
+            } catch (error) {
+              return withCors(
+                Response.json(
+                  {
+                    error:
+                      error instanceof Error ? error.message : "Codex interrupt failed.",
+                  },
+                  { status: 502 }
+                )
+              );
+            }
+          }
+
+          if (!body.threadId) {
+            return withCors(
+              Response.json({ error: "Interrupt rejected. Missing thread." }, { status: 400 })
+            );
+          }
+
+          return withCors(Response.json({ snapshot: workspaceStore.getSnapshot() }));
         });
       }
 
