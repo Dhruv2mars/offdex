@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "c3d1ccd2dd80",
+  "strategy": "manual-commit",
+  "branch": "feat/stop-turn-control",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/src/bridge-client.ts",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/bridge/test/codex-app-server.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/c3/d1ccd2dd80/0/metadata.json",
+      "transcript": "/c3/d1ccd2dd80/0/full.jsonl",
+      "content_hash": "/c3/d1ccd2dd80/0/content_hash.txt",
+      "prompt": "/c3/d1ccd2dd80/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 56376316,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 54452352,
+    "output_tokens": 270521,
+    "api_call_count": 428
+  }
+}

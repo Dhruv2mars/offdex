@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "c3d1ccd2dd80",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T05:31:11.366417Z",
+  "branch": "feat/stop-turn-control",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/src/bridge-client.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/bridge/src/codex-app-server.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "25b486238927",
+  "token_usage": {
+    "input_tokens": 56376316,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 54452352,
+    "output_tokens": 270521,
+    "api_call_count": 428
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-02T05:31:09.894422Z",
+    "agent_lines": 0,
+    "human_added": 195,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 195,
+    "agent_percentage": 0
+  }
+}
