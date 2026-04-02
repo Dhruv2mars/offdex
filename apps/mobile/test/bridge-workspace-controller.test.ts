@@ -4,6 +4,7 @@ import {
   BridgeWorkspaceController,
   type BridgeClient,
   type BridgePreferencesStore,
+  type BridgeTimerDriver,
 } from "../src/bridge-workspace-controller";
 
 function createFakePreferences(savedBridgeUrl: string | null = null): BridgePreferencesStore {
@@ -22,6 +23,8 @@ function createFakePreferences(savedBridgeUrl: string | null = null): BridgePref
 function createFakeClient() {
   const snapshot = makeDemoWorkspaceSnapshot("cli");
   let interruptedThreadId: string | null = null;
+  let healthRequestCount = 0;
+  let failHealthRequests = 0;
   let liveHandlers:
     | {
         onSnapshot: (nextSnapshot: typeof snapshot) => void;
@@ -31,6 +34,12 @@ function createFakeClient() {
 
   const client: BridgeClient = {
     async fetchBridgeHealth() {
+      healthRequestCount += 1;
+      if (failHealthRequests > 0) {
+        failHealthRequests -= 1;
+        throw new Error("Bridge offline");
+      }
+
       return {
         ok: true,
         transport: "bridge",
@@ -113,7 +122,55 @@ function createFakeClient() {
     getInterruptedThreadId() {
       return interruptedThreadId;
     },
+    getHealthRequestCount() {
+      return healthRequestCount;
+    },
+    failNextHealthRequests(count = 1) {
+      failHealthRequests = count;
+    },
   };
+}
+
+function createFakeTimerDriver() {
+  let now = 1;
+  let nextId = 1;
+  const timers = new Map<number, { runAt: number; callback: () => void }>();
+
+  const timer: BridgeTimerDriver = {
+    setTimeout(callback, delayMs) {
+      const id = nextId++;
+      timers.set(id, { runAt: now + delayMs, callback });
+      return id;
+    },
+    clearTimeout(timerId) {
+      timers.delete(timerId as number);
+    },
+  };
+
+  return {
+    timer,
+    runNext() {
+      const nextEntry = [...timers.entries()].sort((left, right) => left[1].runAt - right[1].runAt)[0];
+      if (!nextEntry) {
+        return false;
+      }
+
+      const [id, scheduled] = nextEntry;
+      timers.delete(id);
+      now = scheduled.runAt;
+      scheduled.callback();
+      return true;
+    },
+    getPendingCount() {
+      return timers.size;
+    },
+  };
+}
+
+async function flushAsyncWork(rounds = 6) {
+  for (let index = 0; index < rounds; index += 1) {
+    await Promise.resolve();
+  }
 }
 
 describe("bridge workspace controller", () => {
@@ -196,6 +253,56 @@ describe("bridge workspace controller", () => {
 
     expect(controller.getState().connectionState).toBe("degraded");
     expect(controller.getState().snapshot.pairing.state).toBe("reconnecting");
+  });
+
+  test("reconnects automatically after live sync drops", async () => {
+    const fakeClient = createFakeClient();
+    const fakeTimer = createFakeTimerDriver();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+      timer: fakeTimer.timer,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    fakeClient.emitStatus("closed");
+
+    expect(controller.getState().connectionState).toBe("degraded");
+    expect(fakeTimer.getPendingCount()).toBe(1);
+
+    fakeTimer.runNext();
+    await flushAsyncWork();
+
+    expect(fakeClient.getHealthRequestCount()).toBe(2);
+    expect(controller.getState().connectionState).toBe("live");
+    expect(controller.getState().snapshot.pairing.state).toBe("paired");
+  });
+
+  test("keeps retrying after a reconnect failure", async () => {
+    const fakeClient = createFakeClient();
+    const fakeTimer = createFakeTimerDriver();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+      timer: fakeTimer.timer,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    fakeClient.failNextHealthRequests(1);
+    fakeClient.emitStatus("error");
+
+    fakeTimer.runNext();
+    await flushAsyncWork();
+
+    expect(controller.getState().connectionState).toBe("degraded");
+    expect(controller.getState().bridgeStatus).toContain("Retrying");
+    expect(fakeTimer.getPendingCount()).toBe(1);
+
+    fakeTimer.runNext();
+    await flushAsyncWork();
+
+    expect(controller.getState().connectionState).toBe("live");
+    expect(controller.getState().snapshot.pairing.state).toBe("paired");
   });
 
   test("connects from an offdex pairing link", async () => {
