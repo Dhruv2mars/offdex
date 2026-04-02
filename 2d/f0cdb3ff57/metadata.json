@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "2df0cdb3ff57",
+  "strategy": "manual-commit",
+  "branch": "feat/stable-expo-runtime",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/2d/f0cdb3ff57/0/metadata.json",
+      "transcript": "/2d/f0cdb3ff57/0/full.jsonl",
+      "content_hash": "/2d/f0cdb3ff57/0/content_hash.txt",
+      "prompt": "/2d/f0cdb3ff57/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 87020448,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 84254976,
+    "output_tokens": 358435,
+    "api_call_count": 679
+  }
+}

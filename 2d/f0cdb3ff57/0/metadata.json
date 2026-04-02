@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "2df0cdb3ff57",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T11:24:15.245366Z",
+  "branch": "feat/stable-expo-runtime",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "bfe41024f69e",
+  "token_usage": {
+    "input_tokens": 87020448,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 84254976,
+    "output_tokens": 358435,
+    "api_call_count": 679
+  },
+  "session_metrics": {
+    "turn_count": 4
+  }
+}
