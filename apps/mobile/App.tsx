@@ -43,6 +43,8 @@ export default function App() {
     relayUrl,
     trustedPairing,
     isBusy,
+    machines,
+    managedSession,
   } = workspaceState;
   const [selectedThreadId, setSelectedThreadId] = useState(
     snapshot.threads[0]?.id ?? ""
@@ -160,6 +162,8 @@ export default function App() {
   const transportLabel =
     connectionTransport === "relay"
       ? "Secure relay"
+      : connectionTransport === "direct"
+        ? "Direct machine link"
       : connectionTransport === "bridge"
         ? "Local bridge"
         : "Not connected";
@@ -506,6 +510,37 @@ export default function App() {
                   body="Pair once, keep the Mac online, and Offdex will reconnect on its own until you explicitly disconnect this phone."
                 />
                 <View style={styles.sectionCard}>
+                  <Text style={styles.sectionEyebrow}>My machines</Text>
+                  <Text style={styles.sectionTitle}>
+                    {managedSession ? managedSession.ownerLabel : "Nearby setup only"}
+                  </Text>
+                  <Text style={styles.sectionBody}>
+                    {managedSession
+                      ? "Trusted machines stay attached to this phone. Tap one to reconnect from anywhere while that machine is online."
+                      : "Scan the QR on a machine once. After that, Offdex stores a trusted device session and your machines appear here automatically."}
+                  </Text>
+                  {machines.length > 0 ? (
+                    <View style={styles.hintWrap}>
+                      {machines.map((machine) => (
+                        <Pressable
+                          key={machine.machineId}
+                          onPress={() => {
+                            void controller.connectManagedMachine(machine.machineId).catch(() => {});
+                          }}
+                          style={[
+                            styles.hintChip,
+                            machine.machineId === managedSession?.machineId && styles.hintChipActive,
+                          ]}
+                        >
+                          <Text style={styles.hintChipText}>
+                            {machine.macName} · {machine.online ? "online" : "offline"}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+                <View style={styles.sectionCard}>
                   <Text style={styles.sectionEyebrow}>Trust</Text>
                   <Text style={styles.sectionTitle}>
                     {trustedPairing ? "This phone is trusted" : "This phone is not trusted yet"}
@@ -521,14 +556,16 @@ export default function App() {
                   <Text style={styles.sectionTitle}>{transportLabel}</Text>
                   <Text style={styles.sectionBody}>
                     {connectionTransport === "relay"
-                      ? `Remote access is routed through ${relayUrl}. Traffic stays encrypted end to end.`
+                      ? `Remote access is flowing through ${relayUrl}. Traffic stays encrypted end to end.`
+                      : connectionTransport === "direct"
+                        ? "Offdex reached your machine directly with a short-lived ticket from the control plane."
                       : relayReady
-                        ? `Your Mac is also attached to ${relayUrl}, so remote access is ready once this phone pairs from the QR or link.`
+                        ? `Your Mac is also attached to ${relayUrl}, so remote access is ready after one trusted QR scan.`
                         : "Using the direct local bridge path right now."}
                   </Text>
                 </View>
                 <View style={styles.sectionCard}>
-                  <Text style={styles.sectionEyebrow}>Bridge</Text>
+                  <Text style={styles.sectionEyebrow}>Nearby setup</Text>
                   <TextInput
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -572,7 +609,7 @@ export default function App() {
                   <Text style={styles.bridgeStatusText}>{bridgeStatus}</Text>
                 </View>
                 <View style={styles.sectionCard}>
-                  <Text style={styles.sectionEyebrow}>Pairing link</Text>
+                  <Text style={styles.sectionEyebrow}>Pair once</Text>
                   <TextInput
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -612,7 +649,7 @@ export default function App() {
                 <SectionCard
                   eyebrow="Bridge paths"
                   title={snapshot.pairing.bridgeUrl}
-                  body="Use one of these local paths on the same Wi-Fi. If the bridge also has a relay URL, the same pairing code works away from home too."
+                  body="Use one of these local paths on the same Wi-Fi. If the bridge is also registered with the managed remote path, the same trusted phone keeps working away from home too."
                 />
                 <View style={styles.sectionCard}>
                   <Text style={styles.sectionEyebrow}>Local options</Text>
@@ -1362,6 +1399,10 @@ const styles = StyleSheet.create({
     borderColor: "#1d2320",
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  hintChipActive: {
+    borderColor: "#d6ff72",
+    backgroundColor: "#1a2119",
   },
   hintChipText: {
     color: "#d7dfda",

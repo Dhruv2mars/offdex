@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  decodeDirectConnectionTarget,
   toBridgeLiveUrl,
   decodeRelayConnectionTarget,
+  encodeDirectConnectionTarget,
   encodeRelayConnectionTarget,
   normalizeBridgeBaseUrl,
 } from "../src/bridge-client";
@@ -30,6 +32,19 @@ describe("bridge client", () => {
     expect(toBridgeLiveUrl("https://bridge.local")).toBe(
       "wss://bridge.local/live"
     );
+  });
+
+  test("encodes and decodes a direct connection target", () => {
+    const target = encodeDirectConnectionTarget({
+      bridgeUrl: "http://192.168.1.8:42420",
+      accessToken: "token-123",
+    });
+
+    expect(decodeDirectConnectionTarget(target)).toEqual({
+      bridgeUrl: "http://192.168.1.8:42420",
+      accessToken: "token-123",
+    });
+    expect(toBridgeLiveUrl(target)).toBe("ws://192.168.1.8:42420/live?ticket=token-123");
   });
 
   test("encodes and decodes a relay connection target", () => {

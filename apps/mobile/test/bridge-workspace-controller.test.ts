@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { OFFDEX_NEW_THREAD_ID, makeDemoWorkspaceSnapshot } from "@offdex/protocol";
+import {
+  OFFDEX_NEW_THREAD_ID,
+  makeDemoWorkspaceSnapshot,
+  type OffdexMachineRecord,
+} from "@offdex/protocol";
+import type { ManagedBridgeSession } from "../src/bridge-client";
 import {
   BridgeWorkspaceController,
   type BridgeClient,
@@ -9,10 +14,12 @@ import {
 
 function createFakePreferences(savedBridgeUrl: string | null = null): BridgePreferencesStore & {
   readPairingUri(): string | null;
+  readManagedSession(): ManagedBridgeSession | null;
   wasCleared(): boolean;
 } {
   let value = savedBridgeUrl;
   let pairingUri: string | null = null;
+  let managedSession: ManagedBridgeSession | null = null;
   let cleared = false;
 
   return {
@@ -32,9 +39,19 @@ function createFakePreferences(savedBridgeUrl: string | null = null): BridgePref
       cleared = true;
       value = null;
       pairingUri = null;
+      managedSession = null;
+    },
+    async getManagedSession() {
+      return managedSession;
+    },
+    async setManagedSession(nextValue: ManagedBridgeSession | null) {
+      managedSession = nextValue;
     },
     readPairingUri() {
       return pairingUri;
+    },
+    readManagedSession() {
+      return managedSession;
     },
     wasCleared() {
       return cleared;
@@ -42,8 +59,35 @@ function createFakePreferences(savedBridgeUrl: string | null = null): BridgePref
   };
 }
 
+function makeManagedMachine(machineId = "machine-123"): OffdexMachineRecord {
+  return {
+    machineId,
+    macName: "studio-macbook",
+    ownerId: "owner-123",
+    ownerLabel: "dhruv@example.com",
+    runtimeTarget: "cli",
+    lastSeenAt: "Just now",
+    online: true,
+    directBridgeUrls: ["http://192.168.1.8:42420"],
+    localBridgeUrl: "http://192.168.1.8:42420",
+    capabilityMatrix: {
+      mobile: "expo",
+      web: "next",
+      runtimes: ["cli"],
+    },
+    remoteCapability: {
+      controlPlaneUrl: "https://control.offdex.app",
+      machineId,
+      directBridgeUrls: ["http://192.168.1.8:42420"],
+      relayUrl: "https://control.offdex.app",
+      relayRoomId: "room-123",
+    },
+  };
+}
+
 function createFakeClient() {
   const snapshot = makeDemoWorkspaceSnapshot("cli");
+  const machines = [makeManagedMachine()];
   let interruptedThreadId: string | null = null;
   let sentThreadId: string | null = null;
   let healthRequestCount = 0;
@@ -153,6 +197,33 @@ function createFakeClient() {
       liveHandlers = handlers;
       return () => {
         liveHandlers = undefined;
+      };
+    },
+    async claimManagedPairing(remote) {
+      return {
+        session: {
+          controlPlaneUrl: remote.controlPlaneUrl,
+          machineId: remote.machineId,
+          token: "session-token-123",
+          ownerId: "owner-123",
+          ownerLabel: remote.ownerLabel,
+          deviceId: "device-123",
+        },
+        machines,
+      };
+    },
+    async listManagedMachines(session) {
+      return {
+        session,
+        machines,
+      };
+    },
+    async resolveManagedConnection(_session, machineId) {
+      return {
+        machine: machines.find((machine) => machine.machineId === machineId) ?? machines[0],
+        connectionTarget: "offdex-direct://connect?bridge=http%3A%2F%2F192.168.1.8%3A42420&token=token-123",
+        connectionLabel: "http://192.168.1.8:42420",
+        connectionTransport: "direct" as const,
       };
     },
   };
@@ -428,6 +499,53 @@ describe("bridge workspace controller", () => {
     expect(preferences.readPairingUri()).toBe(
       "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&v=1"
     );
+  });
+
+  test("claims a managed pairing link once and persists the trusted device session", async () => {
+    const fakeClient = createFakeClient();
+    const preferences = createFakePreferences();
+    const controller = new BridgeWorkspaceController({
+      preferences,
+      client: fakeClient.client,
+    });
+
+    await controller.connectFromPairingUri(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&control=https%3A%2F%2Fcontrol.offdex.app&machine=machine-123&claim=claim-123&owner=dhruv%40example.com&v=3"
+    );
+
+    expect(controller.getState().connectionTransport).toBe("direct");
+    expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
+    expect(preferences.readManagedSession()).toEqual({
+      controlPlaneUrl: "https://control.offdex.app",
+      machineId: "machine-123",
+      token: "session-token-123",
+      ownerId: "owner-123",
+      ownerLabel: "dhruv@example.com",
+      deviceId: "device-123",
+    });
+  });
+
+  test("hydrates a saved managed device session and reconnects without scanning again", async () => {
+    const fakeClient = createFakeClient();
+    const preferences = createFakePreferences();
+    await preferences.setManagedSession?.({
+      controlPlaneUrl: "https://control.offdex.app",
+      machineId: "machine-123",
+      token: "session-token-123",
+      ownerId: "owner-123",
+      ownerLabel: "dhruv@example.com",
+      deviceId: "device-123",
+    });
+    const controller = new BridgeWorkspaceController({
+      preferences,
+      client: fakeClient.client,
+    });
+
+    await controller.hydrate();
+
+    expect(controller.getState().connectionState).toBe("live");
+    expect(controller.getState().connectionTransport).toBe("direct");
+    expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
   });
 
   test("disconnect clears the saved pairing trust", async () => {

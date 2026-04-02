@@ -1,4 +1,7 @@
 import {
+  type OffdexAccountSession,
+  type OffdexConnectionTicket,
+  type OffdexMachineRecord,
   createRelayAuthToken,
   decryptRelayPayload,
   encryptRelayPayload,
@@ -32,6 +35,11 @@ interface RelayConnectionTarget {
     secret: string;
   };
   version: 2;
+}
+
+interface DirectConnectionTarget {
+  bridgeUrl: string;
+  accessToken: string;
 }
 
 interface RelayBridgeRequest {
@@ -117,6 +125,49 @@ export function encodeRelayConnectionTarget(payload: OffdexPairingPayload) {
   return `offdex-relay://connect?${search.toString()}`;
 }
 
+export interface ManagedBridgeSession {
+  controlPlaneUrl: string;
+  machineId: string;
+  token: string;
+  ownerId: string;
+  ownerLabel: string;
+  deviceId: string;
+}
+
+export function encodeDirectConnectionTarget(payload: DirectConnectionTarget) {
+  const search = new URLSearchParams({
+    bridge: payload.bridgeUrl,
+    token: payload.accessToken,
+  });
+
+  return `offdex-direct://connect?${search.toString()}`;
+}
+
+export function decodeDirectConnectionTarget(value: string) {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(value);
+  } catch {
+    return null;
+  }
+
+  if (parsed.protocol !== "offdex-direct:" || parsed.hostname !== "connect") {
+    return null;
+  }
+
+  const bridgeUrl = parsed.searchParams.get("bridge")?.trim();
+  const accessToken = parsed.searchParams.get("token")?.trim();
+  if (!bridgeUrl || !accessToken) {
+    return null;
+  }
+
+  return {
+    bridgeUrl,
+    accessToken,
+  } satisfies DirectConnectionTarget;
+}
+
 export function decodeRelayConnectionTarget(value: string) {
   let parsed: URL;
 
@@ -159,6 +210,20 @@ export function toBridgeLiveUrl(baseUrl: string) {
     return `${toRelayLiveWsUrl(relayTarget.relay.relayUrl, relayTarget.relay.roomId)}?role=client&clientId=${nextRequestId("mobile")}&token=${createRelayRoomToken(relayTarget)}`;
   }
 
+  const directTarget = decodeDirectConnectionTarget(baseUrl);
+  if (directTarget) {
+    const normalized = normalizeBridgeBaseUrl(directTarget.bridgeUrl);
+    if (normalized.startsWith("https://")) {
+      return `${normalized.replace("https://", "wss://")}/live?ticket=${encodeURIComponent(
+        directTarget.accessToken
+      )}`;
+    }
+
+    return `${normalized.replace("http://", "ws://")}/live?ticket=${encodeURIComponent(
+      directTarget.accessToken
+    )}`;
+  }
+
   const normalized = normalizeBridgeBaseUrl(baseUrl);
 
   if (normalized.startsWith("https://")) {
@@ -166,6 +231,23 @@ export function toBridgeLiveUrl(baseUrl: string) {
   }
 
   return `${normalized.replace("http://", "ws://")}/live`;
+}
+
+function createDirectRequestInput(baseUrl: string) {
+  const directTarget = decodeDirectConnectionTarget(baseUrl);
+  if (!directTarget) {
+    return {
+      bridgeUrl: normalizeBridgeBaseUrl(baseUrl),
+      headers: {} as Record<string, string>,
+    };
+  }
+
+  return {
+    bridgeUrl: normalizeBridgeBaseUrl(directTarget.bridgeUrl),
+    headers: {
+      authorization: `Bearer ${directTarget.accessToken}`,
+    },
+  };
 }
 
 async function sendRelayProxyRequest<T>(
@@ -325,7 +407,10 @@ export async function fetchBridgeHealth(baseUrl: string) {
     });
   }
 
-  const response = await fetch(`${normalizeBridgeBaseUrl(baseUrl)}/health`);
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/health`, {
+    headers: request.headers,
+  });
   if (!response.ok) {
     throw new Error(`Bridge health failed: ${response.status}`);
   }
@@ -342,7 +427,10 @@ export async function fetchBridgeSnapshot(baseUrl: string) {
     });
   }
 
-  const response = await fetch(`${normalizeBridgeBaseUrl(baseUrl)}/snapshot`);
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/snapshot`, {
+    headers: request.headers,
+  });
   if (!response.ok) {
     throw new Error(`Bridge snapshot failed: ${response.status}`);
   }
@@ -366,9 +454,11 @@ export async function selectBridgeRuntime(
     return payload;
   }
 
-  const response = await fetch(`${normalizeBridgeBaseUrl(baseUrl)}/runtime`, {
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/runtime`, {
     method: "POST",
     headers: {
+      ...request.headers,
       "content-type": "application/json",
     },
     body: JSON.stringify({ preferredTarget }),
@@ -401,9 +491,11 @@ export async function sendBridgeTurn(
     return payload;
   }
 
-  const response = await fetch(`${normalizeBridgeBaseUrl(baseUrl)}/turn`, {
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/turn`, {
     method: "POST",
     headers: {
+      ...request.headers,
       "content-type": "application/json",
     },
     body: JSON.stringify({ threadId, body }),
@@ -431,9 +523,11 @@ export async function interruptBridgeTurn(baseUrl: string, threadId: string) {
     return payload;
   }
 
-  const response = await fetch(`${normalizeBridgeBaseUrl(baseUrl)}/interrupt`, {
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/interrupt`, {
     method: "POST",
     headers: {
+      ...request.headers,
       "content-type": "application/json",
     },
     body: JSON.stringify({ threadId }),
@@ -491,5 +585,134 @@ export function subscribeToBridgeSnapshots(
 
   return () => {
     socket.close();
+  };
+}
+
+export async function claimManagedPairing(
+  remote: NonNullable<OffdexPairingPayload["remote"]>,
+  deviceLabel = "Offdex phone"
+) {
+  const response = await fetch(`${remote.controlPlaneUrl.replace(/\/+$/, "")}/v1/pairing/claim`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      claimCode: remote.claimCode,
+      deviceLabel,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Pairing claim failed: ${response.status}`);
+  }
+
+  const payload = (await response.json()) as {
+    session: OffdexAccountSession;
+    machines: OffdexMachineRecord[];
+  };
+
+  return {
+    session: {
+      controlPlaneUrl: remote.controlPlaneUrl,
+      machineId: remote.machineId,
+      token: payload.session.token,
+      ownerId: payload.session.ownerId,
+      ownerLabel: payload.session.ownerLabel,
+      deviceId: payload.session.deviceId,
+    } satisfies ManagedBridgeSession,
+    machines: payload.machines,
+  };
+}
+
+export async function listManagedMachines(session: ManagedBridgeSession) {
+  const response = await fetch(`${session.controlPlaneUrl.replace(/\/+$/, "")}/v1/machines`, {
+    headers: {
+      authorization: `Bearer ${session.token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Managed machine list failed: ${response.status}`);
+  }
+
+  return (await response.json()) as {
+    session: OffdexAccountSession;
+    machines: OffdexMachineRecord[];
+  };
+}
+
+async function issueManagedConnectionTicket(
+  session: ManagedBridgeSession,
+  machineId: string
+) {
+  const response = await fetch(
+    `${session.controlPlaneUrl.replace(/\/+$/, "")}/v1/connections/ticket`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${session.token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        machineId,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Managed connection ticket failed: ${response.status}`);
+  }
+
+  const payload = (await response.json()) as {
+    ticket: OffdexConnectionTicket;
+  };
+  return payload.ticket;
+}
+
+export async function resolveManagedConnection(
+  session: ManagedBridgeSession,
+  machineId = session.machineId
+) {
+  const ticket = await issueManagedConnectionTicket(session, machineId);
+  const machinesPayload = await listManagedMachines(session);
+  const machine = machinesPayload.machines.find((entry) => entry.machineId === machineId) ?? null;
+
+  if (ticket.direct) {
+    for (const bridgeUrl of ticket.direct.bridgeUrls) {
+      const directTarget = encodeDirectConnectionTarget({
+        bridgeUrl,
+        accessToken: ticket.direct.accessToken,
+      });
+      try {
+        await fetchBridgeHealth(directTarget);
+        return {
+          machine,
+          connectionTarget: directTarget,
+          connectionLabel: bridgeUrl,
+          connectionTransport: "direct" as const,
+        };
+      } catch {}
+    }
+  }
+
+  if (!ticket.relay) {
+    throw new Error("Managed connection failed: no relay fallback available.");
+  }
+
+  return {
+    machine,
+    connectionTarget: encodeRelayConnectionTarget({
+      bridgeUrl: machine?.localBridgeUrl ?? "http://127.0.0.1:42420",
+      macName: machine?.macName ?? session.ownerLabel,
+      relay: {
+        relayUrl: ticket.relay.relayUrl,
+        roomId: ticket.relay.roomId,
+        secret: ticket.relay.secret,
+      },
+      version: 2,
+    }),
+    connectionLabel: ticket.relay.relayUrl,
+    connectionTransport: "relay" as const,
   };
 }
