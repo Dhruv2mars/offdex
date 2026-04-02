@@ -9,6 +9,7 @@ import {
   createRelayAuthToken,
   decryptRelayPayload,
   encryptRelayPayload,
+  type OffdexRuntimeAccount,
   type OffdexPairingProfile,
   WorkspaceSnapshotStore,
   encodePairingUri,
@@ -481,6 +482,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   let relaySocket: WebSocket | null = null;
   let relayReconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let relayConnected = false;
+  let codexAccount: OffdexRuntimeAccount | null = null;
   let remoteBootstrap:
     | {
         controlPlaneUrl: string;
@@ -500,13 +502,14 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
 
   const buildHealthPayload = () => ({
     ok: true,
-    transport: relayConnected ? "relay" : "bridge",
+    transport: "bridge",
     bridgeMode,
     bridgeUrl: workspaceStore.getSnapshot().pairing.bridgeUrl,
     bridgeHints: workspaceStore.getSnapshot().pairing.bridgeHints,
     macName: workspaceStore.getSnapshot().pairing.macName,
     desktopAvailable,
     codexConnected: codexRuntime?.client.isConnected ?? false,
+    codexAccount,
     relayConnected,
     relayUrl: managedRelayUrl ?? bridgeState.relayUrl,
     session: sessionStore.getActiveSession(),
@@ -624,6 +627,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       codexRuntime && bridgeMode === "codex"
         ? await codexRuntime.readAccountSummary().catch(() => null)
         : null;
+    codexAccount = account;
     const ownerId = account?.id ?? account?.email ?? `codex-${bridgeState.bridgeId}`;
     const ownerLabel = account?.email ?? account?.name ?? "Codex on this Mac";
     const response = await fetch(`${managedRelayUrl}/v1/machines/register`, {

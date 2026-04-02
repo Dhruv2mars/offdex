@@ -114,6 +114,13 @@ function createFakeClient() {
         bridgeHints: ["http://192.168.1.8:42420", "http://127.0.0.1:42420"],
         macName: "studio-macbook",
         desktopAvailable: false,
+        codexAccount: {
+          id: "owner-123",
+          email: "dhruv@example.com",
+          name: "Dhruv",
+          planType: "plus",
+          isAuthenticated: true,
+        },
         session: null,
       };
     },
@@ -307,6 +314,7 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
     expect(controller.getState().connectionState).toBe("live");
     expect(controller.getState().snapshot.pairing.state).toBe("paired");
+    expect(controller.getState().codexAccount?.email).toBe("dhruv@example.com");
   });
 
   test("hydrates the saved pairing uri before the raw bridge url", async () => {

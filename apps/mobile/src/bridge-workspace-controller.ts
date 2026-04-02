@@ -2,6 +2,7 @@ import {
   decodePairingUri,
   type OffdexMachineRecord,
   type OffdexPairingPayload,
+  type OffdexRuntimeAccount,
   type OffdexWorkspaceSnapshot,
   type RuntimeTarget,
 } from "@offdex/protocol";
@@ -92,6 +93,7 @@ export interface BridgeWorkspaceState {
   isBusy: boolean;
   machines: OffdexMachineRecord[];
   managedSession: ManagedBridgeSession | null;
+  codexAccount: OffdexRuntimeAccount | null;
 }
 
 const defaultClient: BridgeClient = {
@@ -125,6 +127,20 @@ function getConnectionTransport(connectionTarget: string): BridgeWorkspaceState[
   }
 
   return "bridge";
+}
+
+function describeConnectionTransport(
+  transport: BridgeWorkspaceState["connectionTransport"]
+) {
+  if (transport === "relay") {
+    return "Secure relay";
+  }
+
+  if (transport === "direct") {
+    return "Direct link";
+  }
+
+  return "Local bridge";
 }
 
 export class BridgeWorkspaceController {
@@ -180,6 +196,7 @@ export class BridgeWorkspaceController {
       isBusy: false,
       machines: [],
       managedSession: null,
+      codexAccount: null,
     };
     this.#demoController.subscribe((snapshotUpdate) => {
       this.#setState({
@@ -339,10 +356,11 @@ export class BridgeWorkspaceController {
       connectionState: "idle",
       bridgeStatus: "Disconnected",
       relayUrl: null,
-      trustedPairing: false,
-      machines: [],
-      managedSession: null,
-    });
+        trustedPairing: false,
+        machines: [],
+        managedSession: null,
+        codexAccount: null,
+      });
   }
 
   async refresh() {
@@ -547,11 +565,12 @@ export class BridgeWorkspaceController {
         connectedBridgeUrl: connectionLabel,
         connectionTransport,
         connectionState: "live",
-        bridgeStatus: `${connectionTransport === "relay" ? "Secure relay" : "Local bridge"} live at ${connectionLabel}`,
+        bridgeStatus: `${describeConnectionTransport(connectionTransport)} live at ${connectionLabel}`,
         isBusy: false,
         relayUrl: health.relayUrl ?? null,
         trustedPairing: Boolean(options.pairingUri),
         managedSession: this.#managedSession,
+        codexAccount: health.codexAccount ?? null,
       });
       this.#patchPairingProfile({
         bridgeUrl: health.bridgeUrl,
@@ -595,7 +614,7 @@ export class BridgeWorkspaceController {
           connectedBridgeUrl: connectionLabel,
           connectionTransport: getConnectionTransport(connectionTarget),
           connectionState: "live",
-          bridgeStatus: `Connected to ${connectionLabel}`,
+          bridgeStatus: `${describeConnectionTransport(getConnectionTransport(connectionTarget))} connected`,
           isBusy: false,
           trustedPairing: Boolean(this.#savedPairingUri),
         });
@@ -623,7 +642,7 @@ export class BridgeWorkspaceController {
         connectedBridgeUrl: connectionLabel,
         connectionTransport: getConnectionTransport(connectionTarget),
         connectionState: "live",
-        bridgeStatus: `Connected to ${connectionLabel}`,
+        bridgeStatus: `${describeConnectionTransport(getConnectionTransport(connectionTarget))} connected`,
         isBusy: false,
         trustedPairing: Boolean(this.#savedPairingUri),
       });
