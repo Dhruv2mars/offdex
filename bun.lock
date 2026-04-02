@@ -10,7 +10,7 @@
     },
     "apps/mobile": {
       "name": "@offdex/mobile",
-      "version": "1.0.0",
+      "version": "0.0.1",
       "dependencies": {
         "@offdex/protocol": "workspace:*",
         "@react-native-async-storage/async-storage": "2.2.0",
@@ -90,7 +90,7 @@
     },
     "packages/npm": {
       "name": "@dhruv2mars/offdex",
-      "version": "1.0.0",
+      "version": "0.0.1",
       "bin": {
         "offdex": "bin/offdex.js",
       },
