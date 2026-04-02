@@ -29,6 +29,17 @@ bun run dev:web
 bun run dev:mobile
 ```
 
+## Install
+
+The intended public Mac, Linux, and Windows install path is:
+
+```bash
+npm install -g @dhruv2mars/offdex
+offdex
+```
+
+The npm package downloads the matching native bridge runtime for the current platform from GitHub Releases.
+
 For the managed remote path, run the bridge against the control plane:
 
 ```bash
@@ -67,6 +78,20 @@ The workflow derives `versionCode` from the semver tag and enforces that:
 
 - `apps/mobile/package.json` version matches the tag
 - `apps/mobile/app.json` version matches `apps/mobile/package.json`
+- `packages/npm/package.json` version matches `apps/mobile/package.json`
+
+### npm CLI
+
+The same release tag also publishes:
+
+- npm package: `@dhruv2mars/offdex`
+- GitHub release binaries for macOS, Linux, and Windows
+
+The npm installer pulls the correct release asset for the current platform when users run:
+
+```bash
+npm install -g @dhruv2mars/offdex
+```
 
 ### Managed Remote
 

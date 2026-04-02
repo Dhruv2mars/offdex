@@ -1,0 +1,42 @@
+{
+  "name": "@dhruv2mars/offdex",
+  "version": "1.0.0",
+  "description": "Codex mobile bridge CLI for Offdex",
+  "type": "module",
+  "bin": {
+    "offdex": "bin/offdex.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "offdex": "node bin/offdex.js",
+    "postinstall": "node bin/install.js",
+    "build": "node -e \"process.exit(0)\"",
+    "check": "node --check bin/offdex.js && node --check bin/offdex-lib.js && node --check bin/install.js && node --check bin/install-lib.js && node --test test/*.test.js",
+    "test": "node --test test/*.test.js"
+  },
+  "homepage": "https://github.com/Dhruv2mars/offdex#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dhruv2mars/offdex.git",
+    "directory": "packages/npm"
+  },
+  "bugs": {
+    "url": "https://github.com/Dhruv2mars/offdex/issues"
+  },
+  "keywords": [
+    "codex",
+    "offdex",
+    "cli",
+    "bridge"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "preferGlobal": true,
+  "license": "MIT"
+}
