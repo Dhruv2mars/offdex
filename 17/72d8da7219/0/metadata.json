@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "1772d8da7219",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T11:36:21.201978Z",
+  "branch": "feat/qr-pairing",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "bfe41024f69e",
+  "token_usage": {
+    "input_tokens": 95475841,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 92629504,
+    "output_tokens": 391610,
+    "api_call_count": 764
+  },
+  "session_metrics": {
+    "turn_count": 4
+  }
+}
