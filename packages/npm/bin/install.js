@@ -1,10 +1,21 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { installRuntime, resolvePackageVersion, supportedPlatformList } from "./install-lib.js";
+import {
+  installRuntime,
+  resolvePackageVersion,
+  shouldSkipPackageInstall,
+  supportedPlatformList
+} from "./install-lib.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const packageVersion = resolvePackageVersion(join(here, "..", "package.json"), process.env);
+const packageRoot = join(here, "..");
+const packageVersion = resolvePackageVersion(join(packageRoot, "package.json"), process.env);
+
+if (shouldSkipPackageInstall({ env: process.env, packageRoot })) {
+  console.log("offdex: skipping native runtime install inside workspace checkout");
+  process.exit(0);
+}
 
 installRuntime({ version: packageVersion })
   .then(({ installBin }) => {
