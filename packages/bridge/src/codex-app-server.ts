@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { basename } from "node:path";
 import { createServer } from "node:net";
 import {
+  OFFDEX_NEW_THREAD_ID,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   type OffdexMessage,
@@ -10,7 +11,7 @@ import {
   type RuntimeTarget,
 } from "@offdex/protocol";
 
-export const NEW_THREAD_ID = "offdex-new-thread";
+export const NEW_THREAD_ID = OFFDEX_NEW_THREAD_ID;
 
 type EnvShape = {
   [key: string]: string | undefined;
@@ -871,7 +872,20 @@ export class CodexBridgeRuntime {
       : threadId;
 
     await this.client.startTurn(targetThreadId, trimmed, this.options.cwd);
-    return this.options.workspaceStore.getSnapshot();
+    const nextSnapshot = this.options.workspaceStore.getSnapshot();
+    const thread = ensureThread(nextSnapshot, targetThreadId, this.#runtimeTarget);
+
+    if (needsNewThread && thread.messages.length === 0) {
+      thread.title = trimmed;
+      thread.projectLabel = basename(this.options.cwd) || "workspace";
+    }
+
+    thread.runtimeTarget = this.#runtimeTarget;
+    thread.state = "running";
+    thread.updatedAt = "Now";
+    upsertThread(nextSnapshot, thread);
+    this.options.workspaceStore.replaceSnapshot(nextSnapshot);
+    return nextSnapshot;
   }
 
   async interruptThread(threadId: string) {

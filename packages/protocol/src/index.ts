@@ -1,6 +1,7 @@
 export type RuntimeTarget = "cli" | "desktop";
 export type PairingState = "unpaired" | "paired" | "reconnecting";
 export type TurnState = "idle" | "running" | "completed" | "failed";
+export const OFFDEX_NEW_THREAD_ID = "offdex-new-thread";
 
 export interface DeviceCapabilityMatrix {
   mobile: "expo";

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { makeDemoWorkspaceSnapshot } from "@offdex/protocol";
+import { OFFDEX_NEW_THREAD_ID, makeDemoWorkspaceSnapshot } from "@offdex/protocol";
 import {
   BridgeWorkspaceController,
   type BridgeClient,
@@ -23,6 +23,7 @@ function createFakePreferences(savedBridgeUrl: string | null = null): BridgePref
 function createFakeClient() {
   const snapshot = makeDemoWorkspaceSnapshot("cli");
   let interruptedThreadId: string | null = null;
+  let sentThreadId: string | null = null;
   let healthRequestCount = 0;
   let failHealthRequests = 0;
   let liveHandlers:
@@ -65,25 +66,48 @@ function createFakeClient() {
       };
     },
     async sendBridgeTurn(_baseUrl, _threadId, body) {
+      sentThreadId = _threadId;
       return {
         snapshot: {
           ...snapshot,
-          threads: snapshot.threads.map((thread, index) =>
-            index === 0
-              ? {
-                  ...thread,
-                  messages: [
-                    ...thread.messages,
-                    {
-                      id: "bridge-user",
-                      role: "user",
-                      body,
-                      createdAt: "Now",
-                    },
-                  ],
-                }
-              : thread
-          ),
+          threads:
+            _threadId === OFFDEX_NEW_THREAD_ID
+              ? [
+                  {
+                    id: "thread-fresh",
+                    title: "Fresh mobile chat",
+                    projectLabel: "offdex",
+                    runtimeTarget: "cli",
+                    state: "running",
+                    unreadCount: 0,
+                    updatedAt: "Now",
+                    messages: [
+                      {
+                        id: "bridge-user",
+                        role: "user",
+                        body,
+                        createdAt: "Now",
+                      },
+                    ],
+                  },
+                  ...snapshot.threads,
+                ]
+              : snapshot.threads.map((thread, index) =>
+                  index === 0
+                    ? {
+                        ...thread,
+                        messages: [
+                          ...thread.messages,
+                          {
+                            id: "bridge-user",
+                            role: "user",
+                            body,
+                            createdAt: "Now",
+                          },
+                        ],
+                      }
+                    : thread
+                ),
         },
       };
     },
@@ -121,6 +145,9 @@ function createFakeClient() {
     },
     getInterruptedThreadId() {
       return interruptedThreadId;
+    },
+    getSentThreadId() {
+      return sentThreadId;
     },
     getHealthRequestCount() {
       return healthRequestCount;
@@ -332,6 +359,23 @@ describe("bridge workspace controller", () => {
 
     expect(fakeClient.getInterruptedThreadId()).toBe("thread-foundation");
     expect(controller.getState().bridgeStatus).toContain("Stopping");
+  });
+
+  test("starts a fresh thread through the bridge", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    await controller.sendTurn(OFFDEX_NEW_THREAD_ID, "Open a brand new Codex thread.");
+
+    expect(fakeClient.getSentThreadId()).toBe(OFFDEX_NEW_THREAD_ID);
+    expect(controller.getState().snapshot.threads[0]?.id).toBe("thread-fresh");
+    expect(controller.getState().snapshot.threads[0]?.messages[0]?.body).toBe(
+      "Open a brand new Codex thread."
+    );
   });
 
   test("switches runtime through the connected bridge", async () => {
