@@ -381,3 +381,13 @@ adb is on, and give me the status of expo go install while coninuing what you we
 ---
 
 what you can do is, install the android and ios simulator. in future that would help us, instead of us fihgting the expo go app on my own phone. also, use expo orbit with them.
+
+---
+
+install everything that you need. you have full control and permissions from me. no issues. 
+
+also, you should see how gunmetal did npm releases. as far as i know, i ddint give token in that case. i didnt do even anything, everything was handled by you
+
+---
+
+arent we making a cross platform react native app using expo? what happened? whats the status?
