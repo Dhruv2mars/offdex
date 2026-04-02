@@ -1,7 +1,12 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Clipboard from "expo-clipboard";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import * as SystemUI from "expo-system-ui";
+import { memo, startTransition, useEffect, useMemo, useState } from "react";
+import { FlashList } from "@shopify/flash-list";
 import {
   ActivityIndicator,
   AppState,
@@ -10,10 +15,12 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -34,6 +41,7 @@ import {
   getMachineAvailabilityLabel,
   getMachineConnectionAction,
   getPairingGuide,
+  getSessionBanner,
 } from "./src/session-readiness";
 
 type AppTab = (typeof mobileTabs)[number];
@@ -44,6 +52,7 @@ export default function App() {
     []
   );
   const [workspaceState, setWorkspaceState] = useState(() => controller.getState());
+  const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<AppTab>("Chats");
   const {
     snapshot,
@@ -200,6 +209,24 @@ export default function App() {
     hasManagedSession: Boolean(managedSession),
     machineCount: machines.length,
   });
+  const sessionBanner = getSessionBanner({
+    macName: snapshot.pairing.macName,
+    pairingState: snapshot.pairing.state,
+    connectionState,
+    connectionTransport,
+    codexReady,
+    machineCount: machines.length,
+    hasManagedSession: Boolean(managedSession),
+  });
+  const isWideLayout = width >= 980;
+
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync("#0b0d0c").catch(() => {});
+    if (Platform.OS === "android") {
+      void NavigationBar.setBackgroundColorAsync("#0b0d0c").catch(() => {});
+      void NavigationBar.setButtonStyleAsync("light").catch(() => {});
+    }
+  }, []);
 
   const openScanner = () => {
     void feedbackSelection();
@@ -346,6 +373,13 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.screen}>
         <StatusBar style="light" />
+        <LinearGradient
+          colors={["#111915", "#0b0d0c", "#090a09"]}
+          locations={[0, 0.46, 1]}
+          style={styles.ambientBackground}
+        />
+        <View pointerEvents="none" style={styles.ambientOrbTop} />
+        <View pointerEvents="none" style={styles.ambientOrbBottom} />
         <KeyboardAvoidingView
           style={styles.screen}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -391,6 +425,18 @@ export default function App() {
               )}
             </View>
 
+            <SessionHero
+              banner={sessionBanner}
+              macName={snapshot.pairing.macName}
+              codexLabel={
+                codexAccount?.isAuthenticated
+                  ? codexAccount.email ?? codexAccount.name ?? "Codex ready"
+                  : "Codex sign-in needed"
+              }
+              transportLabel={transportLabel}
+              machineCount={machines.length}
+            />
+
             <View style={styles.tabRow}>
               {mobileTabs.map((tab) => (
                 <Pressable
@@ -409,97 +455,98 @@ export default function App() {
             </View>
 
             {activeTab === "Chats" ? (
-              <View style={styles.chatLayout}>
-            <ScrollView
-              style={styles.threadRail}
+              <View style={[styles.chatLayout, isWideLayout && styles.chatLayoutWide]}>
+            <FlashList
+              data={visibleThreads}
+              style={isWideLayout ? styles.threadRailWide : styles.threadRail}
               contentContainerStyle={styles.threadRailContent}
-              contentInsetAdjustmentBehavior="automatic"
               showsVerticalScrollIndicator={false}
-            >
-              <Pressable
-                onPress={() => {
-                  setAwaitingNewThread(false);
-                  setDraft("");
-                  setSelectedThreadId(OFFDEX_NEW_THREAD_ID);
-                }}
-                style={[
-                  styles.newThreadCard,
-                  isDraftThread && styles.newThreadCardActive,
-                ]}
-              >
-                <Text style={styles.newThreadEyebrow}>New chat</Text>
-                <Text style={styles.newThreadTitle}>Start a fresh Codex thread</Text>
-                <Text style={styles.newThreadBody}>
-                  Open a clean run, send the first prompt, and Offdex will stay on the live thread.
-                </Text>
-              </Pressable>
-              {chatReadiness.onboarding ? (
-                <View style={styles.onboardingBanner}>
-                  <Text style={styles.onboardingEyebrow}>{chatReadiness.onboarding.eyebrow}</Text>
-                  <Text style={styles.onboardingTitle}>{chatReadiness.onboarding.title}</Text>
-                  <Text style={styles.onboardingBody}>{chatReadiness.onboarding.body}</Text>
-                  <View style={styles.inlineActionRow}>
-                    <Pressable style={styles.connectButton} onPress={runPairingPrimaryAction}>
-                      <Text style={styles.connectButtonText}>{pairingGuide.primaryLabel}</Text>
-                    </Pressable>
-                    {pairingGuide.secondaryLabel ? (
-                      <Pressable
-                        style={styles.secondaryButton}
-                        onPress={runPairingSecondaryAction}
-                      >
-                        <Text style={styles.secondaryButtonText}>
-                          {pairingGuide.secondaryLabel}
-                        </Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                </View>
-              ) : null}
-              {visibleThreads.length > 0 ? (
+              ListHeaderComponent={
                 <>
-                  <SectionLabel title="Recent threads" subtitle={snapshot.pairing.lastSeenAt} />
-                  {visibleThreads.map((thread) => (
-                    <Pressable
-                      key={thread.id}
-                      onPress={() => setSelectedThreadId(thread.id)}
-                      style={[
-                        styles.threadCard,
-                        thread.id === activeThread?.id && styles.threadCardActive,
-                      ]}
-                    >
-                      <View style={styles.threadCardHeader}>
-                        <Text style={styles.threadTitle}>{thread.title}</Text>
-                        {thread.unreadCount > 0 ? (
-                          <View style={styles.unreadBadge}>
-                            <Text style={styles.unreadBadgeText}>{thread.unreadCount}</Text>
-                          </View>
+                  <Pressable
+                    onPress={() => {
+                      setAwaitingNewThread(false);
+                      setDraft("");
+                      setSelectedThreadId(OFFDEX_NEW_THREAD_ID);
+                    }}
+                    style={[
+                      styles.newThreadCard,
+                      isDraftThread && styles.newThreadCardActive,
+                    ]}
+                  >
+                    <Text style={styles.newThreadEyebrow}>New chat</Text>
+                    <Text style={styles.newThreadTitle}>Start a fresh Codex thread</Text>
+                    <Text style={styles.newThreadBody}>
+                      Open a clean run, send the first prompt, and Offdex will stay on the live thread.
+                    </Text>
+                  </Pressable>
+                  {chatReadiness.onboarding ? (
+                    <View style={styles.onboardingBanner}>
+                      <Text style={styles.onboardingEyebrow}>{chatReadiness.onboarding.eyebrow}</Text>
+                      <Text style={styles.onboardingTitle}>{chatReadiness.onboarding.title}</Text>
+                      <Text style={styles.onboardingBody}>{chatReadiness.onboarding.body}</Text>
+                      <View style={styles.inlineActionRow}>
+                        <Pressable style={styles.connectButton} onPress={runPairingPrimaryAction}>
+                          <Text style={styles.connectButtonText}>{pairingGuide.primaryLabel}</Text>
+                        </Pressable>
+                        {pairingGuide.secondaryLabel ? (
+                          <Pressable
+                            style={styles.secondaryButton}
+                            onPress={runPairingSecondaryAction}
+                          >
+                            <Text style={styles.secondaryButtonText}>
+                              {pairingGuide.secondaryLabel}
+                            </Text>
+                          </Pressable>
                         ) : null}
                       </View>
-                      <Text style={styles.threadMeta}>
-                        {thread.projectLabel} · {thread.updatedAt}
-                      </Text>
-                      <View style={styles.statusRow}>
-                        <Pill
-                          label={isLiveConnection ? thread.state : "preview"}
-                          tone={isLiveConnection ? thread.state : "neutral"}
-                        />
-                        <Pill
-                          label={thread.runtimeTarget === "cli" ? "CLI" : "Desktop"}
-                          tone="neutral"
-                        />
-                      </View>
-                    </Pressable>
-                  ))}
+                    </View>
+                  ) : null}
+                  {visibleThreads.length > 0 ? (
+                    <SectionLabel title="Recent threads" subtitle={snapshot.pairing.lastSeenAt} />
+                  ) : null}
                 </>
-              ) : (
+              }
+              ListEmptyComponent={
                 <View style={styles.emptyRailCard}>
                   <Text style={styles.emptyRailTitle}>{chatReadiness.emptyRail.title}</Text>
                   <Text style={styles.emptyRailBody}>{chatReadiness.emptyRail.body}</Text>
                 </View>
+              }
+              renderItem={({ item: thread }) => (
+                <Pressable
+                  onPress={() => setSelectedThreadId(thread.id)}
+                  style={[
+                    styles.threadCard,
+                    thread.id === activeThread?.id && styles.threadCardActive,
+                  ]}
+                >
+                  <View style={styles.threadCardHeader}>
+                    <Text style={styles.threadTitle}>{thread.title}</Text>
+                    {thread.unreadCount > 0 ? (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadBadgeText}>{thread.unreadCount}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.threadMeta}>
+                    {thread.projectLabel} · {thread.updatedAt}
+                  </Text>
+                  <View style={styles.statusRow}>
+                    <Pill
+                      label={isLiveConnection ? thread.state : "preview"}
+                      tone={isLiveConnection ? thread.state : "neutral"}
+                    />
+                    <Pill
+                      label={thread.runtimeTarget === "cli" ? "CLI" : "Desktop"}
+                      tone="neutral"
+                    />
+                  </View>
+                </Pressable>
               )}
-            </ScrollView>
+            />
 
-            <View style={styles.threadPane}>
+            <View style={[styles.threadPane, isWideLayout && styles.threadPaneWide]}>
               {activeThread ? (
                 <>
                   <View style={styles.threadPaneHeader}>
@@ -527,30 +574,38 @@ export default function App() {
                     />
                   </View>
 
-                  <ScrollView
+                  <FlashList
+                    data={activeThread.messages}
                     style={styles.messageList}
                     contentContainerStyle={styles.messageListContent}
-                    contentInsetAdjustmentBehavior="automatic"
                     showsVerticalScrollIndicator={false}
-                  >
-                    <View style={styles.readinessCard}>
-                      <Text style={styles.readinessEyebrow}>{transportLabel}</Text>
-                      <Text style={styles.readinessTitle}>{chatReadiness.paneStatus.title}</Text>
-                      <Text style={styles.readinessBody}>{chatReadiness.paneStatus.body}</Text>
-                    </View>
-                    {isDraftThread ? (
-                      <View style={styles.newThreadPanel}>
-                        <Text style={styles.newThreadPanelEyebrow}>Fresh thread</Text>
-                        <Text style={styles.newThreadPanelTitle}>Start from a blank context</Text>
-                        <Text style={styles.newThreadPanelBody}>
-                          Offdex will create the thread on your Mac, move into the live session, and keep the phone synced as Codex responds.
-                        </Text>
-                      </View>
-                    ) : null}
-                    {activeThread.messages.map((message) => (
-                      <MessageBubble key={message.id} thread={activeThread} message={message.body} role={message.role} timestamp={message.createdAt} />
-                    ))}
-                  </ScrollView>
+                    ListHeaderComponent={
+                      <>
+                        <View style={styles.readinessCard}>
+                          <Text style={styles.readinessEyebrow}>{transportLabel}</Text>
+                          <Text style={styles.readinessTitle}>{chatReadiness.paneStatus.title}</Text>
+                          <Text style={styles.readinessBody}>{chatReadiness.paneStatus.body}</Text>
+                        </View>
+                        {isDraftThread ? (
+                          <View style={styles.newThreadPanel}>
+                            <Text style={styles.newThreadPanelEyebrow}>Fresh thread</Text>
+                            <Text style={styles.newThreadPanelTitle}>Start from a blank context</Text>
+                            <Text style={styles.newThreadPanelBody}>
+                              Offdex will create the thread on your Mac, move into the live session, and keep the phone synced as Codex responds.
+                            </Text>
+                          </View>
+                        ) : null}
+                      </>
+                    }
+                    renderItem={({ item: message }) => (
+                      <MessageBubble
+                        thread={activeThread}
+                        message={message.body}
+                        role={message.role}
+                        timestamp={message.createdAt}
+                      />
+                    )}
+                  />
 
                   <View style={styles.composer}>
                     <TextInput
@@ -666,6 +721,26 @@ export default function App() {
                 contentContainerStyle={styles.stackPanelContent}
                 contentInsetAdjustmentBehavior="automatic"
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                    tintColor="#d6ff72"
+                    refreshing={isBusy}
+                    onRefresh={() => {
+                      if (managedSession) {
+                        void controller.refreshManagedMachines().catch(() => {
+                          void feedbackError();
+                        });
+                        return;
+                      }
+
+                      const refreshTask =
+                        connectionState === "live" ? controller.refresh() : controller.resume();
+                      void refreshTask.catch(() => {
+                        void feedbackError();
+                      });
+                    }}
+                  />
+                }
               >
                 <View style={styles.guideCard}>
                   <Text style={styles.guideEyebrow}>{pairingGuide.eyebrow}</Text>
@@ -733,6 +808,10 @@ export default function App() {
                               />
                             </View>
                             <Text style={styles.machineCardBody}>
+                              <Text selectable style={styles.machineCardPath}>
+                                {machine.localBridgeUrl}
+                              </Text>
+                              {"\n"}
                               {machine.machineId === managedSession?.machineId
                                 ? codexReady
                                   ? "This is the machine currently driving the live session."
@@ -928,6 +1007,19 @@ export default function App() {
                 contentContainerStyle={styles.stackPanelContent}
                 contentInsetAdjustmentBehavior="automatic"
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                    tintColor="#d6ff72"
+                    refreshing={isBusy}
+                    onRefresh={() => {
+                      const refreshTask =
+                        connectionState === "live" ? controller.refresh() : controller.resume();
+                      void refreshTask.catch(() => {
+                        void feedbackError();
+                      });
+                    }}
+                  />
+                }
               >
                 <SectionCard
                   eyebrow="Runtime target"
@@ -983,6 +1075,64 @@ export default function App() {
   );
 }
 
+function SessionHero({
+  banner,
+  macName,
+  codexLabel,
+  transportLabel,
+  machineCount,
+}: {
+  banner: ReturnType<typeof getSessionBanner>;
+  macName: string;
+  codexLabel: string;
+  transportLabel: string;
+  machineCount: number;
+}) {
+  return (
+    <LinearGradient
+      colors={["rgba(214,255,114,0.18)", "rgba(20,25,22,0.92)", "rgba(10,12,11,0.98)"]}
+      locations={[0, 0.28, 1]}
+      style={styles.sessionHero}
+    >
+      <BlurView intensity={36} tint="dark" style={styles.sessionHeroBlur}>
+        <View style={styles.sessionHeroHeader}>
+          <View style={styles.sessionHeroCopy}>
+            <Text style={styles.sessionHeroEyebrow}>{banner.eyebrow}</Text>
+            <Text style={styles.sessionHeroTitle}>{banner.title}</Text>
+            <Text style={styles.sessionHeroBody}>{banner.body}</Text>
+          </View>
+          <View
+            style={[
+              styles.sessionHeroAccent,
+              banner.accent === "ready" && styles.sessionHeroAccentReady,
+              banner.accent === "attention" && styles.sessionHeroAccentAttention,
+              banner.accent === "reconnecting" && styles.sessionHeroAccentReconnect,
+            ]}
+          />
+        </View>
+        <View style={styles.sessionHeroMetaRow}>
+          <View style={styles.sessionMetaPill}>
+            <Text style={styles.sessionMetaLabel}>Machine</Text>
+            <Text style={styles.sessionMetaValue}>{macName}</Text>
+          </View>
+          <View style={styles.sessionMetaPill}>
+            <Text style={styles.sessionMetaLabel}>Transport</Text>
+            <Text style={styles.sessionMetaValue}>{transportLabel}</Text>
+          </View>
+          <View style={styles.sessionMetaPill}>
+            <Text style={styles.sessionMetaLabel}>Account</Text>
+            <Text style={styles.sessionMetaValue}>{codexLabel}</Text>
+          </View>
+          <View style={styles.sessionMetaPill}>
+            <Text style={styles.sessionMetaLabel}>Trusted Macs</Text>
+            <Text style={styles.sessionMetaValue}>{machineCount}</Text>
+          </View>
+        </View>
+      </BlurView>
+    </LinearGradient>
+  );
+}
+
 function SectionLabel({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <View style={styles.sectionLabel}>
@@ -1010,7 +1160,7 @@ function SectionCard({
   );
 }
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   thread,
   message,
   role,
@@ -1039,7 +1189,7 @@ function MessageBubble({
       ) : null}
     </View>
   );
-}
+});
 
 function Pill({
   label,
@@ -1146,6 +1296,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0b0d0c",
   },
+  ambientBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  ambientOrbTop: {
+    position: "absolute",
+    top: -120,
+    right: -40,
+    height: 280,
+    width: 280,
+    borderRadius: 999,
+    backgroundColor: "rgba(214,255,114,0.1)",
+  },
+  ambientOrbBottom: {
+    position: "absolute",
+    bottom: -130,
+    left: -60,
+    height: 240,
+    width: 240,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,178,95,0.08)",
+  },
   root: {
     flex: 1,
     paddingHorizontal: 18,
@@ -1240,12 +1411,103 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     color: "#eef2ef",
   },
+  sessionHero: {
+    borderRadius: 28,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#243028",
+  },
+  sessionHeroBlur: {
+    padding: 18,
+    gap: 16,
+  },
+  sessionHeroHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  sessionHeroCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  sessionHeroEyebrow: {
+    color: "#d6ff72",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+  },
+  sessionHeroTitle: {
+    color: "#f2f5f2",
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  sessionHeroBody: {
+    color: "#a4aea8",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  sessionHeroAccent: {
+    marginTop: 4,
+    height: 12,
+    width: 12,
+    borderRadius: 999,
+    backgroundColor: "#6b756f",
+  },
+  sessionHeroAccentReady: {
+    backgroundColor: "#d6ff72",
+  },
+  sessionHeroAccentAttention: {
+    backgroundColor: "#ffb36b",
+  },
+  sessionHeroAccentReconnect: {
+    backgroundColor: "#7bc4ff",
+  },
+  sessionHeroMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  sessionMetaPill: {
+    minWidth: 120,
+    flexGrow: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#202923",
+    backgroundColor: "rgba(8,11,10,0.52)",
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    gap: 4,
+  },
+  sessionMetaLabel: {
+    color: "#7b8680",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  sessionMetaValue: {
+    color: "#eef2ef",
+    fontSize: 13,
+    fontWeight: "700",
+  },
   chatLayout: {
     flex: 1,
     gap: 12,
   },
+  chatLayoutWide: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
   threadRail: {
     maxHeight: 250,
+  },
+  threadRailWide: {
+    maxHeight: undefined,
+    width: 360,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   threadRailContent: {
     gap: 10,
@@ -1418,6 +1680,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1f2522",
     overflow: "hidden",
+  },
+  threadPaneWide: {
+    minWidth: 0,
   },
   emptyPane: {
     flex: 1,
@@ -1747,6 +2012,11 @@ const styles = StyleSheet.create({
     color: "#97a19c",
     fontSize: 14,
     lineHeight: 20,
+  },
+  machineCardPath: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "700",
   },
   machineActionButton: {
     borderRadius: 999,

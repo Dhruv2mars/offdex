@@ -27,6 +27,9 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "experiments": {
+      "reactCompiler": true
+    },
     "plugins": [
       [
         "expo-build-properties",
@@ -41,7 +44,8 @@
         {
           "cameraPermission": "Offdex uses your camera to scan the pairing QR from your Mac."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

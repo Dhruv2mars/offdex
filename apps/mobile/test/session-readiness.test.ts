@@ -5,6 +5,7 @@ import {
   getMachineAvailabilityLabel,
   getMachineConnectionAction,
   getPairingGuide,
+  getSessionBanner,
 } from "../src/session-readiness";
 
 function makeMachine(overrides?: Partial<OffdexMachineRecord>): OffdexMachineRecord {
@@ -137,6 +138,70 @@ describe("session readiness", () => {
     expect(guide.title).toBe("Your phone stays trusted");
     expect(guide.primaryLabel).toBe("Refresh machines");
     expect(guide.secondaryLabel).toBe("Disconnect phone");
+  });
+
+  test("uses an offline banner before any machine has been paired", () => {
+    const banner = getSessionBanner({
+      macName: "studio-macbook",
+      pairingState: "unpaired",
+      connectionState: "idle",
+      connectionTransport: null,
+      codexReady: false,
+      machineCount: 0,
+      hasManagedSession: false,
+    });
+
+    expect(banner.eyebrow).toBe("No machine");
+    expect(banner.title).toBe("Pair your first Mac");
+    expect(banner.accent).toBe("offline");
+  });
+
+  test("uses a reconnect banner while a trusted machine is recovering", () => {
+    const banner = getSessionBanner({
+      macName: "studio-macbook",
+      pairingState: "reconnecting",
+      connectionState: "degraded",
+      connectionTransport: "direct",
+      codexReady: true,
+      machineCount: 1,
+      hasManagedSession: true,
+    });
+
+    expect(banner.eyebrow).toBe("Reconnecting");
+    expect(banner.title).toContain("studio-macbook");
+    expect(banner.accent).toBe("reconnecting");
+  });
+
+  test("uses a sign-in banner when transport is up but Codex is not ready", () => {
+    const banner = getSessionBanner({
+      macName: "studio-macbook",
+      pairingState: "paired",
+      connectionState: "live",
+      connectionTransport: "bridge",
+      codexReady: false,
+      machineCount: 1,
+      hasManagedSession: true,
+    });
+
+    expect(banner.eyebrow).toBe("Codex sign-in");
+    expect(banner.title).toContain("still needs login");
+    expect(banner.accent).toBe("attention");
+  });
+
+  test("surfaces the relay fallback when remote traffic is relayed", () => {
+    const banner = getSessionBanner({
+      macName: "studio-macbook",
+      pairingState: "paired",
+      connectionState: "live",
+      connectionTransport: "relay",
+      codexReady: true,
+      machineCount: 1,
+      hasManagedSession: true,
+    });
+
+    expect(banner.eyebrow).toBe("Encrypted relay");
+    expect(banner.title).toContain("reachable anywhere");
+    expect(banner.accent).toBe("ready");
   });
 
   test("keeps the current machine card locked to the active session", () => {
