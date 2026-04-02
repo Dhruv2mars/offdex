@@ -57,6 +57,14 @@ export interface OffdexAccountSession {
   expiresAt: string | null;
 }
 
+export interface OffdexRuntimeAccount {
+  id: string | null;
+  email: string | null;
+  name: string | null;
+  planType: string | null;
+  isAuthenticated: boolean;
+}
+
 export interface OffdexTrustedDeviceRecord {
   deviceId: OffdexDeviceId;
   deviceLabel: string;

@@ -3,6 +3,7 @@ import { basename } from "node:path";
 import { createServer } from "node:net";
 import {
   OFFDEX_NEW_THREAD_ID,
+  type OffdexRuntimeAccount,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   type OffdexMessage,
@@ -127,13 +128,7 @@ type JsonRpcServerRequest = {
   params?: unknown;
 };
 
-export interface CodexAccountSummary {
-  id: string | null;
-  email: string | null;
-  name: string | null;
-  planType: string | null;
-  isAuthenticated: boolean;
-}
+export type CodexAccountSummary = OffdexRuntimeAccount;
 
 function readStringField(record: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {

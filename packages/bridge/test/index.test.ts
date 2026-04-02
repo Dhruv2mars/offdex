@@ -378,13 +378,20 @@ describe("bridge workspace store", () => {
 
     const body = (await response.json()) as { payload: string };
     expect(response.ok).toBe(true);
-    const health = decryptRelayPayload<{ ok: boolean; relayConnected: boolean }>(
+    const health = decryptRelayPayload<{
+      ok: boolean;
+      relayConnected: boolean;
+      transport: string;
+      codexAccount?: unknown;
+    }>(
       "secret-123",
       JSON.parse(body.payload)
     );
 
     expect(health.ok).toBe(true);
     expect(health.relayConnected).toBe(true);
+    expect(health.transport).toBe("bridge");
+    expect(health.codexAccount).toBeNull();
 
     relay.stop();
   });

@@ -45,6 +45,7 @@ export default function App() {
     isBusy,
     machines,
     managedSession,
+    codexAccount,
   } = workspaceState;
   const [selectedThreadId, setSelectedThreadId] = useState(
     snapshot.threads[0]?.id ?? ""
@@ -552,6 +553,17 @@ export default function App() {
                   </Text>
                 </View>
                 <View style={styles.sectionCard}>
+                  <Text style={styles.sectionEyebrow}>Codex account</Text>
+                  <Text style={styles.sectionTitle}>
+                    {codexAccount?.email ?? codexAccount?.name ?? "Sign in on your Mac"}
+                  </Text>
+                  <Text style={styles.sectionBody}>
+                    {codexAccount?.isAuthenticated
+                      ? `Offdex is using the Codex session already running on this machine${codexAccount.planType ? ` (${codexAccount.planType})` : ""}.`
+                      : "The transport is ready, but Codex on this machine is not signed in yet. Open Codex on your Mac and sign in there first."}
+                  </Text>
+                </View>
+                <View style={styles.sectionCard}>
                   <Text style={styles.sectionEyebrow}>Connection path</Text>
                   <Text style={styles.sectionTitle}>{transportLabel}</Text>
                   <Text style={styles.sectionBody}>
@@ -678,6 +690,15 @@ export default function App() {
                   eyebrow="Runtime target"
                   title="Codex CLI"
                   body="Desktop mode is intentionally out of the main flow for now. The goal is to make the CLI path feel complete before adding anything else."
+                />
+                <SectionCard
+                  eyebrow="Machine session"
+                  title={codexAccount?.email ?? "Mac not signed in"}
+                  body={
+                    codexAccount?.isAuthenticated
+                      ? "Your phone controls the Codex session already authenticated on the machine. Offdex does not ask the phone to sign in separately."
+                      : "Offdex remote pairing can be trusted before Codex is signed in, but real work still depends on the machine-side Codex login."
+                  }
                 />
                 <SectionCard
                   eyebrow="Product bar"

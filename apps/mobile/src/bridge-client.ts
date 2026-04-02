@@ -2,6 +2,7 @@ import {
   type OffdexAccountSession,
   type OffdexConnectionTicket,
   type OffdexMachineRecord,
+  type OffdexRuntimeAccount,
   createRelayAuthToken,
   decryptRelayPayload,
   encryptRelayPayload,
@@ -19,6 +20,7 @@ export interface BridgeHealth {
   desktopAvailable: boolean;
   relayConnected?: boolean;
   relayUrl?: string | null;
+  codexAccount?: OffdexRuntimeAccount | null;
   session: {
     pairingCode: string;
     runtimeTarget: RuntimeTarget;
