@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "e7bf548f419a",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T12:20:23.69558Z",
+  "branch": "feat/secure-remote-pairing",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "package.json",
+    "packages/protocol/package.json",
+    "packages/relay/package.json",
+    "packages/relay/src/index.ts",
+    "packages/relay/test/index.test.ts",
+    "apps/mobile/test/bridge-client.test.ts",
+    "apps/mobile/src/bridge-preferences.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "082b4c80bbfd",
+  "token_usage": {
+    "input_tokens": 120839872,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 117106560,
+    "output_tokens": 496813,
+    "api_call_count": 948
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-02T12:20:20.400202Z",
+    "agent_lines": 0,
+    "human_added": 1617,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 1617,
+    "agent_percentage": 0
+  }
+}

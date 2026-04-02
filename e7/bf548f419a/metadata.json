@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "e7bf548f419a",
+  "strategy": "manual-commit",
+  "branch": "feat/secure-remote-pairing",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/src/bridge-preferences.ts",
+    "apps/mobile/test/bridge-client.test.ts",
+    "package.json",
+    "packages/protocol/package.json",
+    "packages/relay/package.json",
+    "packages/relay/src/index.ts",
+    "packages/relay/test/index.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e7/bf548f419a/0/metadata.json",
+      "transcript": "/e7/bf548f419a/0/full.jsonl",
+      "content_hash": "/e7/bf548f419a/0/content_hash.txt",
+      "prompt": "/e7/bf548f419a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 120839872,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 117106560,
+    "output_tokens": 496813,
+    "api_call_count": 948
+  }
+}
