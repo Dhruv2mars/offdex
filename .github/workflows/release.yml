@@ -1,0 +1,296 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  repository_dispatch:
+    types:
+      - release-rerun
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to publish, ex: v1.0.0"
+        required: true
+        type: string
+
+concurrency: ${{ github.workflow }}-${{ github.ref_name }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  resolve_tag:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+    steps:
+      - id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${GITHUB_EVENT_NAME}" in
+            repository_dispatch)
+              release_tag="$(jq -r '.client_payload.release_tag // empty' "$GITHUB_EVENT_PATH")"
+              ;;
+            workflow_dispatch)
+              release_tag="$(jq -r '.inputs.release_tag // empty' "$GITHUB_EVENT_PATH")"
+              ;;
+            *)
+              release_tag="${GITHUB_REF_NAME}"
+              ;;
+          esac
+          [[ "${release_tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+
+  validate:
+    needs: resolve_tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      version_code: ${{ steps.meta.outputs.version_code }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - id: meta
+        env:
+          RELEASE_TAG: ${{ needs.resolve_tag.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./apps/mobile/package.json').version")"
+          app_version="$(node -p "require('./apps/mobile/app.json').expo.version")"
+          npm_version="$(node -p "require('./packages/npm/package.json').version")"
+          if [ "v${version}" != "${RELEASE_TAG}" ]; then
+            echo "tag/version mismatch"
+            exit 1
+          fi
+          if [ "${app_version}" != "${version}" ]; then
+            echo "app.json/package.json mismatch"
+            exit 1
+          fi
+          if [ "${npm_version}" != "${version}" ]; then
+            echo "npm/mobile version mismatch"
+            exit 1
+          fi
+          version_code="$(node -e "const [major, minor, patch] = process.argv[1].split('.').map(Number); process.stdout.write(String(major * 10000 + minor * 100 + patch));" "${version}")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${version_code}" >> "$GITHUB_OUTPUT"
+
+  create_release:
+    needs: [resolve_tag, validate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - env:
+          RELEASE_TAG: ${{ needs.resolve_tag.outputs.release_tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release view "${RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${RELEASE_TAG}" --title "${RELEASE_TAG}" --generate-notes
+
+  build_android_release:
+    needs: [resolve_tag, validate, create_release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.resolve_tag.outputs.release_tag }}
+      RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+      RELEASE_VERSION_CODE: ${{ needs.validate.outputs.version_code }}
+      ANDROID_PACKAGE_NAME: com.dhruv2mars.offdex
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - shell: bash
+        run: bun install --frozen-lockfile
+      - shell: bash
+        run: |
+          set -euo pipefail
+          for secret_name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!secret_name:-}" ]; then
+              echo "Missing required secret: ${secret_name}"
+              exit 1
+            fi
+          done
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const path = "apps/mobile/app.json";
+          const config = JSON.parse(fs.readFileSync(path, "utf8"));
+          config.expo.version = process.env.RELEASE_VERSION;
+          config.expo.android = {
+            ...config.expo.android,
+            package: process.env.ANDROID_PACKAGE_NAME,
+            versionCode: Number(process.env.RELEASE_VERSION_CODE),
+          };
+          fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+      - shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/android-signing"
+          printf '%s' "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > "${RUNNER_TEMP}/android-signing/offdex-release.keystore"
+      - shell: bash
+        working-directory: apps/mobile
+        run: bunx expo prebuild --platform android --non-interactive --clean
+      - shell: bash
+        working-directory: apps/mobile/android
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease \
+            -Pandroid.injected.signing.store.file="${RUNNER_TEMP}/android-signing/offdex-release.keystore" \
+            -Pandroid.injected.signing.store.password="${ANDROID_KEYSTORE_PASSWORD}" \
+            -Pandroid.injected.signing.key.alias="${ANDROID_KEY_ALIAS}" \
+            -Pandroid.injected.signing.key.password="${ANDROID_KEY_PASSWORD}"
+      - shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk dist/offdex-android.apk
+          shasum -a 256 dist/offdex-android.apk | sed 's# dist/# #' > dist/offdex-android.sha256
+      - shell: bash
+        run: |
+          set -euo pipefail
+          for file in dist/*; do
+            gh release upload --clobber "${RELEASE_TAG}" "${file}"
+          done
+
+  build_cli_upload:
+    needs: [resolve_tag, validate, create_release]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            ext: ""
+            target: bun-linux-x64-baseline
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+            ext: ""
+            target: bun-linux-arm64
+          - os: windows-latest
+            platform: win32
+            arch: x64
+            ext: ".exe"
+            target: bun-windows-x64-baseline
+          - os: macos-13
+            platform: darwin
+            arch: x64
+            ext: ""
+            target: bun-darwin-x64
+          - os: macos-14
+            platform: darwin
+            arch: arm64
+            ext: ""
+            target: bun-darwin-arm64
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.resolve_tag.outputs.release_tag }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - uses: oven-sh/setup-bun@v2
+      - shell: bash
+        run: bun install --frozen-lockfile
+      - shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          bun build --compile --target="${{ matrix.target }}" packages/bridge/src/cli.ts --outfile "dist/offdex-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}"
+      - shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          checksum_file="checksums-${{ matrix.platform }}-${{ matrix.arch }}.txt"
+          tmp_file="${checksum_file}.tmp"
+          if command -v shasum >/dev/null 2>&1; then
+            for f in ./offdex-*; do
+              [ -f "$f" ] || continue
+              shasum -a 256 -- "$f"
+            done | sed 's# \./# #' > "$tmp_file"
+          else
+            for f in ./offdex-*; do
+              [ -f "$f" ] || continue
+              sha256sum -- "$f"
+            done | sed 's# \./# #' > "$tmp_file"
+          fi
+          mv "$tmp_file" "$checksum_file"
+      - shell: bash
+        run: |
+          set -euo pipefail
+          for file in dist/*; do
+            gh release upload --clobber "${RELEASE_TAG}" "${file}"
+          done
+
+  publish_npm:
+    needs: [resolve_tag, validate, build_cli_upload]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+      - shell: bash
+        run: |
+          set -euo pipefail
+          local_v="$(node -p "require('./packages/npm/package.json').version")"
+          remote_v="$(npm view @dhruv2mars/offdex version 2>/dev/null || true)"
+          if [ -n "${remote_v:-}" ] && [ "${remote_v}" = "${local_v}" ]; then
+            echo "skip: already on npm (${remote_v})"
+            exit 0
+          fi
+          rc="${RUNNER_TEMP:-/tmp}/npmrc"
+          echo "registry=https://registry.npmjs.org/" > "$rc"
+          export NPM_CONFIG_USERCONFIG="$rc"
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "$rc"
+            export NODE_AUTH_TOKEN="${NPM_TOKEN}"
+            cd packages/npm && npm publish --access public
+          else
+            echo "publish via npm trusted publisher"
+            unset NODE_AUTH_TOKEN || true
+            if cd packages/npm && npm publish --provenance --access public; then
+              exit 0
+            fi
+            echo "trusted publisher not configured and NPM_TOKEN missing"
+            exit 1
+          fi

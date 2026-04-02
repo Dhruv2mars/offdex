@@ -29,6 +29,17 @@ bun run dev:web
 bun run dev:mobile
 ```
 
+## Install
+
+The intended public Mac, Linux, and Windows install path is:
+
+```bash
+npm install -g @dhruv2mars/offdex
+offdex
+```
+
+The npm package downloads the matching native bridge runtime for the current platform from GitHub Releases.
+
 For the managed remote path, run the bridge against the control plane:
 
 ```bash
@@ -42,6 +53,53 @@ Then scan the QR once in Offdex. The phone claims a trusted device session, sees
 ### Web
 
 The web app is live at [web-dhruv2mars.vercel.app](https://web-dhruv2mars.vercel.app).
+
+### Android APK
+
+Public Android downloads are meant to ship through GitHub Releases.
+
+- Website download link: `https://github.com/Dhruv2mars/offdex/releases/latest/download/offdex-android.apk`
+- Releases page: `https://github.com/Dhruv2mars/offdex/releases`
+- Create a release tag: `bun run release:tag`
+
+The release workflow builds a signed Android APK from the Expo app and uploads:
+
+- `offdex-android.apk`
+- `offdex-android.sha256`
+
+Required GitHub repository secrets:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+The workflow derives `versionCode` from the semver tag and enforces that:
+
+- `apps/mobile/package.json` version matches the tag
+- `apps/mobile/app.json` version matches `apps/mobile/package.json`
+- `packages/npm/package.json` version matches `apps/mobile/package.json`
+
+### npm CLI
+
+The same release tag also publishes:
+
+- npm package: `@dhruv2mars/offdex`
+- GitHub release binaries for macOS, Linux, and Windows
+
+Current npm target matrix:
+
+- macOS: `arm64`, `x64`
+- Linux: `arm64`, `x64`
+- Windows: `x64`
+
+The npm installer pulls the correct release asset for the current platform when users run:
+
+```bash
+npm install -g @dhruv2mars/offdex
+```
+
+Windows `arm64` is not shipped yet because Bun does not currently support compiling that target.
 
 ### Managed Remote
 

@@ -16,6 +16,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.dhruv2mars.offdex",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0d0f0e",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -26,6 +28,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "reactCompiler": true
     },
     "plugins": [
       [
@@ -41,7 +46,8 @@
         {
           "cameraPermission": "Offdex uses your camera to scan the pairing QR from your Mac."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

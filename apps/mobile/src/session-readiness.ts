@@ -39,6 +39,13 @@ export interface PairingGuide {
   secondaryLabel: string | null;
 }
 
+export interface SessionBanner {
+  eyebrow: string;
+  title: string;
+  body: string;
+  accent: "ready" | "attention" | "reconnecting" | "offline";
+}
+
 export function getChatReadiness(input: ChatReadinessInput): ChatReadiness {
   const transportReady = input.connectionState === "live";
 
@@ -186,6 +193,71 @@ export function getPairingGuide(input: {
     primaryLabel: input.hasManagedSession ? "Refresh machines" : "Refresh bridge",
     secondaryAction: "disconnect",
     secondaryLabel: "Disconnect phone",
+  };
+}
+
+export function getSessionBanner(input: {
+  macName: string;
+  pairingState: PairingState;
+  connectionState: BridgeWorkspaceState["connectionState"];
+  connectionTransport: BridgeWorkspaceState["connectionTransport"];
+  codexReady: boolean;
+  machineCount: number;
+  hasManagedSession: boolean;
+}): SessionBanner {
+  if (input.pairingState === "unpaired") {
+    return {
+      eyebrow: "No machine",
+      title: "Pair your first Mac",
+      body: "Scan the QR from your machine once. After that, this phone should come back to the same trusted setup automatically.",
+      accent: "offline",
+    };
+  }
+
+  if (input.connectionState === "degraded" || input.pairingState === "reconnecting") {
+    return {
+      eyebrow: "Reconnecting",
+      title: `Rejoining ${input.macName}`,
+      body: "The trust is still there. Offdex is restoring the live session and will fall back gracefully if the direct path is unavailable.",
+      accent: "reconnecting",
+    };
+  }
+
+  if (!input.codexReady) {
+    return {
+      eyebrow: "Codex sign-in",
+      title: `${input.macName} still needs login`,
+      body: "Your phone is attached to the machine already. Finish the ChatGPT sign-in on the Mac and the live thread surface will be ready immediately.",
+      accent: "attention",
+    };
+  }
+
+  if (input.connectionTransport === "relay") {
+    return {
+      eyebrow: "Encrypted relay",
+      title: `${input.macName} is reachable anywhere`,
+      body: "Traffic is flowing through the managed fallback path. The bridge stays the source of truth and the phone keeps the same live thread view.",
+      accent: "ready",
+    };
+  }
+
+  if (input.connectionTransport === "direct") {
+    return {
+      eyebrow: "Direct remote",
+      title: `${input.macName} is live`,
+      body:
+        input.hasManagedSession && input.machineCount > 1
+          ? "You can hop across trusted machines without pairing again. Offdex will prefer a direct path whenever it can."
+          : "The phone is talking straight to your machine right now. Turns and thread state should feel immediate.",
+      accent: "ready",
+    };
+  }
+
+  return {
+    eyebrow: "Nearby bridge",
+    title: `${input.macName} is ready`,
+    body: "You are on the local path, so Offdex can stay especially responsive while still mirroring the real Codex session from your machine.",
+    accent: "ready",
   };
 }
 

@@ -12,6 +12,8 @@ coverage/
 apps/web/.next/
 apps/web/.vercel/
 apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
 
 .env
 .env.*
