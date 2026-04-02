@@ -29,6 +29,16 @@ export interface ChatReadiness {
   };
 }
 
+export interface PairingGuide {
+  eyebrow: string;
+  title: string;
+  body: string;
+  primaryAction: "scan" | "nearby" | "macStatus" | "refreshMachines" | "refreshNow";
+  primaryLabel: string;
+  secondaryAction: "nearby" | "disconnect" | null;
+  secondaryLabel: string | null;
+}
+
 export function getChatReadiness(input: ChatReadinessInput): ChatReadiness {
   const transportReady = input.connectionState === "live";
 
@@ -121,6 +131,64 @@ export function getChatReadiness(input: ChatReadinessInput): ChatReadiness {
   };
 }
 
+export function getPairingGuide(input: {
+  pairingState: PairingState;
+  connectionState: BridgeWorkspaceState["connectionState"];
+  trustedPairing: boolean;
+  codexReady: boolean;
+  hasManagedSession: boolean;
+  machineCount: number;
+}): PairingGuide {
+  if (input.pairingState === "unpaired") {
+    return {
+      eyebrow: "First run",
+      title: "Pair your first Mac",
+      body: "Scan the QR from your Mac once or use the nearby bridge path on the same Wi-Fi.",
+      primaryAction: "scan",
+      primaryLabel: "Scan QR",
+      secondaryAction: "nearby",
+      secondaryLabel: "Use nearby bridge",
+    };
+  }
+
+  if (input.connectionState === "degraded" || input.pairingState === "reconnecting") {
+    return {
+      eyebrow: "Reconnect",
+      title: "Offdex is rejoining your Mac",
+      body: "This phone is still trusted. Keep the machine online and Offdex will reconnect automatically.",
+      primaryAction: "refreshNow",
+      primaryLabel: "Retry now",
+      secondaryAction: "disconnect",
+      secondaryLabel: "Disconnect phone",
+    };
+  }
+
+  if (!input.codexReady) {
+    return {
+      eyebrow: "Codex",
+      title: "Finish sign-in on your Mac",
+      body: "Transport is ready. Open Codex on the connected machine and complete the ChatGPT sign-in there.",
+      primaryAction: "macStatus",
+      primaryLabel: "Mac status",
+      secondaryAction: input.trustedPairing ? "disconnect" : null,
+      secondaryLabel: input.trustedPairing ? "Disconnect phone" : null,
+    };
+  }
+
+  return {
+    eyebrow: input.machineCount > 1 ? "Machines" : "Ready",
+    title: "Your phone stays trusted",
+    body:
+      input.hasManagedSession && input.machineCount > 1
+        ? "Use your saved machine list to hop back onto any trusted Mac without scanning again."
+        : "This phone stays trusted until you disconnect it. Keep the Mac online and Offdex will reconnect from anywhere.",
+    primaryAction: input.hasManagedSession ? "refreshMachines" : "refreshNow",
+    primaryLabel: input.hasManagedSession ? "Refresh machines" : "Refresh bridge",
+    secondaryAction: "disconnect",
+    secondaryLabel: "Disconnect phone",
+  };
+}
+
 export function getMachineAvailabilityLabel(input: {
   machine: OffdexMachineRecord;
   selectedMachineId: string | null;
@@ -142,4 +210,39 @@ export function getMachineAvailabilityLabel(input: {
   }
 
   return input.machine.online ? "online" : "offline";
+}
+
+export function getMachineConnectionAction(input: {
+  machine: OffdexMachineRecord;
+  selectedMachineId: string | null;
+  connectionState: BridgeWorkspaceState["connectionState"];
+  codexReady: boolean;
+}) {
+  const isSelected = input.machine.machineId === input.selectedMachineId;
+
+  if (isSelected && input.connectionState === "live") {
+    return {
+      label: input.codexReady ? "Current machine" : "Mac sign-in needed",
+      disabled: true,
+    };
+  }
+
+  if (isSelected && input.connectionState === "degraded") {
+    return {
+      label: "Reconnecting",
+      disabled: true,
+    };
+  }
+
+  if (!input.machine.online) {
+    return {
+      label: "Offline",
+      disabled: true,
+    };
+  }
+
+  return {
+    label: "Use this Mac",
+    disabled: false,
+  };
 }

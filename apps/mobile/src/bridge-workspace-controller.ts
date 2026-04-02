@@ -502,11 +502,20 @@ export class BridgeWorkspaceController {
       throw new Error("Pair a trusted machine first.");
     }
 
+    await this.refreshManagedMachines();
+    return this.#connectManagedSession(this.#managedSession, machineId);
+  }
+
+  async refreshManagedMachines() {
+    if (!this.#managedSession) {
+      return this.getState();
+    }
+
     const machines = await this.#client.listManagedMachines(this.#managedSession);
     this.#setState({
       machines: machines.machines,
     });
-    return this.#connectManagedSession(this.#managedSession, machineId);
+    return this.getState();
   }
 
   async #connectManagedSession(session: ManagedBridgeSession, machineId: string) {

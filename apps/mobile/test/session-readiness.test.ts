@@ -3,6 +3,8 @@ import type { OffdexMachineRecord } from "@offdex/protocol";
 import {
   getChatReadiness,
   getMachineAvailabilityLabel,
+  getMachineConnectionAction,
+  getPairingGuide,
 } from "../src/session-readiness";
 
 function makeMachine(overrides?: Partial<OffdexMachineRecord>): OffdexMachineRecord {
@@ -91,5 +93,85 @@ describe("session readiness", () => {
     });
 
     expect(label).toBe("ready");
+  });
+
+  test("guides first-run users toward pairing their Mac", () => {
+    const guide = getPairingGuide({
+      pairingState: "unpaired",
+      connectionState: "idle",
+      trustedPairing: false,
+      codexReady: false,
+      hasManagedSession: false,
+      machineCount: 0,
+    });
+
+    expect(guide.title).toBe("Pair your first Mac");
+    expect(guide.primaryLabel).toBe("Scan QR");
+    expect(guide.secondaryLabel).toBe("Use nearby bridge");
+  });
+
+  test("guides trusted users to finish Mac-side Codex sign-in", () => {
+    const guide = getPairingGuide({
+      pairingState: "paired",
+      connectionState: "live",
+      trustedPairing: true,
+      codexReady: false,
+      hasManagedSession: true,
+      machineCount: 1,
+    });
+
+    expect(guide.title).toBe("Finish sign-in on your Mac");
+    expect(guide.primaryLabel).toBe("Mac status");
+  });
+
+  test("guides trusted users toward their machine list when everything is ready", () => {
+    const guide = getPairingGuide({
+      pairingState: "paired",
+      connectionState: "live",
+      trustedPairing: true,
+      codexReady: true,
+      hasManagedSession: true,
+      machineCount: 2,
+    });
+
+    expect(guide.title).toBe("Your phone stays trusted");
+    expect(guide.primaryLabel).toBe("Refresh machines");
+    expect(guide.secondaryLabel).toBe("Disconnect phone");
+  });
+
+  test("keeps the current machine card locked to the active session", () => {
+    const action = getMachineConnectionAction({
+      machine: makeMachine(),
+      selectedMachineId: "machine-123",
+      connectionState: "live",
+      codexReady: true,
+    });
+
+    expect(action.label).toBe("Current machine");
+    expect(action.disabled).toBe(true);
+  });
+
+  test("lets users reconnect an inactive but online trusted machine", () => {
+    const action = getMachineConnectionAction({
+      machine: makeMachine({ machineId: "machine-456" }),
+      selectedMachineId: "machine-123",
+      connectionState: "live",
+      codexReady: true,
+    });
+
+    expect(action.label).toBe("Use this Mac");
+    expect(action.disabled).toBe(false);
+  });
+
+  test("keeps offline machines non-actionable", () => {
+    const action = getMachineConnectionAction({
+      machine: makeMachine({ machineId: "machine-456", online: false }),
+      selectedMachineId: "machine-123",
+      connectionState: "live",
+      codexReady: true,
+    });
+
+    expect(action.label).toBe("Offline");
+    expect(action.disabled).toBe(true);
   });
 });

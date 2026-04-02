@@ -87,10 +87,11 @@ function makeManagedMachine(machineId = "machine-123"): OffdexMachineRecord {
 
 function createFakeClient() {
   const snapshot = makeDemoWorkspaceSnapshot("cli");
-  const machines = [makeManagedMachine()];
+  let machines = [makeManagedMachine()];
   let interruptedThreadId: string | null = null;
   let sentThreadId: string | null = null;
   let healthRequestCount = 0;
+  let managedListRequestCount = 0;
   let failHealthRequests = 0;
   let liveHandlers:
     | {
@@ -220,6 +221,7 @@ function createFakeClient() {
       };
     },
     async listManagedMachines(session) {
+      managedListRequestCount += 1;
       return {
         session,
         machines,
@@ -251,6 +253,12 @@ function createFakeClient() {
     },
     getHealthRequestCount() {
       return healthRequestCount;
+    },
+    getManagedListRequestCount() {
+      return managedListRequestCount;
+    },
+    setMachines(nextMachines: OffdexMachineRecord[]) {
+      machines = nextMachines;
     },
     failNextHealthRequests(count = 1) {
       failHealthRequests = count;
@@ -553,6 +561,35 @@ describe("bridge workspace controller", () => {
 
     expect(controller.getState().connectionState).toBe("live");
     expect(controller.getState().connectionTransport).toBe("direct");
+    expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
+  });
+
+  test("refreshes the trusted machine list without reconnecting", async () => {
+    const fakeClient = createFakeClient();
+    const preferences = createFakePreferences();
+    await preferences.setManagedSession?.({
+      controlPlaneUrl: "https://control.offdex.app",
+      machineId: "machine-123",
+      token: "session-token-123",
+      ownerId: "owner-123",
+      ownerLabel: "dhruv@example.com",
+      deviceId: "device-123",
+    });
+    const controller = new BridgeWorkspaceController({
+      preferences,
+      client: fakeClient.client,
+    });
+
+    await controller.hydrate();
+    fakeClient.setMachines([
+      makeManagedMachine(),
+      makeManagedMachine("machine-456"),
+    ]);
+
+    await controller.refreshManagedMachines();
+
+    expect(fakeClient.getManagedListRequestCount()).toBe(2);
+    expect(controller.getState().machines).toHaveLength(2);
     expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
   });
 
