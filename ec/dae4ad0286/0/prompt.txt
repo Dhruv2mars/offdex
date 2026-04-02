@@ -1,0 +1,35 @@
+whats our next steps and status of development?
+
+---
+
+yeah. do all of them. continue working until everything is done and working perfectly fine without any issues!!!
+
+---
+
+yes continue. you can ask whatever you need from me
+
+---
+
+done, i have connected the phone. you can continue!
+
+---
+
+done. you can continue and do everything now.
+
+---
+
+ok, so how to i connect my phone with my mac.
+
+---
+
+i have done it. i sent a prompt, and received the output!
+
+---
+
+okay, other than the 3 moves you listed above. here are some that i want you to work on as well:
+- the qr should also show in the terminal as well. just like how expo cli works, it shows the qr code and other necessary details right in the terminal. 
+- once a user has connected a system (where codex is running) and the mobile app. he should never have to do it again ever. until and unless he logout (disconnect in layman terms) from phone. 
+- the phone app and codex on system should remain connected even if the 2 are in different parts of the world at all times. it should just need the mac to be powered on and have an internet connection, thats it. but this connection has to be secured so that no one can come in-between it. you may wanna look at tailscale like implementation. 
+
+
+do the above along with the 3 steps you listed before. do it and implement everything thats needed. do not stop until all of the above are working perfectly like a real production app.

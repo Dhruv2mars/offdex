@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "ecdae4ad0286",
+  "strategy": "manual-commit",
+  "branch": "feat/secure-remote-pairing",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "apps/web/app/architecture/page.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ec/dae4ad0286/0/metadata.json",
+      "transcript": "/ec/dae4ad0286/0/full.jsonl",
+      "content_hash": "/ec/dae4ad0286/0/content_hash.txt",
+      "prompt": "/ec/dae4ad0286/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 121195396,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 117349760,
+    "output_tokens": 497140,
+    "api_call_count": 951
+  }
+}
