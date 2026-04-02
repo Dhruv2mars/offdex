@@ -29,13 +29,31 @@ bun run dev:web
 bun run dev:mobile
 ```
 
-For remote access, run the bridge with a relay URL:
+For local relay development, run the bridge with a relay URL:
 
 ```bash
-OFFDEX_RELAY_URL=wss://your-relay.example.com bun run dev:bridge
+OFFDEX_RELAY_URL=ws://127.0.0.1:42421 bun run dev:bridge
 ```
 
 Then scan the QR once in Offdex. The phone stores that trusted pairing and will keep reconnecting until you explicitly disconnect it in the app.
+
+## Deploy
+
+### Web
+
+The web app is live at [web-dhruv2mars.vercel.app](https://web-dhruv2mars.vercel.app).
+
+### Public Relay
+
+For real away-from-home access, deploy the relay on a long-lived host with HTTPS or WSS. The repo now includes a container path in [deploy/relay/README.md](/Users/dhruv2mars/dev/github/offdex/deploy/relay/README.md).
+
+Use a public URL like:
+
+```bash
+OFFDEX_RELAY_URL=https://relay.example.com bun run dev:bridge
+```
+
+Once the bridge restarts, the QR and pairing link will embed that public relay automatically.
 
 ## Repo Shape
 
