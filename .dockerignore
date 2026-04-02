@@ -1,0 +1,12 @@
+.git
+.turbo
+node_modules
+dist
+coverage
+.next
+.expo
+apps/mobile/.expo
+apps/mobile/dist
+apps/web/.next
+apps/web/out
+packages/*/dist

@@ -2,8 +2,8 @@
 
 import { startRelayServer } from "./index";
 
-const port = Number(process.env.OFFDEX_RELAY_PORT || "42421");
-const host = process.env.OFFDEX_RELAY_HOST || "127.0.0.1";
+const port = Number(process.env.PORT || process.env.OFFDEX_RELAY_PORT || "42421");
+const host = process.env.OFFDEX_RELAY_HOST || "0.0.0.0";
 
 const relay = startRelayServer({ host, port });
 

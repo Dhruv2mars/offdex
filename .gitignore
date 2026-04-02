@@ -10,6 +10,7 @@ dist/
 coverage/
 
 apps/web/.next/
+apps/web/.vercel/
 apps/mobile/.expo/
 
 .env
