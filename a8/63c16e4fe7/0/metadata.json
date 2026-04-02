@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "a863c16e4fe7",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T05:51:34.044015Z",
+  "branch": "feat/connect-first-composer",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "25b486238927",
+  "token_usage": {
+    "input_tokens": 70991820,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 68952832,
+    "output_tokens": 327535,
+    "api_call_count": 575
+  },
+  "session_metrics": {
+    "turn_count": 1
+  }
+}
