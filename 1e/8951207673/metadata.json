@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "1e8951207673",
+  "strategy": "manual-commit",
+  "branch": "feat/sdk55-product-pass",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/mobile/App.tsx",
+    "apps/mobile/app.json",
+    "apps/mobile/package.json",
+    "apps/mobile/src/session-readiness.ts",
+    "apps/mobile/test/session-readiness.test.ts",
+    "bun.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/1e/8951207673/0/metadata.json",
+      "transcript": "/1e/8951207673/0/full.jsonl",
+      "content_hash": "/1e/8951207673/0/content_hash.txt",
+      "prompt": "/1e/8951207673/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 187914770,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 179559168,
+    "output_tokens": 751699,
+    "api_call_count": 1465
+  }
+}
