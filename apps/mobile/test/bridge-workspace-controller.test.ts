@@ -216,20 +216,22 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().snapshot.pairing.state).toBe("paired");
   });
 
-  test("falls back to demo turns when no bridge is connected", async () => {
+  test("refuses to send turns until a bridge is connected", async () => {
     const controller = new BridgeWorkspaceController({
       preferences: createFakePreferences(),
       client: createFakeClient().client,
     });
 
-    await controller.sendTurn("thread-foundation", "Keep the fallback usable.");
+    await expect(
+      controller.sendTurn("thread-foundation", "Keep the fallback usable.")
+    ).rejects.toThrow("Connect to your Mac first.");
 
     const thread = controller
       .getState()
       .snapshot.threads.find((entry) => entry.id === "thread-foundation");
 
-    expect(thread?.messages.at(-2)?.body).toBe("Keep the fallback usable.");
-    expect(thread?.messages.at(-1)?.role).toBe("assistant");
+    expect(thread?.messages.at(-1)?.body).not.toBe("Keep the fallback usable.");
+    expect(controller.getState().bridgeStatus).toBe("Connect to your Mac first.");
   });
 
   test("pushes connected turns through the bridge and accepts live updates", async () => {

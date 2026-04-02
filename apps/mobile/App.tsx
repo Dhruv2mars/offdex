@@ -26,8 +26,15 @@ export default function App() {
   );
   const [workspaceState, setWorkspaceState] = useState(() => controller.getState());
   const [activeTab, setActiveTab] = useState<AppTab>("Chats");
-  const { snapshot, runtimeTarget, bridgeBaseUrl, connectedBridgeUrl, bridgeStatus, isBusy } =
-    workspaceState;
+  const {
+    snapshot,
+    runtimeTarget,
+    bridgeBaseUrl,
+    connectedBridgeUrl,
+    connectionState,
+    bridgeStatus,
+    isBusy,
+  } = workspaceState;
   const [selectedThreadId, setSelectedThreadId] = useState(
     snapshot.threads[0]?.id ?? ""
   );
@@ -94,11 +101,16 @@ export default function App() {
     updatedAt: awaitingNewThread ? "Starting…" : "Ready",
     messages: [],
   };
-  const selectedThread =
-    selectedThreadId === OFFDEX_NEW_THREAD_ID
-      ? draftThread
-      : snapshot.threads.find((thread) => thread.id === selectedThreadId) ?? snapshot.threads[0];
-  const isDraftThread = selectedThread?.id === OFFDEX_NEW_THREAD_ID;
+  const isDraftThread = selectedThreadId === OFFDEX_NEW_THREAD_ID;
+  const isLiveConnection = connectionState === "live";
+  const showThreadHistory =
+    snapshot.pairing.state === "paired" ||
+    connectionState !== "idle" ||
+    connectedBridgeUrl !== null;
+  const visibleThreads = showThreadHistory ? snapshot.threads : [];
+  const activeThread = isDraftThread
+    ? draftThread
+    : visibleThreads.find((thread) => thread.id === selectedThreadId) ?? visibleThreads[0];
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -190,52 +202,77 @@ export default function App() {
                   </Text>
                 </View>
               ) : null}
-              <SectionLabel title="Recent threads" subtitle={snapshot.pairing.lastSeenAt} />
-              {snapshot.threads.map((thread) => (
-                <Pressable
-                  key={thread.id}
-                  onPress={() => setSelectedThreadId(thread.id)}
-                  style={[
-                    styles.threadCard,
-                    thread.id === selectedThread?.id && styles.threadCardActive,
-                  ]}
-                >
-                  <View style={styles.threadCardHeader}>
-                    <Text style={styles.threadTitle}>{thread.title}</Text>
-                    {thread.unreadCount > 0 ? (
-                      <View style={styles.unreadBadge}>
-                        <Text style={styles.unreadBadgeText}>{thread.unreadCount}</Text>
+              {visibleThreads.length > 0 ? (
+                <>
+                  <SectionLabel title="Recent threads" subtitle={snapshot.pairing.lastSeenAt} />
+                  {visibleThreads.map((thread) => (
+                    <Pressable
+                      key={thread.id}
+                      onPress={() => setSelectedThreadId(thread.id)}
+                      style={[
+                        styles.threadCard,
+                        thread.id === activeThread?.id && styles.threadCardActive,
+                      ]}
+                    >
+                      <View style={styles.threadCardHeader}>
+                        <Text style={styles.threadTitle}>{thread.title}</Text>
+                        {thread.unreadCount > 0 ? (
+                          <View style={styles.unreadBadge}>
+                            <Text style={styles.unreadBadgeText}>{thread.unreadCount}</Text>
+                          </View>
+                        ) : null}
                       </View>
-                    ) : null}
-                  </View>
-                  <Text style={styles.threadMeta}>
-                    {thread.projectLabel} · {thread.updatedAt}
+                      <Text style={styles.threadMeta}>
+                        {thread.projectLabel} · {thread.updatedAt}
+                      </Text>
+                      <View style={styles.statusRow}>
+                        <Pill
+                          label={isLiveConnection ? thread.state : "preview"}
+                          tone={isLiveConnection ? thread.state : "neutral"}
+                        />
+                        <Pill
+                          label={thread.runtimeTarget === "cli" ? "CLI" : "Desktop"}
+                          tone="neutral"
+                        />
+                      </View>
+                    </Pressable>
+                  ))}
+                </>
+              ) : (
+                <View style={styles.emptyRailCard}>
+                  <Text style={styles.emptyRailTitle}>No live threads yet</Text>
+                  <Text style={styles.emptyRailBody}>
+                    Pair your Mac first. Offdex will show real Codex threads here as soon as the bridge is live.
                   </Text>
-                  <View style={styles.statusRow}>
-                    <Pill label={thread.state} tone={thread.state} />
-                    <Pill label={thread.runtimeTarget === "cli" ? "CLI" : "Desktop"} tone="neutral" />
-                  </View>
-                </Pressable>
-              ))}
+                </View>
+              )}
             </ScrollView>
 
             <View style={styles.threadPane}>
-              {selectedThread ? (
+              {activeThread ? (
                 <>
                   <View style={styles.threadPaneHeader}>
                     <View style={styles.threadPaneHeaderCopy}>
-                      <Text style={styles.threadPaneTitle}>{selectedThread.title}</Text>
+                      <Text style={styles.threadPaneTitle}>{activeThread.title}</Text>
                       <Text style={styles.threadPaneSubtitle}>
                         {isDraftThread
                           ? awaitingNewThread
                             ? "Waiting for Codex to open the thread"
                             : "Send the first prompt to start a fresh Codex chat"
-                          : `${selectedThread.projectLabel} · ${selectedThread.updatedAt}`}
+                          : `${activeThread.projectLabel} · ${activeThread.updatedAt}`}
                       </Text>
                     </View>
                     <Pill
-                      label={isDraftThread ? "new" : selectedThread.state}
-                      tone={isDraftThread ? "neutral" : selectedThread.state}
+                      label={
+                        isDraftThread
+                          ? "new"
+                          : isLiveConnection
+                            ? activeThread.state
+                            : "preview"
+                      }
+                      tone={
+                        isDraftThread || !isLiveConnection ? "neutral" : activeThread.state
+                      }
                     />
                   </View>
 
@@ -253,15 +290,17 @@ export default function App() {
                         </Text>
                       </View>
                     ) : null}
-                    {selectedThread.messages.map((message) => (
-                      <MessageBubble key={message.id} thread={selectedThread} message={message.body} role={message.role} timestamp={message.createdAt} />
+                    {activeThread.messages.map((message) => (
+                      <MessageBubble key={message.id} thread={activeThread} message={message.body} role={message.role} timestamp={message.createdAt} />
                     ))}
                   </ScrollView>
 
                   <View style={styles.composer}>
                     <TextInput
                       placeholder={
-                        isDraftThread
+                        !isLiveConnection
+                          ? "Pair your Mac to start sending turns"
+                          : isDraftThread
                           ? "Start the first turn for this new chat"
                           : "Steer the current run or queue the next turn"
                       }
@@ -273,35 +312,49 @@ export default function App() {
                     />
                     <View style={styles.composerFooter}>
                       <Text style={styles.composerHint}>
-                        Pair once. Stay live. Fall back gracefully.
+                        {isLiveConnection
+                          ? "Pair once. Stay live. Fall back gracefully."
+                          : "Connect to your Mac first. Offdex only sends real turns over the local bridge."}
                       </Text>
                       <Pressable
                         style={[
                           styles.sendButton,
-                          selectedThread.state !== "running" &&
+                          isLiveConnection &&
+                          activeThread.state !== "running" &&
                             !draft.trim() &&
                             styles.sendButtonDisabled,
-                          selectedThread.state === "running" && styles.stopButton,
+                          isLiveConnection &&
+                            activeThread.state === "running" &&
+                            styles.stopButton,
                         ]}
-                        disabled={selectedThread.state !== "running" && !draft.trim()}
+                        disabled={
+                          isLiveConnection
+                            ? activeThread.state !== "running" && !draft.trim()
+                            : false
+                        }
                         onPress={() => {
                           void (async () => {
-                            if (selectedThread.state === "running") {
-                              await controller.interruptThread(selectedThread.id).catch(() => {});
+                            if (!isLiveConnection) {
+                              setActiveTab("Pairing");
+                              return;
+                            }
+
+                            if (activeThread.state === "running") {
+                              await controller.interruptThread(activeThread.id).catch(() => {});
                               return;
                             }
 
                             const nextDraft = draft;
                             setDraft("");
-                            if (selectedThread.id === OFFDEX_NEW_THREAD_ID) {
+                            if (activeThread.id === OFFDEX_NEW_THREAD_ID) {
                               setAwaitingNewThread(true);
                             }
 
                             await controller
-                              .sendTurn(selectedThread.id, nextDraft)
+                              .sendTurn(activeThread.id, nextDraft)
                               .then((nextState) => {
                                 if (
-                                  selectedThread.id === OFFDEX_NEW_THREAD_ID &&
+                                  activeThread.id === OFFDEX_NEW_THREAD_ID &&
                                   nextState.snapshot.threads[0]?.id &&
                                   nextState.snapshot.threads[0].id !== OFFDEX_NEW_THREAD_ID
                                 ) {
@@ -317,13 +370,33 @@ export default function App() {
                         }}
                       >
                         <Text style={styles.sendButtonText}>
-                          {selectedThread.state === "running" ? "Stop" : "Send"}
+                          {!isLiveConnection
+                            ? snapshot.pairing.state === "reconnecting"
+                              ? "Reconnecting"
+                              : "Connect first"
+                            : activeThread.state === "running"
+                              ? "Stop"
+                              : "Send"}
                         </Text>
                       </Pressable>
                     </View>
                   </View>
                 </>
-              ) : null}
+              ) : (
+                <View style={styles.emptyPane}>
+                  <Text style={styles.emptyPaneEyebrow}>First run</Text>
+                  <Text style={styles.emptyPaneTitle}>Connect to your Mac</Text>
+                  <Text style={styles.emptyPaneBody}>
+                    Offdex stays local. Pair the bridge, then your real Codex threads will show up here live.
+                  </Text>
+                  <Pressable
+                    onPress={() => setActiveTab("Pairing")}
+                    style={styles.connectButton}
+                  >
+                    <Text style={styles.connectButtonText}>Open pairing</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           </View>
         ) : null}
@@ -683,6 +756,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  emptyRailCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#1e2421",
+    backgroundColor: "#101412",
+    padding: 16,
+    gap: 8,
+  },
+  emptyRailTitle: {
+    color: "#eef2ef",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  emptyRailBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 20,
+  },
   onboardingBanner: {
     borderRadius: 24,
     backgroundColor: "#101412",
@@ -797,6 +888,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1f2522",
     overflow: "hidden",
+  },
+  emptyPane: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
+    gap: 10,
+  },
+  emptyPaneEyebrow: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  emptyPaneTitle: {
+    color: "#eef2ef",
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  emptyPaneBody: {
+    color: "#97a19c",
+    fontSize: 15,
+    lineHeight: 23,
+    marginBottom: 8,
   },
   threadPaneHeader: {
     paddingHorizontal: 18,
