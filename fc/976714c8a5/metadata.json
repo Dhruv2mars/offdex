@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "fc976714c8a5",
+  "strategy": "manual-commit",
+  "branch": "feat/v2-managed-remote",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/fc/976714c8a5/0/metadata.json",
+      "transcript": "/fc/976714c8a5/0/full.jsonl",
+      "content_hash": "/fc/976714c8a5/0/content_hash.txt",
+      "prompt": "/fc/976714c8a5/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 147814891,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 140737664,
+    "output_tokens": 622146,
+    "api_call_count": 1159
+  }
+}
