@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "e0723eb14308",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T05:45:28.353979Z",
+  "branch": "feat/new-thread-flow",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/src/demo-workspace-controller.ts",
+    "apps/mobile/test/demo-workspace-controller.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "25b486238927",
+  "token_usage": {
+    "input_tokens": 65696894,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 63677312,
+    "output_tokens": 309578,
+    "api_call_count": 537
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-02T05:45:26.641098Z",
+    "agent_lines": 0,
+    "human_added": 269,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 269,
+    "agent_percentage": 0
+  }
+}
