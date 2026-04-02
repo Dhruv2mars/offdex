@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "860602bf1e33",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T11:29:53.018207Z",
+  "branch": "feat/android-polish",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "bfe41024f69e",
+  "token_usage": {
+    "input_tokens": 89614665,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 86803072,
+    "output_tokens": 374312,
+    "api_call_count": 716
+  },
+  "session_metrics": {
+    "turn_count": 4
+  }
+}
