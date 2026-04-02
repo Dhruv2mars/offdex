@@ -307,6 +307,21 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().snapshot.pairing.state).toBe("paired");
   });
 
+  test("resumes a live bridge immediately when the app returns", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    await controller.resume();
+
+    expect(fakeClient.getHealthRequestCount()).toBe(2);
+    expect(controller.getState().connectionState).toBe("live");
+    expect(controller.getState().bridgeStatus).toContain("live at");
+  });
+
   test("keeps retrying after a reconnect failure", async () => {
     const fakeClient = createFakeClient();
     const fakeTimer = createFakeTimerDriver();
@@ -332,6 +347,28 @@ describe("bridge workspace controller", () => {
 
     expect(controller.getState().connectionState).toBe("live");
     expect(controller.getState().snapshot.pairing.state).toBe("paired");
+  });
+
+  test("resumes a degraded bridge without waiting for the timer", async () => {
+    const fakeClient = createFakeClient();
+    const fakeTimer = createFakeTimerDriver();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+      timer: fakeTimer.timer,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    fakeClient.emitStatus("closed");
+
+    expect(controller.getState().connectionState).toBe("degraded");
+    expect(fakeTimer.getPendingCount()).toBe(1);
+
+    await controller.resume();
+
+    expect(fakeTimer.getPendingCount()).toBe(0);
+    expect(fakeClient.getHealthRequestCount()).toBe(2);
+    expect(controller.getState().connectionState).toBe("live");
   });
 
   test("connects from an offdex pairing link", async () => {
