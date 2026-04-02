@@ -7,8 +7,13 @@ import {
   type BridgeTimerDriver,
 } from "../src/bridge-workspace-controller";
 
-function createFakePreferences(savedBridgeUrl: string | null = null): BridgePreferencesStore {
+function createFakePreferences(savedBridgeUrl: string | null = null): BridgePreferencesStore & {
+  readPairingUri(): string | null;
+  wasCleared(): boolean;
+} {
   let value = savedBridgeUrl;
+  let pairingUri: string | null = null;
+  let cleared = false;
 
   return {
     async getBridgeBaseUrl() {
@@ -16,6 +21,23 @@ function createFakePreferences(savedBridgeUrl: string | null = null): BridgePref
     },
     async setBridgeBaseUrl(nextValue: string) {
       value = nextValue;
+    },
+    async getPairingUri() {
+      return pairingUri;
+    },
+    async setPairingUri(nextValue: string | null) {
+      pairingUri = nextValue;
+    },
+    async clearPairing() {
+      cleared = true;
+      value = null;
+      pairingUri = null;
+    },
+    readPairingUri() {
+      return pairingUri;
+    },
+    wasCleared() {
+      return cleared;
     },
   };
 }
@@ -216,6 +238,24 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().snapshot.pairing.state).toBe("paired");
   });
 
+  test("hydrates the saved pairing uri before the raw bridge url", async () => {
+    const fakeClient = createFakeClient();
+    const preferences = createFakePreferences("192.168.1.8:42420");
+    await preferences.setPairingUri?.(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&relay=wss%3A%2F%2Frelay.example.com&room=room-123&secret=secret-456&v=2"
+    );
+    const controller = new BridgeWorkspaceController({
+      preferences,
+      client: fakeClient.client,
+    });
+
+    await controller.hydrate();
+
+    expect(controller.getState().bridgeBaseUrl).toBe("http://192.168.1.8:42420");
+    expect(controller.getState().connectedBridgeUrl).toBe("wss://relay.example.com");
+    expect(controller.getState().snapshot.pairing.macName).toBe("studio-macbook");
+  });
+
   test("refuses to send turns until a bridge is connected", async () => {
     const controller = new BridgeWorkspaceController({
       preferences: createFakePreferences(),
@@ -373,8 +413,9 @@ describe("bridge workspace controller", () => {
 
   test("connects from an offdex pairing link", async () => {
     const fakeClient = createFakeClient();
+    const preferences = createFakePreferences();
     const controller = new BridgeWorkspaceController({
-      preferences: createFakePreferences(),
+      preferences,
       client: fakeClient.client,
     });
 
@@ -384,6 +425,26 @@ describe("bridge workspace controller", () => {
 
     expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
     expect(controller.getState().snapshot.pairing.macName).toBe("studio-macbook");
+    expect(preferences.readPairingUri()).toBe(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&v=1"
+    );
+  });
+
+  test("disconnect clears the saved pairing trust", async () => {
+    const fakeClient = createFakeClient();
+    const preferences = createFakePreferences();
+    const controller = new BridgeWorkspaceController({
+      preferences,
+      client: fakeClient.client,
+    });
+
+    await controller.connectFromPairingUri(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&v=1"
+    );
+    controller.disconnect();
+
+    expect(preferences.wasCleared()).toBe(true);
+    expect(controller.getState().connectionState).toBe("idle");
   });
 
   test("interrupts a running thread through the bridge", async () => {

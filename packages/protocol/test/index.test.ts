@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
   OFFDEX_NEW_THREAD_ID,
+  createRelayAuthToken,
   decodePairingUri,
+  decryptRelayPayload,
   encodePairingUri,
+  encryptRelayPayload,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   makeMessage,
@@ -116,5 +119,82 @@ describe("pairing uri", () => {
     expect(() => decodePairingUri("https://example.com")).toThrow(
       "Invalid Offdex pairing link."
     );
+  });
+
+  test("encodes relay details when remote pairing is enabled", () => {
+    const uri = encodePairingUri({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      relay: {
+        relayUrl: "wss://relay.example.com",
+        roomId: "room-123",
+        secret: "secret-456",
+      },
+    });
+
+    expect(uri).toContain("relay=wss%3A%2F%2Frelay.example.com");
+    expect(uri).toContain("room=room-123");
+    expect(uri).toContain("secret=secret-456");
+    expect(uri).toContain("v=2");
+  });
+
+  test("decodes relay details from a remote pairing link", () => {
+    const payload = decodePairingUri(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&relay=wss%3A%2F%2Frelay.example.com&room=room-123&secret=secret-456&v=2"
+    );
+
+    expect(payload).toEqual({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      relay: {
+        relayUrl: "wss://relay.example.com",
+        roomId: "room-123",
+        secret: "secret-456",
+      },
+      version: 2,
+    });
+  });
+});
+
+describe("relay payload crypto", () => {
+  test("derives a stable relay auth token for a room", () => {
+    expect(createRelayAuthToken("secret-123", "room-123")).toBe(
+      createRelayAuthToken("secret-123", "room-123")
+    );
+    expect(createRelayAuthToken("secret-123", "room-123")).not.toBe(
+      createRelayAuthToken("secret-123", "room-456")
+    );
+  });
+
+  test("round-trips an encrypted relay payload", () => {
+    const encrypted = encryptRelayPayload(
+      "12345678901234567890123456789012",
+      {
+        type: "workspace.snapshot",
+        snapshotId: "abc",
+      }
+    );
+
+    expect(encrypted.nonce.length).toBeGreaterThan(10);
+    expect(encrypted.ciphertext.length).toBeGreaterThan(10);
+    expect(
+      decryptRelayPayload<{ type: string; snapshotId: string }>(
+        "12345678901234567890123456789012",
+        encrypted
+      )
+    ).toEqual({
+      type: "workspace.snapshot",
+      snapshotId: "abc",
+    });
+  });
+
+  test("rejects decryption with the wrong relay secret", () => {
+    const encrypted = encryptRelayPayload("12345678901234567890123456789012", {
+      type: "workspace.snapshot",
+    });
+
+    expect(() =>
+      decryptRelayPayload("abcdefghijklmnopqrstuvwxyz123456", encrypted)
+    ).toThrow("Invalid Offdex relay payload.");
   });
 });
