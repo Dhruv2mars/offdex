@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   createRelayAuthToken,
+  decodePairingUri,
   decryptRelayPayload,
   encryptRelayPayload,
 } from "@offdex/protocol";
@@ -202,6 +203,137 @@ describe("bridge workspace store", () => {
     expect(payload.pairingUri).toContain("relay=wss%3A%2F%2Frelay.example.com");
     expect(payload.pairingUri).toContain("room=room-123");
     expect(payload.pairingUri).toContain("secret=secret-123");
+  });
+
+  test("publishes managed remote bootstrap details when a control plane is configured", async () => {
+    const { createMemoryControlPlaneStateStore, startControlPlaneServer } = await import(
+      "../../control-plane/src"
+    );
+    const controlPlane = startControlPlaneServer({
+      host: "127.0.0.1",
+      port: 0,
+      stateStore: createMemoryControlPlaneStateStore(),
+    });
+    const controlPlaneUrl = `http://127.0.0.1:${controlPlane.server.port}`;
+    const bridge = startBridgeServer({
+      host: "127.0.0.1",
+      port: 0,
+      controlPlaneUrl,
+      bridgeStateStore: createBridgeStateStore({
+        initialState: {
+          bridgeId: "bridge-123",
+          bridgeSecret: "secret-123",
+          relayRoomId: "room-123",
+          relayUrl: null,
+          createdAt: "2026-04-02T00:00:00.000Z",
+        },
+      }),
+    });
+    activeBridges.push(bridge);
+    const baseUrl = `http://127.0.0.1:${bridge.server.port}`;
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const response = await fetch(`${baseUrl}/pairing.json`);
+    const payload = (await response.json()) as { pairingUri: string };
+    const pairing = decodePairingUri(payload.pairingUri);
+
+    expect(pairing.version).toBe(3);
+    expect(pairing.remote?.controlPlaneUrl).toBe(controlPlaneUrl);
+    expect(pairing.remote?.machineId).toBe("bridge-123");
+    expect(pairing.remote?.claimCode.length).toBeGreaterThan(10);
+
+    controlPlane.stop();
+  });
+
+  test("answers managed relay proxy requests through the control plane", async () => {
+    const { createMemoryControlPlaneStateStore, startControlPlaneServer } = await import(
+      "../../control-plane/src"
+    );
+    const controlPlane = startControlPlaneServer({
+      host: "127.0.0.1",
+      port: 0,
+      stateStore: createMemoryControlPlaneStateStore(),
+    });
+    const controlPlaneUrl = `http://127.0.0.1:${controlPlane.server.port}`;
+    const bridge = startBridgeServer({
+      host: "127.0.0.1",
+      port: 0,
+      controlPlaneUrl,
+      bridgeStateStore: createBridgeStateStore({
+        initialState: {
+          bridgeId: "bridge-123",
+          bridgeSecret: "secret-123",
+          relayRoomId: "room-123",
+          relayUrl: null,
+          createdAt: "2026-04-02T00:00:00.000Z",
+        },
+      }),
+    });
+    activeBridges.push(bridge);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const pairing = decodePairingUri(bridge.getPairingPayload().pairingUri);
+
+    const claimResponse = await fetch(`${controlPlaneUrl}/v1/pairing/claim`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        claimCode: pairing.remote?.claimCode,
+        deviceLabel: "Pixel",
+      }),
+    });
+    const claimPayload = (await claimResponse.json()) as {
+      session: { token: string };
+    };
+
+    const ticketResponse = await fetch(`${controlPlaneUrl}/v1/connections/ticket`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${claimPayload.session.token}`,
+      },
+      body: JSON.stringify({
+        machineId: pairing.remote?.machineId,
+      }),
+    });
+    const ticketPayload = (await ticketResponse.json()) as {
+      ticket: { relay: { roomId: string; secret: string } };
+    };
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    const response = await fetch(
+      `${controlPlaneUrl}/proxy/${ticketPayload.ticket.relay.roomId}?token=${createRelayAuthToken(
+        ticketPayload.ticket.relay.secret,
+        ticketPayload.ticket.relay.roomId
+      )}`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          payload: JSON.stringify(
+            encryptRelayPayload(ticketPayload.ticket.relay.secret, {
+              id: "req-1",
+              action: "health",
+            })
+          ),
+        }),
+      }
+    );
+
+    const body = (await response.json()) as { payload: string };
+    expect(response.ok).toBe(true);
+    const health = decryptRelayPayload<{ ok: boolean }>(
+      ticketPayload.ticket.relay.secret,
+      JSON.parse(body.payload)
+    );
+
+    expect(health.ok).toBe(true);
+
+    controlPlane.stop();
   });
 
   test("answers encrypted relay proxy requests through the configured room", async () => {

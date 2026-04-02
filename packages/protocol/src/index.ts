@@ -4,6 +4,8 @@ import { decodeUTF8, encodeBase64, decodeBase64, encodeUTF8 } from "tweetnacl-ut
 export type RuntimeTarget = "cli" | "desktop";
 export type PairingState = "unpaired" | "paired" | "reconnecting";
 export type TurnState = "idle" | "running" | "completed" | "failed";
+export type OffdexTransportMode = "local" | "direct" | "relay";
+export type OffdexDeviceId = string;
 export const OFFDEX_NEW_THREAD_ID = "offdex-new-thread";
 
 export interface DeviceCapabilityMatrix {
@@ -45,6 +47,64 @@ export interface OffdexWorkspaceSnapshot {
   threads: OffdexThread[];
 }
 
+export interface OffdexAccountSession {
+  deviceId: OffdexDeviceId;
+  deviceLabel: string;
+  ownerId: string;
+  ownerLabel: string;
+  token: string;
+  issuedAt: string;
+  expiresAt: string | null;
+}
+
+export interface OffdexTrustedDeviceRecord {
+  deviceId: OffdexDeviceId;
+  deviceLabel: string;
+  ownerId: string;
+  trustedAt: string;
+  lastSeenAt: string;
+}
+
+export interface OffdexRemoteCapability {
+  controlPlaneUrl: string;
+  machineId: string;
+  directBridgeUrls: string[];
+  relayUrl: string;
+  relayRoomId: string;
+}
+
+export interface OffdexMachineRecord {
+  machineId: string;
+  macName: string;
+  ownerId: string;
+  ownerLabel: string;
+  runtimeTarget: RuntimeTarget;
+  lastSeenAt: string;
+  online: boolean;
+  directBridgeUrls: string[];
+  localBridgeUrl: string;
+  capabilityMatrix: DeviceCapabilityMatrix;
+  remoteCapability: OffdexRemoteCapability | null;
+}
+
+export interface OffdexConnectionTicket {
+  ticketId: string;
+  machineId: string;
+  ownerId: string;
+  transportMode: OffdexTransportMode;
+  issuedAt: string;
+  expiresAt: string;
+  direct: {
+    bridgeUrls: string[];
+    accessToken: string;
+  } | null;
+  relay: {
+    relayUrl: string;
+    roomId: string;
+    secret: string;
+  } | null;
+}
+
 export interface WorkspaceMutationInput {
   threadId: string;
   message: OffdexMessage;
@@ -60,7 +120,13 @@ export interface OffdexPairingPayload {
     roomId: string;
     secret: string;
   };
-  version: 1 | 2;
+  remote?: {
+    controlPlaneUrl: string;
+    machineId: string;
+    claimCode: string;
+    ownerLabel: string;
+  };
+  version: 1 | 2 | 3;
 }
 
 export interface OffdexRelayCipherPayload {
@@ -85,13 +151,20 @@ export function encodePairingUri(payload: Omit<OffdexPairingPayload, "version">)
   const search = new URLSearchParams({
     bridge: payload.bridgeUrl,
     name: payload.macName,
-    v: payload.relay ? "2" : "1",
+    v: payload.remote ? "3" : payload.relay ? "2" : "1",
   });
 
   if (payload.relay) {
     search.set("relay", payload.relay.relayUrl);
     search.set("room", payload.relay.roomId);
     search.set("secret", payload.relay.secret);
+  }
+
+  if (payload.remote) {
+    search.set("control", payload.remote.controlPlaneUrl);
+    search.set("machine", payload.remote.machineId);
+    search.set("claim", payload.remote.claimCode);
+    search.set("owner", payload.remote.ownerLabel);
   }
 
   return `offdex://pair?${search.toString()}`;
@@ -116,12 +189,20 @@ export function decodePairingUri(uri: string): OffdexPairingPayload {
   const relayUrl = parsed.searchParams.get("relay")?.trim();
   const roomId = parsed.searchParams.get("room")?.trim();
   const secret = parsed.searchParams.get("secret")?.trim();
+  const controlPlaneUrl = parsed.searchParams.get("control")?.trim();
+  const machineId = parsed.searchParams.get("machine")?.trim();
+  const claimCode = parsed.searchParams.get("claim")?.trim();
+  const ownerLabel = parsed.searchParams.get("owner")?.trim();
 
-  if (!bridgeUrl || !macName || (version !== "1" && version !== "2")) {
+  if (!bridgeUrl || !macName || (version !== "1" && version !== "2" && version !== "3")) {
     throw new Error("Invalid Offdex pairing link.");
   }
 
   if (version === "2" && (!relayUrl || !roomId || !secret)) {
+    throw new Error("Invalid Offdex pairing link.");
+  }
+
+  if (version === "3" && (!controlPlaneUrl || !machineId || !claimCode || !ownerLabel)) {
     throw new Error("Invalid Offdex pairing link.");
   }
 
@@ -136,7 +217,16 @@ export function decodePairingUri(uri: string): OffdexPairingPayload {
             secret: secret!,
           }
         : undefined,
-    version: version === "2" ? 2 : 1,
+    remote:
+      version === "3"
+        ? {
+            controlPlaneUrl: controlPlaneUrl!,
+            machineId: machineId!,
+            claimCode: claimCode!,
+            ownerLabel: ownerLabel!,
+          }
+        : undefined,
+    version: version === "3" ? 3 : version === "2" ? 2 : 1,
   };
 }
 
@@ -144,10 +234,75 @@ function deriveRelayKey(secret: string) {
   return nacl.hash(decodeUTF8(secret)).slice(0, nacl.secretbox.keyLength);
 }
 
+function base64UrlToBase64(value: string) {
+  const paddingLength = value.length % 4 === 0 ? 0 : 4 - (value.length % 4);
+  return value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat(paddingLength);
+}
+
 export function createRelayAuthToken(secret: string, roomId: string) {
   return toBase64Url(
     encodeBase64(nacl.hash(decodeUTF8(`offdex:relay:${roomId}:${secret}`)))
   );
+}
+
+export function createBridgeAccessToken(secret: string, ticketId: string, expiresAt: string) {
+  const payload = JSON.stringify({
+    ticketId,
+    expiresAt,
+    signature: toBase64Url(
+      encodeBase64(nacl.hash(decodeUTF8(`offdex:bridge:${ticketId}:${expiresAt}:${secret}`)))
+    ),
+  });
+  return toBase64Url(encodeBase64(decodeUTF8(payload)));
+}
+
+export function verifyBridgeAccessToken(
+  secret: string,
+  token: string,
+  input: {
+    ticketId?: string;
+    now?: string;
+    expiresAt?: string;
+  }
+) {
+  const payload = parseBridgeTokenPayload(token);
+  const ticketId = input.ticketId ?? payload?.ticketId ?? null;
+  const expiresAt = input.expiresAt ?? payload?.expiresAt ?? null;
+  if (!ticketId) {
+    return false;
+  }
+  if (!expiresAt) {
+    return false;
+  }
+
+  if (Date.parse(input.now ?? new Date().toISOString()) > Date.parse(expiresAt)) {
+    return false;
+  }
+
+  return payload?.signature === createBridgeTokenSignature(secret, ticketId, expiresAt);
+}
+
+function createBridgeTokenSignature(secret: string, ticketId: string, expiresAt: string) {
+  return toBase64Url(
+    encodeBase64(nacl.hash(decodeUTF8(`offdex:bridge:${ticketId}:${expiresAt}:${secret}`)))
+  );
+}
+
+function parseBridgeTokenPayload(token: string) {
+  try {
+    const raw = JSON.parse(encodeUTF8(decodeBase64(base64UrlToBase64(token)))) as {
+      ticketId?: string;
+      expiresAt?: string;
+      signature?: string;
+    };
+    if (!raw.ticketId || !raw.expiresAt || !raw.signature) {
+      return null;
+    }
+
+    return raw;
+  } catch {
+    return null;
+  }
 }
 
 export function encryptRelayPayload(secret: string, payload: unknown): OffdexRelayCipherPayload {

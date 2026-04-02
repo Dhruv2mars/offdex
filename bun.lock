@@ -67,6 +67,20 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/control-plane": {
+      "name": "@offdex/control-plane",
+      "version": "0.1.0",
+      "bin": {
+        "offdex-control-plane": "./src/cli.ts",
+      },
+      "dependencies": {
+        "@offdex/protocol": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.0",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/protocol": {
       "name": "@offdex/protocol",
       "version": "0.1.0",
@@ -482,6 +496,8 @@
     "@nolyfill/is-core-module": ["@nolyfill/is-core-module@1.0.39", "", {}, "sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA=="],
 
     "@offdex/bridge": ["@offdex/bridge@workspace:packages/bridge"],
+
+    "@offdex/control-plane": ["@offdex/control-plane@workspace:packages/control-plane"],
 
     "@offdex/mobile": ["@offdex/mobile@workspace:apps/mobile"],
 
