@@ -1,6 +1,6 @@
 {
   "name": "@offdex/mobile",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "main": "index.ts",
   "scripts": {
     "build": "mkdir -p dist && echo mobile > dist/.keep && tsc --noEmit",
