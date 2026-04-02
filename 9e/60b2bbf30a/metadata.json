@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "9e60b2bbf30a",
+  "strategy": "manual-commit",
+  "branch": "feat/sdk55-product-pass",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/9e/60b2bbf30a/0/metadata.json",
+      "transcript": "/9e/60b2bbf30a/0/full.jsonl",
+      "content_hash": "/9e/60b2bbf30a/0/content_hash.txt",
+      "prompt": "/9e/60b2bbf30a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 199738924,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 190655488,
+    "output_tokens": 809110,
+    "api_call_count": 1552
+  }
+}
