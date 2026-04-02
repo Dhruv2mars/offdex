@@ -1,4 +1,5 @@
 import {
+  OFFDEX_NEW_THREAD_ID,
   WorkspaceSnapshotStore,
   makeMessage,
   type OffdexWorkspaceSnapshot,
@@ -30,15 +31,18 @@ export class DemoWorkspaceController {
       return;
     }
 
+    const targetThreadId =
+      threadId === OFFDEX_NEW_THREAD_ID ? this.#createThread(trimmed) : threadId;
+
     this.#store.appendMessage({
-      threadId,
+      threadId: targetThreadId,
       message: makeMessage(`user-${Date.now()}`, "user", trimmed, "Now"),
       state: "running",
       updatedAt: "Now",
     });
 
     this.#store.appendMessage({
-      threadId,
+      threadId: targetThreadId,
       message: makeMessage(
         `assistant-${Date.now()}`,
         "assistant",
@@ -48,5 +52,29 @@ export class DemoWorkspaceController {
       state: "running",
       updatedAt: "Now",
     });
+  }
+
+  #createThread(draft: string) {
+    const snapshot = this.#store.getSnapshot();
+    const threadId = `thread-${Date.now()}`;
+
+    this.#store.replaceSnapshot({
+      ...snapshot,
+      threads: [
+        {
+          id: threadId,
+          title: draft,
+          projectLabel: "offdex",
+          runtimeTarget: snapshot.pairing.runtimeTarget,
+          state: "idle",
+          unreadCount: 0,
+          updatedAt: "Now",
+          messages: [],
+        },
+        ...snapshot.threads.filter((thread) => thread.id !== OFFDEX_NEW_THREAD_ID),
+      ],
+    });
+
+    return threadId;
   }
 }

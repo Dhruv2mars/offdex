@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { OffdexThread } from "@offdex/protocol";
+import { OFFDEX_NEW_THREAD_ID, type OffdexThread } from "@offdex/protocol";
 import { mobileTabs, offdexTagline } from "./src/app-config";
 import { normalizeBridgeBaseUrl } from "./src/bridge-client";
 import { bridgePreferences } from "./src/bridge-preferences";
@@ -33,6 +33,7 @@ export default function App() {
   );
   const [draft, setDraft] = useState("");
   const [pairingDraft, setPairingDraft] = useState("");
+  const [awaitingNewThread, setAwaitingNewThread] = useState(false);
 
   useEffect(() => {
     const unsubscribe = controller.subscribe((nextState) => setWorkspaceState(nextState));
@@ -59,19 +60,45 @@ export default function App() {
   }, [controller]);
 
   useEffect(() => {
+    if (
+      awaitingNewThread &&
+      snapshot.threads[0]?.id &&
+      snapshot.threads[0].id !== OFFDEX_NEW_THREAD_ID
+    ) {
+      setAwaitingNewThread(false);
+      setSelectedThreadId(snapshot.threads[0].id);
+      return;
+    }
+
     if (!selectedThreadId && snapshot.threads[0]?.id) {
       setSelectedThreadId(snapshot.threads[0].id);
+      return;
+    }
+
+    if (selectedThreadId === OFFDEX_NEW_THREAD_ID) {
       return;
     }
 
     if (!snapshot.threads.some((thread) => thread.id === selectedThreadId)) {
       setSelectedThreadId(snapshot.threads[0]?.id ?? "");
     }
-  }, [selectedThreadId, snapshot.threads]);
+  }, [awaitingNewThread, selectedThreadId, snapshot.threads]);
 
+  const draftThread: OffdexThread = {
+    id: OFFDEX_NEW_THREAD_ID,
+    title: "New chat",
+    projectLabel: snapshot.pairing.state === "paired" ? snapshot.pairing.macName : "offdex",
+    runtimeTarget,
+    state: "idle",
+    unreadCount: 0,
+    updatedAt: awaitingNewThread ? "Starting…" : "Ready",
+    messages: [],
+  };
   const selectedThread =
-    snapshot.threads.find((thread) => thread.id === selectedThreadId) ??
-    snapshot.threads[0];
+    selectedThreadId === OFFDEX_NEW_THREAD_ID
+      ? draftThread
+      : snapshot.threads.find((thread) => thread.id === selectedThreadId) ?? snapshot.threads[0];
+  const isDraftThread = selectedThread?.id === OFFDEX_NEW_THREAD_ID;
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -137,6 +164,23 @@ export default function App() {
               contentContainerStyle={styles.threadRailContent}
               showsVerticalScrollIndicator={false}
             >
+              <Pressable
+                onPress={() => {
+                  setAwaitingNewThread(false);
+                  setDraft("");
+                  setSelectedThreadId(OFFDEX_NEW_THREAD_ID);
+                }}
+                style={[
+                  styles.newThreadCard,
+                  isDraftThread && styles.newThreadCardActive,
+                ]}
+              >
+                <Text style={styles.newThreadEyebrow}>New chat</Text>
+                <Text style={styles.newThreadTitle}>Start a fresh Codex thread</Text>
+                <Text style={styles.newThreadBody}>
+                  Open a clean run, send the first prompt, and Offdex will stay on the live thread.
+                </Text>
+              </Pressable>
               {snapshot.pairing.state !== "paired" ? (
                 <View style={styles.onboardingBanner}>
                   <Text style={styles.onboardingEyebrow}>First run</Text>
@@ -182,10 +226,17 @@ export default function App() {
                     <View style={styles.threadPaneHeaderCopy}>
                       <Text style={styles.threadPaneTitle}>{selectedThread.title}</Text>
                       <Text style={styles.threadPaneSubtitle}>
-                        {selectedThread.projectLabel} · {selectedThread.updatedAt}
+                        {isDraftThread
+                          ? awaitingNewThread
+                            ? "Waiting for Codex to open the thread"
+                            : "Send the first prompt to start a fresh Codex chat"
+                          : `${selectedThread.projectLabel} · ${selectedThread.updatedAt}`}
                       </Text>
                     </View>
-                    <Pill label={selectedThread.state} tone={selectedThread.state} />
+                    <Pill
+                      label={isDraftThread ? "new" : selectedThread.state}
+                      tone={isDraftThread ? "neutral" : selectedThread.state}
+                    />
                   </View>
 
                   <ScrollView
@@ -193,6 +244,15 @@ export default function App() {
                     contentContainerStyle={styles.messageListContent}
                     showsVerticalScrollIndicator={false}
                   >
+                    {isDraftThread ? (
+                      <View style={styles.newThreadPanel}>
+                        <Text style={styles.newThreadPanelEyebrow}>Fresh thread</Text>
+                        <Text style={styles.newThreadPanelTitle}>Start from a blank context</Text>
+                        <Text style={styles.newThreadPanelBody}>
+                          Offdex will create the thread on your Mac, move into the live session, and keep the phone synced as Codex responds.
+                        </Text>
+                      </View>
+                    ) : null}
                     {selectedThread.messages.map((message) => (
                       <MessageBubble key={message.id} thread={selectedThread} message={message.body} role={message.role} timestamp={message.createdAt} />
                     ))}
@@ -200,7 +260,11 @@ export default function App() {
 
                   <View style={styles.composer}>
                     <TextInput
-                      placeholder="Steer the current run or queue the next turn"
+                      placeholder={
+                        isDraftThread
+                          ? "Start the first turn for this new chat"
+                          : "Steer the current run or queue the next turn"
+                      }
                       placeholderTextColor="#69726d"
                       style={styles.composerInput}
                       multiline
@@ -229,9 +293,26 @@ export default function App() {
 
                             const nextDraft = draft;
                             setDraft("");
-                            await controller.sendTurn(selectedThread.id, nextDraft).catch(() => {
-                              setDraft(nextDraft);
-                            });
+                            if (selectedThread.id === OFFDEX_NEW_THREAD_ID) {
+                              setAwaitingNewThread(true);
+                            }
+
+                            await controller
+                              .sendTurn(selectedThread.id, nextDraft)
+                              .then((nextState) => {
+                                if (
+                                  selectedThread.id === OFFDEX_NEW_THREAD_ID &&
+                                  nextState.snapshot.threads[0]?.id &&
+                                  nextState.snapshot.threads[0].id !== OFFDEX_NEW_THREAD_ID
+                                ) {
+                                  setAwaitingNewThread(false);
+                                  setSelectedThreadId(nextState.snapshot.threads[0].id);
+                                }
+                              })
+                              .catch(() => {
+                                setAwaitingNewThread(false);
+                                setDraft(nextDraft);
+                              });
                           })();
                         }}
                       >
@@ -573,6 +654,35 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingBottom: 4,
   },
+  newThreadCard: {
+    borderRadius: 24,
+    backgroundColor: "#171c19",
+    borderWidth: 1,
+    borderColor: "#324138",
+    padding: 16,
+    gap: 8,
+  },
+  newThreadCardActive: {
+    backgroundColor: "#1c251d",
+    borderColor: "#d6ff72",
+  },
+  newThreadEyebrow: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  newThreadTitle: {
+    color: "#eef2ef",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  newThreadBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 20,
+  },
   onboardingBanner: {
     borderRadius: 24,
     backgroundColor: "#101412",
@@ -717,6 +827,31 @@ const styles = StyleSheet.create({
   messageListContent: {
     padding: 16,
     gap: 12,
+  },
+  newThreadPanel: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#233028",
+    backgroundColor: "#101412",
+    padding: 16,
+    gap: 8,
+  },
+  newThreadPanelEyebrow: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  newThreadPanelTitle: {
+    color: "#eef2ef",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  newThreadPanelBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 21,
   },
   messageBubble: {
     borderRadius: 22,

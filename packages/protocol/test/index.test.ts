@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  OFFDEX_NEW_THREAD_ID,
   decodePairingUri,
   encodePairingUri,
   WorkspaceSnapshotStore,
@@ -8,6 +9,10 @@ import {
 } from "../src";
 
 describe("protocol demo snapshot", () => {
+  test("publishes a shared new-thread sentinel", () => {
+    expect(OFFDEX_NEW_THREAD_ID).toBe("offdex-new-thread");
+  });
+
   test("defaults to an unpaired CLI-first local workspace", () => {
     const snapshot = makeDemoWorkspaceSnapshot();
 
