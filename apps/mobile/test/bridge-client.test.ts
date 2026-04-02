@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
-  normalizeBridgeBaseUrl,
   toBridgeLiveUrl,
+  decodeRelayConnectionTarget,
+  encodeRelayConnectionTarget,
+  normalizeBridgeBaseUrl,
 } from "../src/bridge-client";
 
 describe("bridge client", () => {
@@ -27,6 +29,47 @@ describe("bridge client", () => {
     );
     expect(toBridgeLiveUrl("https://bridge.local")).toBe(
       "wss://bridge.local/live"
+    );
+  });
+
+  test("encodes and decodes a relay connection target", () => {
+    const target = encodeRelayConnectionTarget({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      relay: {
+        relayUrl: "wss://relay.example.com",
+        roomId: "room-123",
+        secret: "secret-456",
+      },
+      version: 2,
+    });
+
+    expect(decodeRelayConnectionTarget(target)).toEqual({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      relay: {
+        relayUrl: "wss://relay.example.com",
+        roomId: "room-123",
+        secret: "secret-456",
+      },
+      version: 2,
+    });
+  });
+
+  test("maps https relay targets to secure websocket urls", () => {
+    const target = encodeRelayConnectionTarget({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      relay: {
+        relayUrl: "https://relay.example.com",
+        roomId: "room-123",
+        secret: "secret-456",
+      },
+      version: 2,
+    });
+
+    expect(toBridgeLiveUrl(target)).toContain(
+      "wss://relay.example.com/ws/room-123"
     );
   });
 });

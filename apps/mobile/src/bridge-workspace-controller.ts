@@ -1,9 +1,12 @@
 import {
   decodePairingUri,
+  type OffdexPairingPayload,
   type OffdexWorkspaceSnapshot,
   type RuntimeTarget,
 } from "@offdex/protocol";
 import {
+  decodeRelayConnectionTarget,
+  encodeRelayConnectionTarget,
   fetchBridgeHealth,
   fetchBridgeSnapshot,
   interruptBridgeTurn,
@@ -18,6 +21,9 @@ import { DemoWorkspaceController } from "./demo-workspace-controller";
 export interface BridgePreferencesStore {
   getBridgeBaseUrl(): Promise<string | null>;
   setBridgeBaseUrl(value: string): Promise<void>;
+  getPairingUri?(): Promise<string | null>;
+  setPairingUri?(value: string | null): Promise<void>;
+  clearPairing?(): Promise<void>;
 }
 
 export interface BridgeClient {
@@ -55,8 +61,11 @@ export interface BridgeWorkspaceState {
   runtimeTarget: RuntimeTarget;
   bridgeBaseUrl: string;
   connectedBridgeUrl: string | null;
+  connectionTransport: "bridge" | "relay" | null;
   connectionState: "idle" | "connecting" | "live" | "degraded";
   bridgeStatus: string;
+  relayUrl: string | null;
+  trustedPairing: boolean;
   isBusy: boolean;
 }
 
@@ -88,6 +97,8 @@ export class BridgeWorkspaceController {
   #liveSubscriptionVersion = 0;
   #reconnectTimer: unknown = null;
   #reconnectAttempt = 0;
+  #connectionTarget: string | null = null;
+  #savedPairingUri: string | null = null;
   #state: BridgeWorkspaceState;
 
   constructor(options?: {
@@ -101,6 +112,11 @@ export class BridgeWorkspaceController {
         return null;
       },
       async setBridgeBaseUrl() {},
+      async getPairingUri() {
+        return null;
+      },
+      async setPairingUri() {},
+      async clearPairing() {},
     };
     this.#client = options?.client ?? defaultClient;
     this.#timer = options?.timer ?? defaultTimerDriver;
@@ -111,8 +127,11 @@ export class BridgeWorkspaceController {
       runtimeTarget: snapshot.pairing.runtimeTarget,
       bridgeBaseUrl: "http://127.0.0.1:42420",
       connectedBridgeUrl: null,
+      connectionTransport: null,
       connectionState: "idle",
       bridgeStatus: "Not connected",
+      relayUrl: null,
+      trustedPairing: false,
       isBusy: false,
     };
     this.#demoController.subscribe((snapshotUpdate) => {
@@ -135,6 +154,13 @@ export class BridgeWorkspaceController {
   }
 
   async hydrate() {
+    const savedPairingUri = (await this.#preferences.getPairingUri?.()) ?? null;
+    if (savedPairingUri) {
+      this.#savedPairingUri = savedPairingUri;
+      await this.connectFromPairingUri(savedPairingUri, { persistPairingUri: false });
+      return this.getState();
+    }
+
     const savedBridgeUrl = await this.#preferences.getBridgeBaseUrl();
     if (!savedBridgeUrl) {
       return this.getState();
@@ -147,38 +173,70 @@ export class BridgeWorkspaceController {
   }
 
   setBridgeBaseUrl(value: string) {
+    this.#savedPairingUri = null;
     this.#setState({ bridgeBaseUrl: value });
   }
 
-  async connectFromPairingUri(uri: string) {
+  async connectFromPairingUri(
+    uri: string,
+    options?: { persistPairingUri?: boolean }
+  ) {
     const payload = decodePairingUri(uri);
+    this.#savedPairingUri = uri;
     this.#patchPairingProfile({
       bridgeUrl: payload.bridgeUrl,
       macName: payload.macName,
     });
-    return this.connect(payload.bridgeUrl);
+    return this.connect(payload.bridgeUrl, {
+      pairingPayload: payload,
+      persistPairingUri: options?.persistPairingUri ?? true,
+    });
   }
 
-  async connect(bridgeBaseUrl = this.#state.bridgeBaseUrl) {
+  async connect(
+    bridgeBaseUrl = this.#state.bridgeBaseUrl,
+    options?: {
+      pairingPayload?: OffdexPairingPayload;
+      persistPairingUri?: boolean;
+    }
+  ) {
     const normalized = normalizeBridgeBaseUrl(bridgeBaseUrl);
+    const connectionTarget =
+      options?.pairingPayload?.relay ? encodeRelayConnectionTarget(options.pairingPayload) : normalized;
+    const connectionLabel = options?.pairingPayload?.relay
+      ? options.pairingPayload.relay.relayUrl
+      : normalized;
+    const connectionTransport = options?.pairingPayload?.relay ? "relay" : "bridge";
+    this.#connectionTarget = connectionTarget;
     this.#setState({
       bridgeBaseUrl: normalized,
-      connectedBridgeUrl: normalized,
+      connectedBridgeUrl: connectionLabel,
+      connectionTransport,
       isBusy: true,
       connectionState: "connecting",
-      bridgeStatus: `Connecting to ${normalized}`,
+      relayUrl: options?.pairingPayload?.relay?.relayUrl ?? this.#state.relayUrl,
+      trustedPairing: Boolean(this.#savedPairingUri),
+      bridgeStatus: `Connecting to ${connectionLabel}`,
     });
 
     try {
-      await this.#connectToBridge(normalized, { persistUrlOnFailure: false });
+      await this.#connectToBridge(connectionTarget, connectionLabel, {
+        persistUrlOnFailure: false,
+        pairingUri: options?.persistPairingUri === false ? null : this.#savedPairingUri,
+        bridgeBaseUrl: normalized,
+      });
       return this.getState();
     } catch (error) {
+      this.#connectionTarget = null;
       this.#setState({
         connectedBridgeUrl: null,
+        connectionTransport: null,
         connectionState: "idle",
         bridgeStatus:
-          error instanceof Error ? error.message : `Bridge connect failed at ${normalized}`,
+          error instanceof Error ? error.message : `Bridge connect failed at ${connectionLabel}`,
         isBusy: false,
+        relayUrl: null,
+        trustedPairing: Boolean(this.#savedPairingUri),
       });
       throw error;
     }
@@ -188,27 +246,34 @@ export class BridgeWorkspaceController {
     this.#clearReconnectTimer();
     this.#reconnectAttempt = 0;
     this.#teardownLiveSubscription();
+    this.#connectionTarget = null;
+    this.#savedPairingUri = null;
+    void this.#preferences.clearPairing?.();
     this.#patchPairingState("unpaired");
     this.#setState({
       connectedBridgeUrl: null,
+      connectionTransport: null,
       connectionState: "idle",
       bridgeStatus: "Disconnected",
+      relayUrl: null,
+      trustedPairing: false,
     });
   }
 
   async refresh() {
-    if (!this.#state.connectedBridgeUrl) {
+    if (!this.#connectionTarget) {
       return this.getState();
     }
 
-    const snapshot = await this.#client.fetchBridgeSnapshot(this.#state.connectedBridgeUrl);
+    const snapshot = await this.#client.fetchBridgeSnapshot(this.#connectionTarget);
     this.#replaceSnapshot(snapshot);
     return this.getState();
   }
 
   async resume() {
+    const connectionTarget = this.#connectionTarget;
     const resumeBridgeUrl = this.#state.connectedBridgeUrl;
-    if (!resumeBridgeUrl) {
+    if (!connectionTarget || !resumeBridgeUrl) {
       return this.getState();
     }
 
@@ -216,37 +281,41 @@ export class BridgeWorkspaceController {
     this.#setState({
       connectedBridgeUrl: resumeBridgeUrl,
       connectionState: "connecting",
+      connectionTransport: decodeRelayConnectionTarget(connectionTarget) ? "relay" : "bridge",
       isBusy: true,
       bridgeStatus: `Refreshing ${resumeBridgeUrl}`,
+      trustedPairing: Boolean(this.#savedPairingUri),
     });
 
     try {
-      await this.#connectToBridge(resumeBridgeUrl, { persistUrlOnFailure: true });
+      await this.#connectToBridge(connectionTarget, resumeBridgeUrl, {
+        persistUrlOnFailure: true,
+        pairingUri: this.#savedPairingUri,
+        bridgeBaseUrl: this.#state.bridgeBaseUrl,
+      });
     } catch {
       this.#patchPairingState("reconnecting");
       this.#setState({
         connectedBridgeUrl: resumeBridgeUrl,
         connectionState: "degraded",
         isBusy: false,
+        trustedPairing: Boolean(this.#savedPairingUri),
       });
-      this.#scheduleReconnect(resumeBridgeUrl, "error");
+      this.#scheduleReconnect(connectionTarget, resumeBridgeUrl, "error");
     }
 
     return this.getState();
   }
 
   async setRuntimeTarget(runtimeTarget: RuntimeTarget) {
-    if (!this.#state.connectedBridgeUrl) {
+    if (!this.#connectionTarget) {
       this.#demoController.setRuntimeTarget(runtimeTarget);
       return this.getState();
     }
 
     this.#setState({ isBusy: true });
     try {
-      const result = await this.#client.selectBridgeRuntime(
-        this.#state.connectedBridgeUrl,
-        runtimeTarget
-      );
+      const result = await this.#client.selectBridgeRuntime(this.#connectionTarget, runtimeTarget);
       this.#replaceSnapshot(result.snapshot);
       this.#setState({ isBusy: false });
       return this.getState();
@@ -266,18 +335,14 @@ export class BridgeWorkspaceController {
       return this.getState();
     }
 
-    if (!this.#state.connectedBridgeUrl) {
+    if (!this.#connectionTarget) {
       const error = new Error("Connect to your Mac first.");
       this.#setState({ bridgeStatus: error.message });
       throw error;
     }
 
     try {
-      const result = await this.#client.sendBridgeTurn(
-        this.#state.connectedBridgeUrl,
-        threadId,
-        trimmed
-      );
+      const result = await this.#client.sendBridgeTurn(this.#connectionTarget, threadId, trimmed);
       this.#replaceSnapshot(result.snapshot);
       return this.getState();
     } catch (error) {
@@ -289,15 +354,12 @@ export class BridgeWorkspaceController {
   }
 
   async interruptThread(threadId: string) {
-    if (!this.#state.connectedBridgeUrl || !threadId) {
+    if (!this.#connectionTarget || !threadId) {
       return this.getState();
     }
 
     try {
-      const result = await this.#client.interruptBridgeTurn(
-        this.#state.connectedBridgeUrl,
-        threadId
-      );
+      const result = await this.#client.interruptBridgeTurn(this.#connectionTarget, threadId);
       this.#replaceSnapshot(result.snapshot);
       this.#setState({
         bridgeStatus: `Stopping ${threadId.slice(0, 6)}...`,
@@ -317,25 +379,35 @@ export class BridgeWorkspaceController {
   }
 
   async #connectToBridge(
-    normalized: string,
-    options: { persistUrlOnFailure: boolean }
+    connectionTarget: string,
+    connectionLabel: string,
+    options: {
+      persistUrlOnFailure: boolean;
+      pairingUri: string | null;
+      bridgeBaseUrl: string;
+    }
   ) {
     try {
       const [health, snapshot] = await Promise.all([
-        this.#client.fetchBridgeHealth(normalized),
-        this.#client.fetchBridgeSnapshot(normalized),
+        this.#client.fetchBridgeHealth(connectionTarget),
+        this.#client.fetchBridgeSnapshot(connectionTarget),
       ]);
+      const connectionTransport = decodeRelayConnectionTarget(connectionTarget) ? "relay" : "bridge";
 
       this.#replaceSnapshot(snapshot);
-      await this.#preferences.setBridgeBaseUrl(normalized);
-      this.#beginLiveSubscription(normalized);
+      await this.#preferences.setBridgeBaseUrl(options.bridgeBaseUrl);
+      await this.#preferences.setPairingUri?.(options.pairingUri);
+      this.#beginLiveSubscription(connectionTarget, connectionLabel);
       this.#clearReconnectTimer();
       this.#reconnectAttempt = 0;
       this.#setState({
-        connectedBridgeUrl: normalized,
+        connectedBridgeUrl: connectionLabel,
+        connectionTransport,
         connectionState: "live",
-        bridgeStatus: `${health.transport} live at ${normalized}`,
+        bridgeStatus: `${connectionTransport === "relay" ? "Secure relay" : "Local bridge"} live at ${connectionLabel}`,
         isBusy: false,
+        relayUrl: health.relayUrl ?? null,
+        trustedPairing: Boolean(options.pairingUri),
       });
       this.#patchPairingProfile({
         bridgeUrl: health.bridgeUrl,
@@ -346,21 +418,28 @@ export class BridgeWorkspaceController {
       });
     } catch (error) {
       this.#setState({
-        connectedBridgeUrl: options.persistUrlOnFailure ? normalized : null,
+        connectedBridgeUrl: options.persistUrlOnFailure ? connectionLabel : null,
+        connectionTransport: options.persistUrlOnFailure
+          ? decodeRelayConnectionTarget(connectionTarget)
+            ? "relay"
+            : "bridge"
+          : null,
         connectionState: options.persistUrlOnFailure ? "degraded" : "idle",
         bridgeStatus:
-          error instanceof Error ? error.message : `Bridge connect failed at ${normalized}`,
+          error instanceof Error ? error.message : `Bridge connect failed at ${connectionLabel}`,
         isBusy: false,
+        relayUrl: this.#state.relayUrl,
+        trustedPairing: Boolean(options.pairingUri),
       });
       throw error;
     }
   }
 
-  #beginLiveSubscription(normalized: string) {
+  #beginLiveSubscription(connectionTarget: string, connectionLabel: string) {
     this.#teardownLiveSubscription();
     const subscriptionVersion = ++this.#liveSubscriptionVersion;
 
-    this.#unsubscribeLive = this.#client.subscribeToBridgeSnapshots(normalized, {
+    this.#unsubscribeLive = this.#client.subscribeToBridgeSnapshots(connectionTarget, {
       onSnapshot: (nextSnapshot) => {
         if (subscriptionVersion !== this.#liveSubscriptionVersion) {
           return;
@@ -371,10 +450,12 @@ export class BridgeWorkspaceController {
         this.#replaceSnapshot(nextSnapshot);
         this.#patchPairingState("paired");
         this.#setState({
-          connectedBridgeUrl: normalized,
+          connectedBridgeUrl: connectionLabel,
+          connectionTransport: decodeRelayConnectionTarget(connectionTarget) ? "relay" : "bridge",
           connectionState: "live",
-          bridgeStatus: `Connected to ${normalized}`,
+          bridgeStatus: `Connected to ${connectionLabel}`,
           isBusy: false,
+          trustedPairing: Boolean(this.#savedPairingUri),
         });
       },
       onStatusChange: (status) => {
@@ -382,35 +463,47 @@ export class BridgeWorkspaceController {
           return;
         }
 
-        this.#handleLiveStatus(normalized, status);
+        this.#handleLiveStatus(connectionTarget, connectionLabel, status);
       },
     });
   }
 
-  #handleLiveStatus(baseUrl: string, status: "open" | "closed" | "error") {
+  #handleLiveStatus(
+    connectionTarget: string,
+    connectionLabel: string,
+    status: "open" | "closed" | "error"
+  ) {
     if (status === "open") {
       this.#clearReconnectTimer();
       this.#reconnectAttempt = 0;
       this.#patchPairingState("paired");
       this.#setState({
-        connectedBridgeUrl: baseUrl,
+        connectedBridgeUrl: connectionLabel,
+        connectionTransport: decodeRelayConnectionTarget(connectionTarget) ? "relay" : "bridge",
         connectionState: "live",
-        bridgeStatus: `Connected to ${baseUrl}`,
+        bridgeStatus: `Connected to ${connectionLabel}`,
         isBusy: false,
+        trustedPairing: Boolean(this.#savedPairingUri),
       });
       return;
     }
 
     this.#patchPairingState("reconnecting");
     this.#setState({
-      connectedBridgeUrl: baseUrl,
+      connectedBridgeUrl: connectionLabel,
+      connectionTransport: decodeRelayConnectionTarget(connectionTarget) ? "relay" : "bridge",
       connectionState: "degraded",
       isBusy: false,
+      trustedPairing: Boolean(this.#savedPairingUri),
     });
-    this.#scheduleReconnect(baseUrl, status);
+    this.#scheduleReconnect(connectionTarget, connectionLabel, status);
   }
 
-  #scheduleReconnect(baseUrl: string, status: "closed" | "error") {
+  #scheduleReconnect(
+    connectionTarget: string,
+    connectionLabel: string,
+    status: "closed" | "error"
+  ) {
     if (this.#reconnectTimer) {
       return;
     }
@@ -420,30 +513,34 @@ export class BridgeWorkspaceController {
     const failureLabel = status === "closed" ? "Live sync paused" : "Bridge error";
 
     this.#setState({
-      bridgeStatus: `${failureLabel} at ${baseUrl}. Retrying in ${Math.ceil(delayMs / 1000)}s.`,
+      bridgeStatus: `${failureLabel} at ${connectionLabel}. Retrying in ${Math.ceil(delayMs / 1000)}s.`,
     });
 
     this.#reconnectTimer = this.#timer.setTimeout(() => {
       this.#reconnectTimer = null;
-      void this.#retryConnect(baseUrl);
+      void this.#retryConnect(connectionTarget, connectionLabel);
     }, delayMs);
   }
 
-  async #retryConnect(baseUrl: string) {
-    if (this.#state.connectedBridgeUrl !== baseUrl) {
+  async #retryConnect(connectionTarget: string, connectionLabel: string) {
+    if (this.#connectionTarget !== connectionTarget) {
       return;
     }
 
     this.#setState({
       connectionState: "connecting",
       isBusy: true,
-      bridgeStatus: `Reconnecting to ${baseUrl}`,
+      bridgeStatus: `Reconnecting to ${connectionLabel}`,
     });
 
     try {
-      await this.#connectToBridge(baseUrl, { persistUrlOnFailure: true });
+      await this.#connectToBridge(connectionTarget, connectionLabel, {
+        persistUrlOnFailure: true,
+        pairingUri: this.#savedPairingUri,
+        bridgeBaseUrl: this.#state.bridgeBaseUrl,
+      });
     } catch {
-      this.#scheduleReconnect(baseUrl, "error");
+      this.#scheduleReconnect(connectionTarget, connectionLabel, "error");
     }
   }
 

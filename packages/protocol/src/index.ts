@@ -1,3 +1,6 @@
+import nacl from "tweetnacl";
+import { decodeUTF8, encodeBase64, decodeBase64, encodeUTF8 } from "tweetnacl-util";
+
 export type RuntimeTarget = "cli" | "desktop";
 export type PairingState = "unpaired" | "paired" | "reconnecting";
 export type TurnState = "idle" | "running" | "completed" | "failed";
@@ -52,7 +55,21 @@ export interface WorkspaceMutationInput {
 export interface OffdexPairingPayload {
   bridgeUrl: string;
   macName: string;
-  version: 1;
+  relay?: {
+    relayUrl: string;
+    roomId: string;
+    secret: string;
+  };
+  version: 1 | 2;
+}
+
+export interface OffdexRelayCipherPayload {
+  nonce: string;
+  ciphertext: string;
+}
+
+function toBase64Url(value: string) {
+  return value.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
 export function makeMessage(
@@ -68,8 +85,15 @@ export function encodePairingUri(payload: Omit<OffdexPairingPayload, "version">)
   const search = new URLSearchParams({
     bridge: payload.bridgeUrl,
     name: payload.macName,
-    v: "1",
+    v: payload.relay ? "2" : "1",
   });
+
+  if (payload.relay) {
+    search.set("relay", payload.relay.relayUrl);
+    search.set("room", payload.relay.roomId);
+    search.set("secret", payload.relay.secret);
+  }
+
   return `offdex://pair?${search.toString()}`;
 }
 
@@ -89,16 +113,66 @@ export function decodePairingUri(uri: string): OffdexPairingPayload {
   const bridgeUrl = parsed.searchParams.get("bridge")?.trim();
   const macName = parsed.searchParams.get("name")?.trim();
   const version = parsed.searchParams.get("v");
+  const relayUrl = parsed.searchParams.get("relay")?.trim();
+  const roomId = parsed.searchParams.get("room")?.trim();
+  const secret = parsed.searchParams.get("secret")?.trim();
 
-  if (!bridgeUrl || !macName || version !== "1") {
+  if (!bridgeUrl || !macName || (version !== "1" && version !== "2")) {
+    throw new Error("Invalid Offdex pairing link.");
+  }
+
+  if (version === "2" && (!relayUrl || !roomId || !secret)) {
     throw new Error("Invalid Offdex pairing link.");
   }
 
   return {
     bridgeUrl,
     macName,
-    version: 1,
+    relay:
+      version === "2"
+        ? {
+            relayUrl: relayUrl!,
+            roomId: roomId!,
+            secret: secret!,
+          }
+        : undefined,
+    version: version === "2" ? 2 : 1,
   };
+}
+
+function deriveRelayKey(secret: string) {
+  return nacl.hash(decodeUTF8(secret)).slice(0, nacl.secretbox.keyLength);
+}
+
+export function createRelayAuthToken(secret: string, roomId: string) {
+  return toBase64Url(
+    encodeBase64(nacl.hash(decodeUTF8(`offdex:relay:${roomId}:${secret}`)))
+  );
+}
+
+export function encryptRelayPayload(secret: string, payload: unknown): OffdexRelayCipherPayload {
+  const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+  const message = decodeUTF8(JSON.stringify(payload));
+  const box = nacl.secretbox(message, nonce, deriveRelayKey(secret));
+
+  return {
+    nonce: encodeBase64(nonce),
+    ciphertext: encodeBase64(box),
+  };
+}
+
+export function decryptRelayPayload<T>(secret: string, payload: OffdexRelayCipherPayload): T {
+  const message = nacl.secretbox.open(
+    decodeBase64(payload.ciphertext),
+    decodeBase64(payload.nonce),
+    deriveRelayKey(secret)
+  );
+
+  if (!message) {
+    throw new Error("Invalid Offdex relay payload.");
+  }
+
+  return JSON.parse(encodeUTF8(message)) as T;
 }
 
 export function makeDemoWorkspaceSnapshot(

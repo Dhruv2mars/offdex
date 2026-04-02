@@ -1,7 +1,14 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { randomBytes, randomUUID } from "node:crypto";
 import { hostname, networkInterfaces } from "node:os";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import type { ServerWebSocket } from "bun";
 import QRCode from "qrcode";
 import {
+  createRelayAuthToken,
+  decryptRelayPayload,
+  encryptRelayPayload,
   type OffdexPairingProfile,
   WorkspaceSnapshotStore,
   encodePairingUri,
@@ -106,6 +113,8 @@ export interface BridgeServerOptions {
   port?: number;
   desktopAvailable?: boolean;
   bridgeMode?: BridgeMode;
+  relayUrl?: string;
+  bridgeStateStore?: BridgeStateStore;
 }
 
 export interface BridgePairingPayload {
@@ -115,11 +124,33 @@ export interface BridgePairingPayload {
   pairingUri: string;
 }
 
+export interface BridgePersistentState {
+  bridgeId: string;
+  bridgeSecret: string;
+  relayRoomId: string;
+  relayUrl: string | null;
+  createdAt: string;
+}
+
+export interface BridgeStateStore {
+  loadOrCreate(input: {
+    relayUrl: string | null;
+    macName: string;
+  }): BridgePersistentState;
+}
+
 type BridgeAddressRecord = {
   address: string;
   family: string | number;
   internal: boolean;
 };
+
+type RelayBridgeRequest =
+  | { id: string; action: "health" }
+  | { id: string; action: "snapshot" }
+  | { id: string; action: "runtime"; preferredTarget: RuntimeTarget }
+  | { id: string; action: "turn"; threadId: string; body: string }
+  | { id: string; action: "interrupt"; threadId: string };
 
 export function buildBridgeHints(
   port: number,
@@ -160,7 +191,8 @@ export function createBridgeWorkspaceStore(
 }
 
 export function createBridgePairingPayload(
-  pairingProfile: OffdexPairingProfile
+  pairingProfile: OffdexPairingProfile,
+  bridgeState?: BridgePersistentState
 ): BridgePairingPayload {
   return {
     bridgeUrl: pairingProfile.bridgeUrl,
@@ -169,8 +201,125 @@ export function createBridgePairingPayload(
     pairingUri: encodePairingUri({
       bridgeUrl: pairingProfile.bridgeUrl,
       macName: pairingProfile.macName,
+      relay:
+        bridgeState?.relayUrl
+          ? {
+              relayUrl: bridgeState.relayUrl,
+              roomId: bridgeState.relayRoomId,
+              secret: bridgeState.bridgeSecret,
+            }
+          : undefined,
     }),
   };
+}
+
+function defaultBridgeStatePath() {
+  return join(homedir(), ".offdex", "bridge-state.json");
+}
+
+function toRelayHostWsUrl(relayUrl: string) {
+  const normalized = relayUrl.replace(/\/+$/, "");
+
+  if (normalized.startsWith("https://")) {
+    return normalized.replace("https://", "wss://");
+  }
+
+  if (normalized.startsWith("http://")) {
+    return normalized.replace("http://", "ws://");
+  }
+
+  return normalized;
+}
+
+function createBridgeSecret() {
+  return randomBytes(24).toString("base64url");
+}
+
+export function createBridgeStateStore(options?: {
+  path?: string;
+  initialState?: BridgePersistentState | null;
+}): BridgeStateStore {
+  const path = options?.path;
+  let memoryState = options?.initialState ?? null;
+
+  const readState = () => {
+    if (memoryState) {
+      return memoryState;
+    }
+
+    if (!path || !existsSync(path)) {
+      return null;
+    }
+
+    return JSON.parse(readFileSync(path, "utf8")) as BridgePersistentState;
+  };
+
+  const writeState = (state: BridgePersistentState) => {
+    memoryState = state;
+    if (!path) {
+      return;
+    }
+
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify(state, null, 2));
+  };
+
+  return {
+    loadOrCreate(input) {
+      const existing = readState();
+      if (existing) {
+        const nextState =
+          existing.relayUrl === input.relayUrl
+            ? existing
+            : {
+                ...existing,
+                relayUrl: input.relayUrl,
+              };
+        writeState(nextState);
+        return nextState;
+      }
+
+      const nextState: BridgePersistentState = {
+        bridgeId: randomUUID(),
+        bridgeSecret: createBridgeSecret(),
+        relayRoomId: randomUUID().replaceAll("-", ""),
+        relayUrl: input.relayUrl,
+        createdAt: new Date().toISOString(),
+      };
+      writeState(nextState);
+      return nextState;
+    },
+  };
+}
+
+export async function createTerminalPairingOutput(pairingUri: string) {
+  const qr = await QRCode.toString(pairingUri, {
+    type: "terminal",
+    small: true,
+  });
+
+  return ["", "Offdex Pairing", qr, pairingUri, ""].join("\n");
+}
+
+export async function createBridgeStartupOutput(input: {
+  payload: BridgePairingPayload;
+  relayUrl: string | null;
+}) {
+  const qrOutput = await createTerminalPairingOutput(input.payload.pairingUri);
+  const lines = [
+    "",
+    "Offdex Bridge",
+    `Local bridge: ${input.payload.bridgeUrl}`,
+    `Pairing page: ${input.payload.bridgeUrl.replace(/\/+$/, "")}/pairing`,
+    `Machine: ${input.payload.macName}`,
+    input.payload.bridgeHints.length > 0 ? "Local paths:" : null,
+    ...input.payload.bridgeHints.map((hint) => `  • ${hint}`),
+    input.relayUrl ? `Secure relay: ${input.relayUrl}` : "Secure relay: disabled",
+    qrOutput.trimEnd(),
+    "",
+  ];
+
+  return lines.filter(Boolean).join("\n");
 }
 
 async function renderPairingPage(payload: BridgePairingPayload) {
@@ -277,8 +426,18 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   const host = options.host ?? "0.0.0.0";
   const port = options.port ?? 42420;
   const bridgeMode = options.bridgeMode ?? "demo";
+  const relayUrl = options.relayUrl ?? process.env.OFFDEX_RELAY_URL ?? null;
   const desktopAvailable =
     options.desktopAvailable ?? Boolean(process.env.OFFDEX_DESKTOP_ENDPOINT);
+  const bridgeStateStore =
+    options.bridgeStateStore ??
+    createBridgeStateStore({
+      path: process.env.OFFDEX_BRIDGE_STATE_PATH || defaultBridgeStatePath(),
+    });
+  const bridgeState = bridgeStateStore.loadOrCreate({
+    relayUrl,
+    macName: hostname(),
+  });
   const workspaceStore = createBridgeWorkspaceStore("cli", {
     bridgeUrl: `http://${host}:${port}`,
     bridgeHints: [`http://${host}:${port}`],
@@ -286,6 +445,9 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   });
   const sessionStore = new BridgeSessionStore();
   const listeners = new Set<ServerWebSocket<undefined>>();
+  let relaySocket: WebSocket | null = null;
+  let relayReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let relayConnected = false;
   const codexRuntime =
     bridgeMode === "codex"
       ? new CodexBridgeRuntime({
@@ -295,20 +457,252 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
         })
       : null;
 
+  const buildHealthPayload = () => ({
+    ok: true,
+    transport: relayConnected ? "relay" : "bridge",
+    bridgeMode,
+    bridgeUrl: workspaceStore.getSnapshot().pairing.bridgeUrl,
+    bridgeHints: workspaceStore.getSnapshot().pairing.bridgeHints,
+    macName: workspaceStore.getSnapshot().pairing.macName,
+    desktopAvailable,
+    codexConnected: codexRuntime?.client.isConnected ?? false,
+    relayConnected,
+    relayUrl: bridgeState.relayUrl,
+    session: sessionStore.getActiveSession(),
+  });
+
+  const refreshWorkspaceSnapshot = async () => {
+    if (!codexRuntime) {
+      return workspaceStore.getSnapshot();
+    }
+
+    return codexRuntime.refreshSnapshot();
+  };
+
+  const applyRuntimeSelection = async (preferredTarget: RuntimeTarget) => {
+    const resolution = resolveRuntimeTarget({
+      hostPlatform:
+        process.platform === "darwin"
+          ? "darwin"
+          : process.platform === "win32"
+            ? "win32"
+            : "linux",
+      preferredTarget,
+      desktopAvailable,
+    });
+
+    const session = createBridgeSession(
+      `OFFDEX-${resolution.target.toUpperCase()}`,
+      resolution.target
+    );
+    sessionStore.connect(session);
+    workspaceStore.updatePairingProfile({
+      bridgeUrl: workspaceStore.getSnapshot().pairing.bridgeUrl,
+      bridgeHints: workspaceStore.getSnapshot().pairing.bridgeHints,
+      macName: workspaceStore.getSnapshot().pairing.macName,
+      state: "paired",
+      lastSeenAt: "Just now",
+    });
+
+    if (codexRuntime) {
+      const snapshot = await codexRuntime.setRuntimeTarget(resolution.target);
+      return {
+        session,
+        resolution,
+        snapshot,
+      };
+    }
+
+    workspaceStore.setRuntimeTarget(resolution.target);
+    workspaceStore.updatePairingState("paired", "Just now");
+    workspaceStore.appendMessage({
+      threadId: "thread-foundation",
+      message: makeMessage(
+        `runtime-${Date.now()}`,
+        "assistant",
+        `Runtime changed to ${resolution.target}. ${resolution.reason}`,
+        "Now"
+      ),
+      state: "running",
+      updatedAt: "Now",
+    });
+
+    return {
+      session,
+      resolution,
+      snapshot: workspaceStore.getSnapshot(),
+    };
+  };
+
+  const applyTurnRequest = async (body: Partial<BridgeTurnInput>) => {
+    if (codexRuntime) {
+      return {
+        snapshot: await codexRuntime.sendTurn(body.threadId ?? NEW_THREAD_ID, body.body ?? ""),
+      };
+    }
+
+    const accepted = recordBridgeTurn(workspaceStore, {
+      threadId: body.threadId ?? "",
+      body: body.body ?? "",
+    });
+
+    if (!accepted) {
+      throw new Error("Turn rejected. Missing thread or empty body.");
+    }
+
+    return {
+      snapshot: workspaceStore.getSnapshot(),
+    };
+  };
+
+  const applyInterruptRequest = async (threadId: string | undefined) => {
+    if (codexRuntime) {
+      return {
+        snapshot: await codexRuntime.interruptThread(threadId ?? ""),
+      };
+    }
+
+    if (!threadId) {
+      throw new Error("Interrupt rejected. Missing thread.");
+    }
+
+    return {
+      snapshot: workspaceStore.getSnapshot(),
+    };
+  };
+
   const publishSnapshot = () => {
-    const payload = JSON.stringify({
+    const snapshotPayload = {
       type: "workspace.snapshot",
       data: workspaceStore.getSnapshot(),
-    });
+    };
+    const payload = JSON.stringify(snapshotPayload);
 
     for (const socket of listeners) {
       socket.send(payload);
+    }
+
+    if (relaySocket?.readyState === WebSocket.OPEN) {
+      relaySocket.send(
+        JSON.stringify(
+          encryptRelayPayload(bridgeState.bridgeSecret, snapshotPayload)
+        )
+      );
     }
   };
 
   const unsubscribe = workspaceStore.subscribe(() => {
     publishSnapshot();
   });
+
+  const connectRelayHost = () => {
+    if (!bridgeState.relayUrl) {
+      return;
+    }
+
+    relaySocket?.close();
+    relaySocket = new WebSocket(
+      `${toRelayHostWsUrl(bridgeState.relayUrl)}/ws/${bridgeState.relayRoomId}?role=host&clientId=${bridgeState.bridgeId}&token=${createRelayAuthToken(
+        bridgeState.bridgeSecret,
+        bridgeState.relayRoomId
+      )}`
+    );
+
+    relaySocket.onopen = () => {
+      relayConnected = true;
+      publishSnapshot();
+    };
+
+    relaySocket.onmessage = async (event) => {
+      const decoder = new TextDecoder();
+      const text =
+        typeof event.data === "string"
+          ? event.data
+          : event.data instanceof ArrayBuffer
+            ? decoder.decode(new Uint8Array(event.data))
+            : decoder.decode(new Uint8Array(event.data as ArrayBufferLike));
+
+      const envelope = JSON.parse(text) as {
+        type?: string;
+        id?: string;
+        payload?: string;
+      };
+
+      if (
+        (envelope.type !== "relay.message" && envelope.type !== "relay.proxy") ||
+        !envelope.payload
+      ) {
+        return;
+      }
+
+      try {
+        const request = decryptRelayPayload<RelayBridgeRequest>(
+          bridgeState.bridgeSecret,
+          JSON.parse(envelope.type === "relay.proxy" ? envelope.payload : envelope.payload)
+        );
+        let response: unknown;
+
+        switch (request.action) {
+          case "health":
+            response = buildHealthPayload();
+            break;
+          case "snapshot":
+            response = await refreshWorkspaceSnapshot();
+            break;
+          case "runtime":
+            response = await applyRuntimeSelection(request.preferredTarget);
+            break;
+          case "turn":
+            response = await applyTurnRequest({
+              threadId: request.threadId,
+              body: request.body,
+            });
+            break;
+          case "interrupt":
+            response = await applyInterruptRequest(request.threadId);
+            break;
+        }
+
+        relaySocket?.send(
+          JSON.stringify({
+            type: "relay.response",
+            id: envelope.id ?? request.id,
+            payload: JSON.stringify(
+              encryptRelayPayload(bridgeState.bridgeSecret, response)
+            ),
+          })
+        );
+      } catch (error) {
+        relaySocket?.send(
+          JSON.stringify({
+            type: "relay.response",
+            id: envelope.id,
+            error: error instanceof Error ? error.message : "Relay request failed.",
+          })
+        );
+      }
+    };
+
+    const scheduleReconnect = () => {
+      relayConnected = false;
+      if (relayReconnectTimer || !bridgeState.relayUrl) {
+        return;
+      }
+
+      relayReconnectTimer = setTimeout(() => {
+        relayReconnectTimer = null;
+        connectRelayHost();
+      }, 2_000);
+    };
+
+    relaySocket.onerror = () => {
+      scheduleReconnect();
+    };
+
+    relaySocket.onclose = () => {
+      scheduleReconnect();
+    };
+  };
 
   const withCors = (response: Response) => {
     const headers = new Headers(response.headers);
@@ -334,28 +728,11 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       }
 
       if (url.pathname === "/health") {
-        return withCors(
-          Response.json({
-            ok: true,
-            transport: "bridge",
-            bridgeMode,
-            bridgeUrl: workspaceStore.getSnapshot().pairing.bridgeUrl,
-            bridgeHints: workspaceStore.getSnapshot().pairing.bridgeHints,
-            macName: workspaceStore.getSnapshot().pairing.macName,
-            desktopAvailable,
-            codexConnected: codexRuntime?.client.isConnected ?? false,
-            session: sessionStore.getActiveSession(),
-          })
-        );
+        return withCors(Response.json(buildHealthPayload()));
       }
 
       if (url.pathname === "/snapshot") {
-        if (!codexRuntime) {
-          return withCors(Response.json(workspaceStore.getSnapshot()));
-        }
-
-        return codexRuntime
-          .refreshSnapshot()
+        return refreshWorkspaceSnapshot()
           .then((snapshot) => withCors(Response.json(snapshot)))
           .catch((error) =>
             withCors(
@@ -371,13 +748,15 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
 
       if (url.pathname === "/pairing.json") {
         return withCors(
-          Response.json(createBridgePairingPayload(workspaceStore.getSnapshot().pairing))
+          Response.json(
+            createBridgePairingPayload(workspaceStore.getSnapshot().pairing, bridgeState)
+          )
         );
       }
 
       if (url.pathname === "/pairing") {
         return renderPairingPage(
-          createBridgePairingPayload(workspaceStore.getSnapshot().pairing)
+          createBridgePairingPayload(workspaceStore.getSnapshot().pairing, bridgeState)
         ).then((html) =>
           withCors(
             new Response(html, {
@@ -392,62 +771,12 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       if (url.pathname === "/runtime" && request.method === "POST") {
         return request.json().then(async (rawBody) => {
           const body = rawBody as { preferredTarget?: RuntimeTarget };
-          const preferredTarget = body?.preferredTarget === "desktop" ? "desktop" : "cli";
-          const resolution = resolveRuntimeTarget({
-            hostPlatform:
-              process.platform === "darwin"
-                ? "darwin"
-                : process.platform === "win32"
-                  ? "win32"
-                  : "linux",
-            preferredTarget,
-            desktopAvailable,
-          });
-
-          const session = createBridgeSession(
-            `OFFDEX-${resolution.target.toUpperCase()}`,
-            resolution.target
-          );
-          sessionStore.connect(session);
-          workspaceStore.updatePairingProfile({
-            bridgeUrl: workspaceStore.getSnapshot().pairing.bridgeUrl,
-            bridgeHints: workspaceStore.getSnapshot().pairing.bridgeHints,
-            macName: workspaceStore.getSnapshot().pairing.macName,
-            state: "paired",
-            lastSeenAt: "Just now",
-          });
-
-          if (codexRuntime) {
-            const snapshot = await codexRuntime.setRuntimeTarget(resolution.target);
-            return withCors(
-              Response.json({
-                session,
-                resolution,
-                snapshot,
-              })
-            );
-          }
-
-          workspaceStore.setRuntimeTarget(resolution.target);
-          workspaceStore.updatePairingState("paired", "Just now");
-          workspaceStore.appendMessage({
-            threadId: "thread-foundation",
-            message: makeMessage(
-              `runtime-${Date.now()}`,
-              "assistant",
-              `Runtime changed to ${resolution.target}. ${resolution.reason}`,
-              "Now"
-            ),
-            state: "running",
-            updatedAt: "Now",
-          });
-
           return withCors(
-            Response.json({
-              session,
-              resolution,
-              snapshot: workspaceStore.getSnapshot(),
-            })
+            Response.json(
+              await applyRuntimeSelection(
+                body?.preferredTarget === "desktop" ? "desktop" : "cli"
+              )
+            )
           );
         });
       }
@@ -455,76 +784,49 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       if (url.pathname === "/turn" && request.method === "POST") {
         return request.json().then(async (rawBody) => {
           const body = rawBody as Partial<BridgeTurnInput>;
-
-          if (codexRuntime) {
-            try {
-              const snapshot = await codexRuntime.sendTurn(
-                body.threadId ?? NEW_THREAD_ID,
-                body.body ?? ""
-              );
-              return withCors(Response.json({ snapshot }));
-            } catch (error) {
-              return withCors(
-                Response.json(
-                  {
-                    error: error instanceof Error ? error.message : "Codex turn failed.",
-                  },
-                  { status: 502 }
-                )
-              );
-            }
-          }
-
-          const accepted = recordBridgeTurn(workspaceStore, {
-            threadId: body.threadId ?? "",
-            body: body.body ?? "",
-          });
-
-          if (!accepted) {
+          try {
+            return withCors(Response.json(await applyTurnRequest(body)));
+          } catch (error) {
             return withCors(
               Response.json(
-                { error: "Turn rejected. Missing thread or empty body." },
-                { status: 400 }
+                {
+                  error: error instanceof Error ? error.message : "Codex turn failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Turn rejected. Missing thread or empty body."
+                      ? 400
+                      : 502,
+                }
               )
             );
           }
-
-          return withCors(
-            Response.json({
-              snapshot: workspaceStore.getSnapshot(),
-            })
-          );
         });
       }
 
       if (url.pathname === "/interrupt" && request.method === "POST") {
         return request.json().then(async (rawBody) => {
           const body = rawBody as { threadId?: string };
-
-          if (codexRuntime) {
-            try {
-              const snapshot = await codexRuntime.interruptThread(body.threadId ?? "");
-              return withCors(Response.json({ snapshot }));
-            } catch (error) {
-              return withCors(
-                Response.json(
-                  {
-                    error:
-                      error instanceof Error ? error.message : "Codex interrupt failed.",
-                  },
-                  { status: 502 }
-                )
-              );
-            }
-          }
-
-          if (!body.threadId) {
+          try {
+            return withCors(Response.json(await applyInterruptRequest(body.threadId)));
+          } catch (error) {
             return withCors(
-              Response.json({ error: "Interrupt rejected. Missing thread." }, { status: 400 })
+              Response.json(
+                {
+                  error:
+                    error instanceof Error ? error.message : "Codex interrupt failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Interrupt rejected. Missing thread."
+                      ? 400
+                      : 502,
+                }
+              )
             );
           }
-
-          return withCors(Response.json({ snapshot: workspaceStore.getSnapshot() }));
         });
       }
 
@@ -559,14 +861,23 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     bridgeHints,
     macName: hostname(),
   });
+  connectRelayHost();
 
   return {
     server,
     workspaceStore,
     sessionStore,
+    bridgeState,
+    getPairingPayload() {
+      return createBridgePairingPayload(workspaceStore.getSnapshot().pairing, bridgeState);
+    },
     stop() {
       unsubscribe();
       void codexRuntime?.close();
+      if (relayReconnectTimer) {
+        clearTimeout(relayReconnectTimer);
+      }
+      relaySocket?.close();
       server.stop(true);
       listeners.clear();
     },

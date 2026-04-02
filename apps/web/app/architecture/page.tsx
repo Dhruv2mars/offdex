@@ -19,7 +19,7 @@ const layers = [
   {
     name: "Relay",
     detail:
-      "A replaceable transport hop that keeps the system local-first and honest instead of quietly turning into a hosted black box.",
+      "A replaceable encrypted transport hop that lets the phone stay attached from anywhere while the Mac remains the machine actually running Codex.",
   },
 ];
 

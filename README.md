@@ -23,9 +23,19 @@ Offdex is a public monorepo for a fast, polished, local-first Codex experience a
 
 ```bash
 bun install
+bun run dev:relay
+bun run dev:bridge
 bun run dev:web
 bun run dev:mobile
 ```
+
+For remote access, run the bridge with a relay URL:
+
+```bash
+OFFDEX_RELAY_URL=wss://your-relay.example.com bun run dev:bridge
+```
+
+Then scan the QR once in Offdex. The phone stores that trusted pairing and will keep reconnecting until you explicitly disconnect it in the app.
 
 ## Repo Shape
 
@@ -36,6 +46,13 @@ apps/
 packages/   Shared protocol, bridge, relay, UI, native modules
 ```
 
+## Secure Pairing
+
+- QR code in the browser and terminal
+- pairing link saved on device until disconnect
+- encrypted relay path for away-from-home access
+- relay room token derived from the pairing secret, so random clients cannot attach to a room
+
 ## Status
 
-This is the clean start. The old Remodex fork is no longer the product repo.
+Offdex now has a real path: phone or web app -> local bridge -> Codex CLI, with optional secure relay for remote access.

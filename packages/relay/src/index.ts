@@ -61,11 +61,34 @@ interface RelaySocketData {
   role: "host" | "client";
 }
 
+interface PendingProxyRequest {
+  resolve: (payload: string) => void;
+  reject: (error: Error) => void;
+  timer: Timer;
+}
+
 export function startRelayServer(options: RelayServerOptions = {}) {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 42421;
   const registry = new RelayRegistry();
   const socketsByRoom = new Map<string, Set<ServerWebSocket<RelaySocketData>>>();
+  const pendingProxyRequests = new Map<string, PendingProxyRequest>();
+  const roomAuthTokens = new Map<string, string>();
+
+  const authorizeHostRoom = (roomId: string, token: string) => {
+    const existing = roomAuthTokens.get(roomId);
+    if (existing && existing !== token) {
+      return false;
+    }
+
+    roomAuthTokens.set(roomId, token);
+    return true;
+  };
+
+  const authorizeRoomAccess = (roomId: string, token: string | null) => {
+    const existing = roomAuthTokens.get(roomId);
+    return Boolean(token && existing && existing === token);
+  };
 
   const broadcastRoomSnapshot = (roomId: string) => {
     const roomSockets = socketsByRoom.get(roomId);
@@ -98,10 +121,78 @@ export function startRelayServer(options: RelayServerOptions = {}) {
         return Response.json(registry.snapshot(roomId));
       }
 
+      if (url.pathname.startsWith("/proxy/") && request.method === "POST") {
+        const roomId = url.pathname.replace("/proxy/", "");
+        const token = url.searchParams.get("token")?.trim() ?? null;
+
+        if (!authorizeRoomAccess(roomId, token)) {
+          return Response.json({ error: "Unauthorized room access." }, { status: 403 });
+        }
+
+        const roomSockets = socketsByRoom.get(roomId) ?? new Set();
+        const hostSocket = [...roomSockets].find((socket) => socket.data.role === "host");
+
+        if (!hostSocket) {
+          return Response.json({ error: "Host offline." }, { status: 503 });
+        }
+
+        return request.json().then((rawBody) => {
+          const body = rawBody as { payload?: string };
+          if (!body.payload) {
+            return Response.json({ error: "Missing payload." }, { status: 400 });
+          }
+
+          const requestId = `proxy-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+
+          return new Promise<Response>((resolve) => {
+            const timer = setTimeout(() => {
+              pendingProxyRequests.delete(requestId);
+              resolve(Response.json({ error: "Host timed out." }, { status: 504 }));
+            }, 10_000);
+
+            pendingProxyRequests.set(requestId, {
+              resolve(payload) {
+                clearTimeout(timer);
+                pendingProxyRequests.delete(requestId);
+                resolve(Response.json({ payload }));
+              },
+              reject(error) {
+                clearTimeout(timer);
+                pendingProxyRequests.delete(requestId);
+                resolve(Response.json({ error: error.message }, { status: 502 }));
+              },
+              timer,
+            });
+
+            hostSocket.send(
+              JSON.stringify({
+                type: "relay.proxy",
+                id: requestId,
+                payload: body.payload,
+              })
+            );
+          });
+        });
+      }
+
       if (url.pathname.startsWith("/ws/")) {
         const roomId = url.pathname.replace("/ws/", "");
         const role = url.searchParams.get("role") === "host" ? "host" : "client";
         const clientId = url.searchParams.get("clientId") || `client-${Date.now()}`;
+        const token = url.searchParams.get("token")?.trim() ?? null;
+
+        if (!token) {
+          return Response.json({ error: "Missing room token." }, { status: 403 });
+        }
+
+        if (role === "host") {
+          if (!authorizeHostRoom(roomId, token)) {
+            return Response.json({ error: "Room is already bound to a different token." }, { status: 409 });
+          }
+        } else if (!authorizeRoomAccess(roomId, token)) {
+          return Response.json({ error: "Unauthorized room access." }, { status: 403 });
+        }
+
         const upgraded = serverRef.upgrade(request, {
           data: { roomId, clientId, role } satisfies RelaySocketData,
         });
@@ -127,6 +218,30 @@ export function startRelayServer(options: RelayServerOptions = {}) {
       },
       message(socket, message) {
         const roomId = socket.data.roomId;
+        const text =
+          typeof message === "string" ? message : Buffer.from(message).toString("utf8");
+
+        if (socket.data.role === "host") {
+          const hostMessage = JSON.parse(text) as {
+            type?: string;
+            id?: string;
+            payload?: string;
+            error?: string;
+          };
+
+          if (hostMessage.type === "relay.response" && hostMessage.id) {
+            if (hostMessage.payload) {
+              pendingProxyRequests.get(hostMessage.id)?.resolve(hostMessage.payload);
+              return;
+            }
+
+            pendingProxyRequests.get(hostMessage.id)?.reject(
+              new Error(hostMessage.error ?? "Relay host request failed.")
+            );
+            return;
+          }
+        }
+
         const roomSockets = socketsByRoom.get(roomId) ?? new Set();
 
         for (const peer of roomSockets) {
@@ -139,7 +254,7 @@ export function startRelayServer(options: RelayServerOptions = {}) {
               type: "relay.message",
               roomId,
               from: socket.data.clientId,
-              payload: typeof message === "string" ? message : Buffer.from(message).toString("utf8"),
+              payload: text,
             })
           );
         }
@@ -170,6 +285,12 @@ export function startRelayServer(options: RelayServerOptions = {}) {
     stop() {
       server.stop(true);
       socketsByRoom.clear();
+      for (const pending of pendingProxyRequests.values()) {
+        clearTimeout(pending.timer);
+        pending.reject(new Error("Relay stopped."));
+      }
+      pendingProxyRequests.clear();
+      roomAuthTokens.clear();
     },
   };
 }

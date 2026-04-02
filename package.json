@@ -9,7 +9,9 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev --parallel",
+    "dev:bridge": "turbo dev --filter=@offdex/bridge",
     "dev:mobile": "turbo dev --filter=@offdex/mobile",
+    "dev:relay": "turbo dev --filter=@offdex/relay",
     "dev:web": "turbo dev --filter=@offdex/web",
     "lint": "turbo lint",
     "test": "turbo test",
