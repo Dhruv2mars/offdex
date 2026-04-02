@@ -35,6 +35,12 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Offdex uses your camera to scan the pairing QR from your Mac."
+        }
       ]
     ]
   }

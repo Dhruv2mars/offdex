@@ -1,3 +1,4 @@
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { StatusBar } from "expo-status-bar";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import {
@@ -5,6 +6,7 @@ import {
   AppState,
   KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -19,6 +21,7 @@ import { mobileTabs, offdexTagline } from "./src/app-config";
 import { normalizeBridgeBaseUrl } from "./src/bridge-client";
 import { bridgePreferences } from "./src/bridge-preferences";
 import { BridgeWorkspaceController } from "./src/bridge-workspace-controller";
+import { extractOffdexPairingUri } from "./src/pairing-scan";
 
 type AppTab = (typeof mobileTabs)[number];
 
@@ -44,17 +47,31 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [pairingDraft, setPairingDraft] = useState("");
   const [awaitingNewThread, setAwaitingNewThread] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [scanLocked, setScanLocked] = useState(false);
+  const [scanStatus, setScanStatus] = useState<string | null>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   useEffect(() => {
     const unsubscribe = controller.subscribe((nextState) => setWorkspaceState(nextState));
     void controller.hydrate();
     const applyPairingUri = (uri: string | null) => {
-      if (!uri?.startsWith("offdex://pair?")) {
+      const pairingUri = extractOffdexPairingUri(uri);
+      if (!pairingUri) {
         return;
       }
 
-      setPairingDraft(uri);
-      void controller.connectFromPairingUri(uri).catch(() => {});
+      setPairingDraft(pairingUri);
+      setScanStatus(null);
+      void controller
+        .connectFromPairingUri(pairingUri)
+        .then(() => {
+          setScannerVisible(false);
+          setScanLocked(false);
+        })
+        .catch((error) => {
+          setScanStatus(error instanceof Error ? error.message : "Pairing failed.");
+        });
     };
 
     void Linking.getInitialURL().then((uri) => applyPairingUri(uri));
@@ -136,6 +153,42 @@ export default function App() {
         : "Connect to bridge";
   const pairingSecondaryLabel =
     isLiveConnection || connectionState !== "idle" || connectedBridgeUrl ? "Disconnect" : "Reset";
+
+  const openScanner = () => {
+    setScanLocked(false);
+    setScanStatus(null);
+    setScannerVisible(true);
+    if (!cameraPermission?.granted && cameraPermission?.canAskAgain !== false) {
+      void requestCameraPermission();
+    }
+  };
+
+  const handleScannedPairing = (value: string) => {
+    if (scanLocked) {
+      return;
+    }
+
+    const pairingUri = extractOffdexPairingUri(value);
+    if (!pairingUri) {
+      setScanLocked(true);
+      setScanStatus("That QR code is not an Offdex pairing code.");
+      return;
+    }
+
+    setScanLocked(true);
+    setScanStatus("Pairing with your Mac…");
+    setPairingDraft(pairingUri);
+    void controller
+      .connectFromPairingUri(pairingUri)
+      .then(() => {
+        setScannerVisible(false);
+        setScanLocked(false);
+        setScanStatus(null);
+      })
+      .catch((error) => {
+        setScanStatus(error instanceof Error ? error.message : "Pairing failed.");
+      });
+  };
 
   return (
     <SafeAreaProvider>
@@ -517,6 +570,9 @@ export default function App() {
                       <Text style={styles.secondaryButtonText}>Open pairing page</Text>
                     </Pressable>
                   </View>
+                  <Pressable style={styles.scanButton} onPress={openScanner}>
+                    <Text style={styles.scanButtonText}>Scan QR from your Mac</Text>
+                  </Pressable>
                   <Text style={styles.bridgeStatusText}>
                     Scan the QR on your Mac or paste the same Offdex link here.
                   </Text>
@@ -568,6 +624,27 @@ export default function App() {
             ) : null}
           </View>
         </KeyboardAvoidingView>
+        <PairingScannerModal
+          visible={scannerVisible}
+          granted={cameraPermission?.granted ?? false}
+          canAskAgain={cameraPermission?.canAskAgain ?? true}
+          locked={scanLocked}
+          status={scanStatus}
+          onClose={() => {
+            setScannerVisible(false);
+            setScanLocked(false);
+            setScanStatus(null);
+          }}
+          onRequestPermission={() => {
+            setScanStatus(null);
+            void requestCameraPermission();
+          }}
+          onScanAgain={() => {
+            setScanLocked(false);
+            setScanStatus(null);
+          }}
+          onScanned={handleScannedPairing}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -649,6 +726,85 @@ function Pill({
     >
       <Text style={styles.pillText}>{label}</Text>
     </View>
+  );
+}
+
+function PairingScannerModal({
+  visible,
+  granted,
+  canAskAgain,
+  locked,
+  status,
+  onClose,
+  onRequestPermission,
+  onScanAgain,
+  onScanned,
+}: {
+  visible: boolean;
+  granted: boolean;
+  canAskAgain: boolean;
+  locked: boolean;
+  status: string | null;
+  onClose: () => void;
+  onRequestPermission: () => void;
+  onScanAgain: () => void;
+  onScanned: (value: string) => void;
+}) {
+  return (
+    <Modal animationType="slide" presentationStyle="fullScreen" visible={visible} onRequestClose={onClose}>
+      <SafeAreaView style={styles.scannerScreen}>
+        <View style={styles.scannerHeader}>
+          <View style={styles.scannerHeaderCopy}>
+            <Text style={styles.scannerEyebrow}>QR pairing</Text>
+            <Text style={styles.scannerTitle}>Scan the code on your Mac</Text>
+            <Text style={styles.scannerBody}>
+              Offdex only accepts its own local pairing code. Nothing leaves your machine.
+            </Text>
+          </View>
+          <Pressable style={styles.secondaryButton} onPress={onClose}>
+            <Text style={styles.secondaryButtonText}>Close</Text>
+          </Pressable>
+        </View>
+
+        {granted ? (
+          <View style={styles.scannerStage}>
+            <CameraView
+              style={styles.scannerCamera}
+              barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+              onBarcodeScanned={locked ? undefined : ({ data }) => onScanned(data)}
+            />
+            <View pointerEvents="none" style={styles.scannerFrame} />
+          </View>
+        ) : (
+          <View style={styles.scannerFallbackCard}>
+            <Text style={styles.scannerFallbackTitle}>Camera access is required</Text>
+            <Text style={styles.scannerFallbackBody}>
+              Grant camera access to scan the pairing QR from the bridge page on your Mac.
+            </Text>
+            {canAskAgain ? (
+              <Pressable style={styles.connectButton} onPress={onRequestPermission}>
+                <Text style={styles.connectButtonText}>Allow camera</Text>
+              </Pressable>
+            ) : (
+              <Text style={styles.bridgeStatusText}>
+                Camera access is blocked. Re-enable it in Android app settings for Expo Go.
+              </Text>
+            )}
+          </View>
+        )}
+
+        <View style={styles.scannerFooter}>
+          <Text style={styles.bridgeStatusText}>
+            {status ?? "Point the camera at the Offdex QR code from your local pairing page."}
+          </Text>
+          {locked ? (
+            <Pressable style={styles.connectButton} onPress={onScanAgain}>
+              <Text style={styles.connectButtonText}>Scan again</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -1143,6 +1299,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  scanButton: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#233028",
+    backgroundColor: "#101412",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignSelf: "flex-start",
+  },
+  scanButtonText: {
+    color: "#d6ff72",
+    fontSize: 13,
+    fontWeight: "800",
+  },
   bridgeStatusText: {
     color: "#97a19c",
     fontSize: 13,
@@ -1183,5 +1353,85 @@ const styles = StyleSheet.create({
     color: "#9ca6a1",
     fontSize: 15,
     lineHeight: 23,
+  },
+  scannerScreen: {
+    flex: 1,
+    backgroundColor: "#0b0d0c",
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 16,
+  },
+  scannerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  scannerHeaderCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  scannerEyebrow: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  scannerTitle: {
+    color: "#eef2ef",
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  scannerBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  scannerStage: {
+    flex: 1,
+    borderRadius: 30,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#1f2522",
+    backgroundColor: "#131715",
+    justifyContent: "center",
+  },
+  scannerCamera: {
+    flex: 1,
+  },
+  scannerFrame: {
+    position: "absolute",
+    top: "22%",
+    left: "13%",
+    right: "13%",
+    bottom: "22%",
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: "#d6ff72",
+    backgroundColor: "transparent",
+  },
+  scannerFallbackCard: {
+    flex: 1,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#1f2522",
+    backgroundColor: "#131715",
+    padding: 24,
+    justifyContent: "center",
+    gap: 12,
+  },
+  scannerFallbackTitle: {
+    color: "#eef2ef",
+    fontSize: 22,
+    fontWeight: "700",
+  },
+  scannerFallbackBody: {
+    color: "#97a19c",
+    fontSize: 15,
+    lineHeight: 23,
+  },
+  scannerFooter: {
+    gap: 12,
   },
 });
