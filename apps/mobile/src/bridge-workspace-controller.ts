@@ -206,6 +206,35 @@ export class BridgeWorkspaceController {
     return this.getState();
   }
 
+  async resume() {
+    const resumeBridgeUrl = this.#state.connectedBridgeUrl;
+    if (!resumeBridgeUrl) {
+      return this.getState();
+    }
+
+    this.#clearReconnectTimer();
+    this.#setState({
+      connectedBridgeUrl: resumeBridgeUrl,
+      connectionState: "connecting",
+      isBusy: true,
+      bridgeStatus: `Refreshing ${resumeBridgeUrl}`,
+    });
+
+    try {
+      await this.#connectToBridge(resumeBridgeUrl, { persistUrlOnFailure: true });
+    } catch {
+      this.#patchPairingState("reconnecting");
+      this.#setState({
+        connectedBridgeUrl: resumeBridgeUrl,
+        connectionState: "degraded",
+        isBusy: false,
+      });
+      this.#scheduleReconnect(resumeBridgeUrl, "error");
+    }
+
+    return this.getState();
+  }
+
   async setRuntimeTarget(runtimeTarget: RuntimeTarget) {
     if (!this.#state.connectedBridgeUrl) {
       this.#demoController.setRuntimeTarget(runtimeTarget);

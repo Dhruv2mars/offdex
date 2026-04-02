@@ -2,15 +2,18 @@ import { StatusBar } from "expo-status-bar";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
+  KeyboardAvoidingView,
   Linking,
+  Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { OFFDEX_NEW_THREAD_ID, type OffdexThread } from "@offdex/protocol";
 import { mobileTabs, offdexTagline } from "./src/app-config";
 import { normalizeBridgeBaseUrl } from "./src/bridge-client";
@@ -58,10 +61,23 @@ export default function App() {
     const subscription = Linking.addEventListener("url", ({ url }) => {
       applyPairingUri(url);
     });
+    let appState = AppState.currentState;
+    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+      const didResume =
+        (appState === "background" || appState === "inactive") && nextState === "active";
+      appState = nextState;
+
+      if (!didResume) {
+        return;
+      }
+
+      void controller.resume();
+    });
 
     return () => {
       unsubscribe();
       subscription.remove();
+      appStateSubscription.remove();
       controller.dispose();
     };
   }, [controller]);
@@ -122,64 +138,69 @@ export default function App() {
     isLiveConnection || connectionState !== "idle" || connectedBridgeUrl ? "Disconnect" : "Reset";
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <StatusBar style="light" />
-      <View style={styles.root}>
-        <View style={styles.topBar}>
-          <View>
-            <Text style={styles.brand}>OFFDEX</Text>
-            <Text style={styles.heroTitle}>{offdexTagline.replace("Offdex: ", "")}</Text>
-            <Text style={styles.heroStatus}>{bridgeStatus}</Text>
-          </View>
-          {snapshot.capabilityMatrix.runtimes.length > 1 ? (
-            <View style={styles.runtimeCluster}>
-              {snapshot.capabilityMatrix.runtimes.map((target) => (
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.screen}>
+        <StatusBar style="light" />
+        <KeyboardAvoidingView
+          style={styles.screen}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.root}>
+            <View style={styles.topBar}>
+              <View>
+                <Text style={styles.brand}>OFFDEX</Text>
+                <Text style={styles.heroTitle}>{offdexTagline.replace("Offdex: ", "")}</Text>
+                <Text style={styles.heroStatus}>{bridgeStatus}</Text>
+              </View>
+              {snapshot.capabilityMatrix.runtimes.length > 1 ? (
+                <View style={styles.runtimeCluster}>
+                  {snapshot.capabilityMatrix.runtimes.map((target) => (
+                    <Pressable
+                      key={target}
+                      onPress={() => {
+                        startTransition(() => {
+                          void controller.setRuntimeTarget(target).catch(() => {});
+                        });
+                      }}
+                      style={[
+                        styles.runtimeChip,
+                        runtimeTarget === target && styles.runtimeChipActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.runtimeChipText,
+                          runtimeTarget === target && styles.runtimeChipTextActive,
+                        ]}
+                      >
+                        {target === "cli" ? "CLI" : "Desktop"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.cliBadge}>
+                  <Text style={styles.cliBadgeText}>CLI first</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.tabRow}>
+              {mobileTabs.map((tab) => (
                 <Pressable
-                  key={target}
-                  onPress={() => {
-                    startTransition(() => {
-                      void controller.setRuntimeTarget(target).catch(() => {});
-                    });
-                  }}
-                  style={[
-                    styles.runtimeChip,
-                    runtimeTarget === target && styles.runtimeChipActive,
-                  ]}
+                  key={tab}
+                  onPress={() => setActiveTab(tab)}
+                  style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
                 >
-                  <Text
-                    style={[
-                      styles.runtimeChipText,
-                      runtimeTarget === target && styles.runtimeChipTextActive,
-                    ]}
-                  >
-                    {target === "cli" ? "CLI" : "Desktop"}
+                  <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
+                    {tab}
                   </Text>
                 </Pressable>
               ))}
             </View>
-          ) : (
-            <View style={styles.cliBadge}>
-              <Text style={styles.cliBadgeText}>CLI first</Text>
-            </View>
-          )}
-        </View>
 
-        <View style={styles.tabRow}>
-          {mobileTabs.map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
-            >
-              <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
-                {tab}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {activeTab === "Chats" ? (
-          <View style={styles.chatLayout}>
+            {activeTab === "Chats" ? (
+              <View style={styles.chatLayout}>
             <ScrollView
               style={styles.threadRail}
               contentContainerStyle={styles.threadRailContent}
@@ -407,146 +428,148 @@ export default function App() {
                 </View>
               )}
             </View>
+              </View>
+            ) : null}
+
+            {activeTab === "Pairing" ? (
+              <ScrollView
+                style={styles.stackPanel}
+                contentContainerStyle={styles.stackPanelContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <SectionCard
+                  eyebrow="Current machine"
+                  title={snapshot.pairing.macName}
+                  body="Offdex is focused on the local bridge path for now. Connect to your Mac, stay live, and keep failure states obvious."
+                />
+                <View style={styles.sectionCard}>
+                  <Text style={styles.sectionEyebrow}>Bridge</Text>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder="http://192.168.1.10:42420"
+                    placeholderTextColor="#69726d"
+                    style={styles.bridgeInput}
+                    value={bridgeBaseUrl}
+                    onChangeText={(value) => controller.setBridgeBaseUrl(value)}
+                  />
+                  <View style={styles.bridgeActionRow}>
+                    <Pressable
+                      style={styles.connectButton}
+                      onPress={() => {
+                        if (isLiveConnection) {
+                          void controller.refresh().catch(() => {});
+                          return;
+                        }
+
+                        void controller.connect().catch(() => {});
+                      }}
+                    >
+                      <Text style={styles.connectButtonText}>{pairingPrimaryLabel}</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.secondaryButton}
+                      onPress={() => {
+                        if (isLiveConnection || connectionState !== "idle" || connectedBridgeUrl) {
+                          controller.disconnect();
+                          return;
+                        }
+
+                        controller.setBridgeBaseUrl("http://127.0.0.1:42420");
+                        setPairingDraft("");
+                        controller.disconnect();
+                      }}
+                    >
+                      <Text style={styles.secondaryButtonText}>{pairingSecondaryLabel}</Text>
+                    </Pressable>
+                    {isBusy ? <ActivityIndicator color="#d6ff72" /> : null}
+                  </View>
+                  <Text style={styles.bridgeStatusText}>{bridgeStatus}</Text>
+                </View>
+                <View style={styles.sectionCard}>
+                  <Text style={styles.sectionEyebrow}>Pairing link</Text>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder="offdex://pair?bridge=..."
+                    placeholderTextColor="#69726d"
+                    style={styles.bridgeInput}
+                    value={pairingDraft}
+                    onChangeText={setPairingDraft}
+                  />
+                  <View style={styles.bridgeActionRow}>
+                    <Pressable
+                      style={styles.connectButton}
+                      onPress={() => {
+                        void controller.connectFromPairingUri(pairingDraft).catch(() => {});
+                      }}
+                    >
+                      <Text style={styles.connectButtonText}>Pair from link</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.secondaryButton}
+                      onPress={() => {
+                        void Linking.openURL(
+                          `${normalizeBridgeBaseUrl(bridgeBaseUrl)}/pairing`
+                        ).catch(() => {});
+                      }}
+                    >
+                      <Text style={styles.secondaryButtonText}>Open pairing page</Text>
+                    </Pressable>
+                  </View>
+                  <Text style={styles.bridgeStatusText}>
+                    Scan the QR on your Mac or paste the same Offdex link here.
+                  </Text>
+                </View>
+                <SectionCard
+                  eyebrow="Bridge paths"
+                  title={snapshot.pairing.bridgeUrl}
+                  body="Use one of these local paths when you move from browser testing to your actual phone."
+                />
+                <View style={styles.sectionCard}>
+                  <Text style={styles.sectionEyebrow}>Local options</Text>
+                  <View style={styles.hintWrap}>
+                    {snapshot.pairing.bridgeHints.map((hint) => (
+                      <Pressable
+                        key={hint}
+                        onPress={() => controller.setBridgeBaseUrl(hint)}
+                        style={styles.hintChip}
+                      >
+                        <Text style={styles.hintChipText}>{hint}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+            ) : null}
+
+            {activeTab === "Settings" ? (
+              <ScrollView
+                style={styles.stackPanel}
+                contentContainerStyle={styles.stackPanelContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <SectionCard
+                  eyebrow="Runtime target"
+                  title="Codex CLI"
+                  body="Desktop mode is intentionally out of the main flow for now. The goal is to make the CLI path feel complete before adding anything else."
+                />
+                <SectionCard
+                  eyebrow="Product bar"
+                  title="No paywall. No companion-app excuses."
+                  body="The app is open source, free, and judged on feel: speed, stability, visual quality, and confidence after backgrounding."
+                />
+                <SectionCard
+                  eyebrow="Platform"
+                  title="Android first, cross-platform always"
+                  body="Expo keeps iteration fast. Native modules stay on the table whenever they materially improve pairing, networking, rendering, or device integration."
+                />
+              </ScrollView>
+            ) : null}
           </View>
-        ) : null}
-
-        {activeTab === "Pairing" ? (
-          <ScrollView
-            style={styles.stackPanel}
-            contentContainerStyle={styles.stackPanelContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <SectionCard
-              eyebrow="Current machine"
-              title={snapshot.pairing.macName}
-              body="Offdex is focused on the local bridge path for now. Connect to your Mac, stay live, and keep failure states obvious."
-            />
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionEyebrow}>Bridge</Text>
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="http://192.168.1.10:42420"
-                placeholderTextColor="#69726d"
-                style={styles.bridgeInput}
-                value={bridgeBaseUrl}
-                onChangeText={(value) => controller.setBridgeBaseUrl(value)}
-              />
-              <View style={styles.bridgeActionRow}>
-                <Pressable
-                  style={styles.connectButton}
-                  onPress={() => {
-                    if (isLiveConnection) {
-                      void controller.refresh().catch(() => {});
-                      return;
-                    }
-
-                    void controller.connect().catch(() => {});
-                  }}
-                >
-                  <Text style={styles.connectButtonText}>{pairingPrimaryLabel}</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.secondaryButton}
-                  onPress={() => {
-                    if (isLiveConnection || connectionState !== "idle" || connectedBridgeUrl) {
-                      controller.disconnect();
-                      return;
-                    }
-
-                    controller.setBridgeBaseUrl("http://127.0.0.1:42420");
-                    setPairingDraft("");
-                    controller.disconnect();
-                  }}
-                >
-                  <Text style={styles.secondaryButtonText}>{pairingSecondaryLabel}</Text>
-                </Pressable>
-                {isBusy ? <ActivityIndicator color="#d6ff72" /> : null}
-              </View>
-              <Text style={styles.bridgeStatusText}>{bridgeStatus}</Text>
-            </View>
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionEyebrow}>Pairing link</Text>
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="offdex://pair?bridge=..."
-                placeholderTextColor="#69726d"
-                style={styles.bridgeInput}
-                value={pairingDraft}
-                onChangeText={setPairingDraft}
-              />
-              <View style={styles.bridgeActionRow}>
-                <Pressable
-                  style={styles.connectButton}
-                  onPress={() => {
-                    void controller.connectFromPairingUri(pairingDraft).catch(() => {});
-                  }}
-                >
-                  <Text style={styles.connectButtonText}>Pair from link</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.secondaryButton}
-                  onPress={() => {
-                    void Linking.openURL(
-                      `${normalizeBridgeBaseUrl(bridgeBaseUrl)}/pairing`
-                    ).catch(() => {});
-                  }}
-                >
-                  <Text style={styles.secondaryButtonText}>Open pairing page</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.bridgeStatusText}>
-                Scan the QR on your Mac or paste the same Offdex link here.
-              </Text>
-            </View>
-            <SectionCard
-              eyebrow="Bridge paths"
-              title={snapshot.pairing.bridgeUrl}
-              body="Use one of these local paths when you move from browser testing to your actual phone."
-            />
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionEyebrow}>Local options</Text>
-              <View style={styles.hintWrap}>
-                {snapshot.pairing.bridgeHints.map((hint) => (
-                  <Pressable
-                    key={hint}
-                    onPress={() => controller.setBridgeBaseUrl(hint)}
-                    style={styles.hintChip}
-                  >
-                    <Text style={styles.hintChipText}>{hint}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </ScrollView>
-        ) : null}
-
-        {activeTab === "Settings" ? (
-          <ScrollView
-            style={styles.stackPanel}
-            contentContainerStyle={styles.stackPanelContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <SectionCard
-              eyebrow="Runtime target"
-              title="Codex CLI"
-              body="Desktop mode is intentionally out of the main flow for now. The goal is to make the CLI path feel complete before adding anything else."
-            />
-            <SectionCard
-              eyebrow="Product bar"
-              title="No paywall. No companion-app excuses."
-              body="The app is open source, free, and judged on feel: speed, stability, visual quality, and confidence after backgrounding."
-            />
-            <SectionCard
-              eyebrow="Platform"
-              title="Android first, cross-platform always"
-              body="Expo keeps iteration fast. Native modules stay on the table whenever they materially improve pairing, networking, rendering, or device integration."
-            />
-          </ScrollView>
-        ) : null}
-      </View>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
