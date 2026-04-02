@@ -103,6 +103,27 @@ export function resolvePackageVersion(packageJsonPath, env = process.env) {
   }
 }
 
+export function isWorkspaceCheckout(packageJsonPath) {
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+    return pkg?.name === "offdex" && Array.isArray(pkg?.workspaces);
+  } catch {
+    return false;
+  }
+}
+
+export function shouldSkipPackageInstall({
+  env = process.env,
+  packageRoot
+}) {
+  if (env.OFFDEX_SKIP_INSTALL === "1") {
+    return true;
+  }
+
+  const workspaceRootPackageJson = join(packageRoot, "..", "..", "package.json");
+  return isWorkspaceCheckout(workspaceRootPackageJson);
+}
+
 export function parseChecksumForAsset(text, asset) {
   if (typeof text !== "string") return null;
   for (const line of text.split(/\r?\n/)) {

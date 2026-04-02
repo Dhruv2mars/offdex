@@ -4,9 +4,14 @@ import assert from "node:assert/strict";
 import {
   assertSupportedPlatform,
   isSupportedPlatform,
+  isWorkspaceCheckout,
+  shouldSkipPackageInstall,
   supportedPlatformList,
   targetForPlatform,
 } from "../bin/install-lib.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 test("npm installer supports the expected public targets", () => {
   assert.deepEqual(supportedPlatformList(), [
@@ -37,4 +42,31 @@ test("npm installer exposes the compile target for supported platforms", () => {
   assert.equal(targetForPlatform("linux", "arm64"), "bun-linux-arm64");
   assert.equal(targetForPlatform("linux", "x64"), "bun-linux-x64-baseline");
   assert.equal(targetForPlatform("win32", "x64"), "bun-windows-x64-baseline");
+});
+
+test("npm installer skips native runtime download inside the monorepo workspace", () => {
+  const root = mkdtempSync(join(tmpdir(), "offdex-workspace-"));
+  writeFileSync(
+    join(root, "package.json"),
+    JSON.stringify({ name: "offdex", workspaces: ["apps/*", "packages/*"] })
+  );
+
+  assert.equal(isWorkspaceCheckout(join(root, "package.json")), true);
+  assert.equal(
+    shouldSkipPackageInstall({
+      packageRoot: join(root, "packages", "npm"),
+      env: {},
+    }),
+    true
+  );
+});
+
+test("npm installer can be explicitly skipped by environment", () => {
+  assert.equal(
+    shouldSkipPackageInstall({
+      packageRoot: "/tmp/offdex-package",
+      env: { OFFDEX_SKIP_INSTALL: "1" },
+    }),
+    true
+  );
 });
