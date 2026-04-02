@@ -22,6 +22,7 @@ import { normalizeBridgeBaseUrl } from "./src/bridge-client";
 import { bridgePreferences } from "./src/bridge-preferences";
 import { BridgeWorkspaceController } from "./src/bridge-workspace-controller";
 import { extractOffdexPairingUri } from "./src/pairing-scan";
+import { getChatReadiness, getMachineAvailabilityLabel } from "./src/session-readiness";
 
 type AppTab = (typeof mobileTabs)[number];
 
@@ -168,6 +169,13 @@ export default function App() {
       : connectionTransport === "bridge"
         ? "Local bridge"
         : "Not connected";
+  const codexReady = Boolean(codexAccount?.isAuthenticated);
+  const chatReadiness = getChatReadiness({
+    pairingState: snapshot.pairing.state,
+    connectionState,
+    codexReady,
+    isDraftThread,
+  });
 
   const openScanner = () => {
     setScanLocked(false);
@@ -291,13 +299,11 @@ export default function App() {
                   Open a clean run, send the first prompt, and Offdex will stay on the live thread.
                 </Text>
               </Pressable>
-              {snapshot.pairing.state !== "paired" ? (
+              {chatReadiness.onboarding ? (
                 <View style={styles.onboardingBanner}>
-                  <Text style={styles.onboardingEyebrow}>First run</Text>
-                  <Text style={styles.onboardingTitle}>Pair your Mac first</Text>
-                  <Text style={styles.onboardingBody}>
-                    Open the Pairing tab, use a local bridge address, or scan an Offdex pairing code.
-                  </Text>
+                  <Text style={styles.onboardingEyebrow}>{chatReadiness.onboarding.eyebrow}</Text>
+                  <Text style={styles.onboardingTitle}>{chatReadiness.onboarding.title}</Text>
+                  <Text style={styles.onboardingBody}>{chatReadiness.onboarding.body}</Text>
                 </View>
               ) : null}
               {visibleThreads.length > 0 ? (
@@ -338,10 +344,8 @@ export default function App() {
                 </>
               ) : (
                 <View style={styles.emptyRailCard}>
-                  <Text style={styles.emptyRailTitle}>No live threads yet</Text>
-                  <Text style={styles.emptyRailBody}>
-                    Pair your Mac first. Offdex will show real Codex threads here as soon as the bridge is live.
-                  </Text>
+                  <Text style={styles.emptyRailTitle}>{chatReadiness.emptyRail.title}</Text>
+                  <Text style={styles.emptyRailBody}>{chatReadiness.emptyRail.body}</Text>
                 </View>
               )}
             </ScrollView>
@@ -379,6 +383,11 @@ export default function App() {
                     contentContainerStyle={styles.messageListContent}
                     showsVerticalScrollIndicator={false}
                   >
+                    <View style={styles.readinessCard}>
+                      <Text style={styles.readinessEyebrow}>{transportLabel}</Text>
+                      <Text style={styles.readinessTitle}>{chatReadiness.paneStatus.title}</Text>
+                      <Text style={styles.readinessBody}>{chatReadiness.paneStatus.body}</Text>
+                    </View>
                     {isDraftThread ? (
                       <View style={styles.newThreadPanel}>
                         <Text style={styles.newThreadPanelEyebrow}>Fresh thread</Text>
@@ -395,13 +404,7 @@ export default function App() {
 
                   <View style={styles.composer}>
                     <TextInput
-                      placeholder={
-                        !isLiveConnection
-                          ? "Pair your Mac to start sending turns"
-                          : isDraftThread
-                          ? "Start the first turn for this new chat"
-                          : "Steer the current run or queue the next turn"
-                      }
+                      placeholder={chatReadiness.composer.placeholder}
                       placeholderTextColor="#69726d"
                       style={styles.composerInput}
                       multiline
@@ -409,30 +412,30 @@ export default function App() {
                       onChangeText={setDraft}
                     />
                     <View style={styles.composerFooter}>
-                      <Text style={styles.composerHint}>
-                        {isLiveConnection
-                          ? "Pair once. Stay live. Fall back gracefully."
-                          : "Connect to your Mac first. Offdex only sends real turns over the local bridge."}
-                      </Text>
+                      <Text style={styles.composerHint}>{chatReadiness.composer.hint}</Text>
                       <Pressable
                         style={[
                           styles.sendButton,
                           isLiveConnection &&
+                          codexReady &&
                           activeThread.state !== "running" &&
                             !draft.trim() &&
                             styles.sendButtonDisabled,
                           isLiveConnection &&
+                            codexReady &&
                             activeThread.state === "running" &&
                             styles.stopButton,
                         ]}
                         disabled={
                           isLiveConnection
-                            ? activeThread.state !== "running" && !draft.trim()
+                            ? codexReady &&
+                              activeThread.state !== "running" &&
+                              !draft.trim()
                             : false
                         }
                         onPress={() => {
                           void (async () => {
-                            if (!isLiveConnection) {
+                            if (!isLiveConnection || !codexReady) {
                               setActiveTab("Pairing");
                               return;
                             }
@@ -468,13 +471,9 @@ export default function App() {
                         }}
                       >
                         <Text style={styles.sendButtonText}>
-                          {!isLiveConnection
-                            ? snapshot.pairing.state === "reconnecting"
-                              ? "Reconnecting"
-                              : "Connect first"
-                            : activeThread.state === "running"
-                              ? "Stop"
-                              : "Send"}
+                          {isLiveConnection && codexReady && activeThread.state === "running"
+                            ? "Stop"
+                            : chatReadiness.composer.buttonLabel}
                         </Text>
                       </Pressable>
                     </View>
@@ -534,7 +533,13 @@ export default function App() {
                           ]}
                         >
                           <Text style={styles.hintChipText}>
-                            {machine.macName} · {machine.online ? "online" : "offline"}
+                            {machine.macName} ·{" "}
+                            {getMachineAvailabilityLabel({
+                              machine,
+                              selectedMachineId: managedSession?.machineId ?? null,
+                              connectionState,
+                              codexReady,
+                            })}
                           </Text>
                         </Pressable>
                       ))}
@@ -1223,6 +1228,31 @@ const styles = StyleSheet.create({
   messageListContent: {
     padding: 16,
     gap: 12,
+  },
+  readinessCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#233028",
+    backgroundColor: "#101412",
+    padding: 16,
+    gap: 7,
+  },
+  readinessEyebrow: {
+    color: "#d6ff72",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  readinessTitle: {
+    color: "#eef2ef",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  readinessBody: {
+    color: "#97a19c",
+    fontSize: 14,
+    lineHeight: 21,
   },
   newThreadPanel: {
     borderRadius: 22,
