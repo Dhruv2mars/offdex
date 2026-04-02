@@ -195,7 +195,7 @@ jobs:
             arch: arm64
             ext: ""
             target: bun-linux-arm64
-          - os: windows-latest
+          - os: ubuntu-latest
             platform: win32
             arch: x64
             ext: ".exe"
