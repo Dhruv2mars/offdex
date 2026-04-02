@@ -43,6 +43,31 @@ Then scan the QR once in Offdex. The phone claims a trusted device session, sees
 
 The web app is live at [web-dhruv2mars.vercel.app](https://web-dhruv2mars.vercel.app).
 
+### Android APK
+
+Public Android downloads are meant to ship through GitHub Releases.
+
+- Website download link: `https://github.com/Dhruv2mars/offdex/releases/latest/download/offdex-android.apk`
+- Releases page: `https://github.com/Dhruv2mars/offdex/releases`
+- Create a release tag: `bun run release:tag`
+
+The release workflow builds a signed Android APK from the Expo app and uploads:
+
+- `offdex-android.apk`
+- `offdex-android.sha256`
+
+Required GitHub repository secrets:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+The workflow derives `versionCode` from the semver tag and enforces that:
+
+- `apps/mobile/package.json` version matches the tag
+- `apps/mobile/app.json` version matches `apps/mobile/package.json`
+
 ### Managed Remote
 
 ```bash

@@ -1,3 +1,5 @@
+import { androidApkDownloadUrl, githubReleasesUrl } from "./site-content";
+
 const machineSignals = [
   "Trusted phone session survives backgrounding",
   "Direct path first, relay fallback only when needed",
@@ -70,6 +72,20 @@ export default function Home() {
                   <p className="max-w-2xl text-lg leading-8 text-ink-muted md:text-xl">
                     The app is built around live trust: pair once, keep the Mac online, and stay on the same real thread from anywhere without the fake companion-app feel.
                   </p>
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href={androidApkDownloadUrl}
+                      className="rounded-full border border-lime/40 bg-lime px-5 py-3 text-sm font-semibold text-[#091009] transition hover:bg-[#dfff8f]"
+                    >
+                      Download Android APK
+                    </a>
+                    <a
+                      href={githubReleasesUrl}
+                      className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-ink-soft transition hover:bg-white/8"
+                    >
+                      GitHub releases
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -104,6 +120,14 @@ export default function Home() {
                         <p className="text-sm leading-7 text-ink-soft">{step}</p>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-6 rounded-[20px] border border-white/8 bg-black/10 px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-lime">
+                      Public download
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-ink-soft">
+                      Android builds ship through GitHub Releases first. The landing page always points at the latest signed APK.
+                    </p>
                   </div>
                 </div>
               </div>

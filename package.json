@@ -15,6 +15,7 @@
     "dev:relay": "turbo dev --filter=@offdex/relay",
     "dev:web": "turbo dev --filter=@offdex/web",
     "lint": "turbo lint",
+    "release:tag": "node scripts/release-tag.mjs",
     "test": "turbo test",
     "typecheck": "turbo typecheck"
   },
