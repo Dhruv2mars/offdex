@@ -1,4 +1,4 @@
-import { androidApkDownloadUrl, githubReleasesUrl } from "./site-content";
+import { androidApkDownloadUrl, cliInstallCommand, githubReleasesUrl } from "./site-content";
 
 const machineSignals = [
   "Trusted phone session survives backgrounding",
@@ -86,6 +86,14 @@ export default function Home() {
                       GitHub releases
                     </a>
                   </div>
+                  <div className="rounded-[22px] border border-white/8 bg-panel/90 px-5 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-lime">
+                      Install the bridge CLI
+                    </div>
+                    <div className="mt-3 overflow-x-auto rounded-[16px] border border-white/8 bg-black/15 px-4 py-3 font-mono text-sm text-ink-soft">
+                      {cliInstallCommand}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -126,7 +134,7 @@ export default function Home() {
                       Public download
                     </div>
                     <p className="mt-3 text-sm leading-7 text-ink-soft">
-                      Android builds ship through GitHub Releases first. The landing page always points at the latest signed APK.
+                      Android builds ship through GitHub Releases first, and the Mac/Linux/Windows bridge ships through npm as <span className="font-mono text-ink">{`@dhruv2mars/offdex`}</span>.
                     </p>
                   </div>
                 </div>

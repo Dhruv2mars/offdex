@@ -30,6 +30,14 @@ export function supportedPlatformList() {
   return supportedPlatformMatrix().map(({ platform, arch }) => `${platform}/${arch}`);
 }
 
+export function targetForPlatform(platform = process.platform, arch = process.arch) {
+  const target = SUPPORTED_TARGETS.get(`${platform}:${arch}`);
+  if (!target) {
+    throw new Error(`unsupported_platform:${platform}-${arch}`);
+  }
+  return target;
+}
+
 export function assertSupportedPlatform(platform = process.platform, arch = process.arch) {
   if (isSupportedPlatform(platform, arch)) {
     return;

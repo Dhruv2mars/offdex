@@ -5,6 +5,8 @@ export const githubReleasesUrl = "https://github.com/Dhruv2mars/offdex/releases"
 export const androidApkDownloadUrl =
   "https://github.com/Dhruv2mars/offdex/releases/latest/download/offdex-android.apk";
 
+export const cliInstallCommand = "npm install -g @dhruv2mars/offdex";
+
 export const architecturePrinciples = [
   "Prefer live truth over fake optimism.",
   "Prefer direct UI over settings sprawl.",

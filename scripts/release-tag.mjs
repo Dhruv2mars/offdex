@@ -8,12 +8,22 @@ const mobilePackage = JSON.parse(
 const appConfig = JSON.parse(
   readFileSync(new URL("../apps/mobile/app.json", import.meta.url), "utf8")
 );
+const npmPackage = JSON.parse(
+  readFileSync(new URL("../packages/npm/package.json", import.meta.url), "utf8")
+);
 const packageVersion = mobilePackage.version;
 const appVersion = appConfig.expo?.version;
+const npmVersion = npmPackage.version;
 
 if (!packageVersion || packageVersion !== appVersion) {
   throw new Error(
     `apps/mobile/package.json version (${packageVersion}) must match apps/mobile/app.json version (${appVersion})`
+  );
+}
+
+if (!packageVersion || packageVersion !== npmVersion) {
+  throw new Error(
+    `apps/mobile/package.json version (${packageVersion}) must match packages/npm/package.json version (${npmVersion})`
   );
 }
 
