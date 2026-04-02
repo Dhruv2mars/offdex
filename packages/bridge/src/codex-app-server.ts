@@ -127,6 +127,49 @@ type JsonRpcServerRequest = {
   params?: unknown;
 };
 
+export interface CodexAccountSummary {
+  id: string | null;
+  email: string | null;
+  name: string | null;
+  planType: string | null;
+  isAuthenticated: boolean;
+}
+
+function readStringField(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+export function parseCodexAccountSummary(value: unknown): CodexAccountSummary {
+  const record =
+    value && typeof value === "object" && "account" in (value as Record<string, unknown>)
+      ? ((value as Record<string, unknown>).account as Record<string, unknown> | null) ?? {}
+      : value && typeof value === "object"
+        ? (value as Record<string, unknown>)
+        : {};
+
+  const email = readStringField(record, ["email", "emailAddress", "loginEmail"]);
+  const name = readStringField(record, ["name", "displayName", "fullName"]);
+  const id =
+    readStringField(record, ["id", "accountId", "userId", "subject"]) ?? email ?? null;
+  const planType = readStringField(record, ["planType", "plan", "tier"]);
+  const authenticatedValue = record["isAuthenticated"] ?? record["authenticated"] ?? record["loggedIn"];
+
+  return {
+    id,
+    email,
+    name,
+    planType,
+    isAuthenticated: authenticatedValue === true || Boolean(email || name || id),
+  };
+}
+
 function formatUpdatedAt(unixSeconds: number) {
   const deltaSeconds = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
   if (deltaSeconds < 60) {
@@ -648,6 +691,10 @@ export class CodexAppServerClient {
     return this.request("turn/interrupt", { threadId, turnId });
   }
 
+  async readAccount() {
+    return parseCodexAccountSummary(await this.request("account/read", {}));
+  }
+
   async close() {
     this.#socket?.close();
     this.#socket = null;
@@ -842,6 +889,11 @@ export class CodexBridgeRuntime {
     );
     this.options.workspaceStore.replaceSnapshot(snapshot);
     return snapshot;
+  }
+
+  async readAccountSummary() {
+    await this.#ensureClient();
+    return this.client.readAccount();
   }
 
   async setRuntimeTarget(runtimeTarget: RuntimeTarget) {

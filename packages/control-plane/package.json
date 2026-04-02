@@ -1,0 +1,25 @@
+{
+  "name": "@offdex/control-plane",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "offdex-control-plane": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "mkdir -p dist && echo control-plane > dist/.keep && tsc --noEmit",
+    "dev": "bun run ./src/cli.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@offdex/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0",
+    "typescript": "^5.9.3"
+  }
+}

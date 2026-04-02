@@ -1,5 +1,21 @@
 {
   "$schema": "https://turborepo.com/schema.json",
+  "globalPassThroughEnv": [
+    "HOST",
+    "PORT",
+    "OFFDEX_BRIDGE_HOST",
+    "OFFDEX_BRIDGE_MODE",
+    "OFFDEX_BRIDGE_PORT",
+    "OFFDEX_BRIDGE_STATE_PATH",
+    "OFFDEX_CODEX_APP_SERVER_PORT",
+    "OFFDEX_CODEX_BIN",
+    "OFFDEX_CODEX_ENDPOINT",
+    "OFFDEX_CONTROL_PLANE_PUBLIC_URL",
+    "OFFDEX_CONTROL_PLANE_STATE_PATH",
+    "OFFDEX_CONTROL_PLANE_URL",
+    "OFFDEX_DESKTOP_ENDPOINT",
+    "OFFDEX_RELAY_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

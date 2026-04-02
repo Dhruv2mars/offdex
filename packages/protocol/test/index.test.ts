@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   OFFDEX_NEW_THREAD_ID,
+  createBridgeAccessToken,
   createRelayAuthToken,
   decodePairingUri,
   decryptRelayPayload,
   encodePairingUri,
   encryptRelayPayload,
+  verifyBridgeAccessToken,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   makeMessage,
@@ -154,6 +156,36 @@ describe("pairing uri", () => {
       version: 2,
     });
   });
+
+  test("encodes and decodes managed remote bootstrap details", () => {
+    const uri = encodePairingUri({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      remote: {
+        controlPlaneUrl: "https://control.offdex.app",
+        machineId: "machine-123",
+        claimCode: "claim-456",
+        ownerLabel: "dhruv@example.com",
+      },
+    });
+
+    expect(uri).toContain("control=https%3A%2F%2Fcontrol.offdex.app");
+    expect(uri).toContain("machine=machine-123");
+    expect(uri).toContain("claim=claim-456");
+    expect(uri).toContain("owner=dhruv%40example.com");
+    expect(uri).toContain("v=3");
+    expect(decodePairingUri(uri)).toEqual({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      remote: {
+        controlPlaneUrl: "https://control.offdex.app",
+        machineId: "machine-123",
+        claimCode: "claim-456",
+        ownerLabel: "dhruv@example.com",
+      },
+      version: 3,
+    });
+  });
 });
 
 describe("relay payload crypto", () => {
@@ -196,5 +228,29 @@ describe("relay payload crypto", () => {
     expect(() =>
       decryptRelayPayload("abcdefghijklmnopqrstuvwxyz123456", encrypted)
     ).toThrow("Invalid Offdex relay payload.");
+  });
+
+  test("creates bridge access tokens that can be verified until they expire", () => {
+    const expiresAt = "2026-04-02T10:00:00.000Z";
+    const token = createBridgeAccessToken("bridge-secret", "ticket-123", expiresAt);
+
+    expect(
+      verifyBridgeAccessToken("bridge-secret", token, {
+        ticketId: "ticket-123",
+        now: "2026-04-02T09:59:00.000Z",
+      })
+    ).toBe(true);
+    expect(
+      verifyBridgeAccessToken("bridge-secret", token, {
+        ticketId: "ticket-123",
+        now: "2026-04-02T10:01:00.000Z",
+      })
+    ).toBe(false);
+    expect(
+      verifyBridgeAccessToken("bridge-secret", token, {
+        ticketId: "ticket-other",
+        now: "2026-04-02T09:59:00.000Z",
+      })
+    ).toBe(false);
   });
 });

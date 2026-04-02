@@ -23,19 +23,19 @@ Offdex is a public monorepo for a fast, polished, local-first Codex experience a
 
 ```bash
 bun install
-bun run dev:relay
+bun run dev:control-plane
 bun run dev:bridge
 bun run dev:web
 bun run dev:mobile
 ```
 
-For local relay development, run the bridge with a relay URL:
+For the managed remote path, run the bridge against the control plane:
 
 ```bash
-OFFDEX_RELAY_URL=ws://127.0.0.1:42421 bun run dev:bridge
+OFFDEX_CONTROL_PLANE_URL=http://127.0.0.1:42421 bun run dev:bridge
 ```
 
-Then scan the QR once in Offdex. The phone stores that trusted pairing and will keep reconnecting until you explicitly disconnect it in the app.
+Then scan the QR once in Offdex. The phone claims a trusted device session, sees the machine list for that owner, and keeps reconnecting until you explicitly disconnect it in the app.
 
 ## Deploy
 
@@ -43,17 +43,13 @@ Then scan the QR once in Offdex. The phone stores that trusted pairing and will 
 
 The web app is live at [web-dhruv2mars.vercel.app](https://web-dhruv2mars.vercel.app).
 
-### Public Relay
-
-For real away-from-home access, deploy the relay on a long-lived host with HTTPS or WSS. The repo now includes a container path in [deploy/relay/README.md](/Users/dhruv2mars/dev/github/offdex/deploy/relay/README.md).
-
-Use a public URL like:
+### Managed Remote
 
 ```bash
-OFFDEX_RELAY_URL=https://relay.example.com bun run dev:bridge
+OFFDEX_CONTROL_PLANE_URL=https://control.example.com bun run dev:bridge
 ```
 
-Once the bridge restarts, the QR and pairing link will embed that public relay automatically.
+Once the bridge restarts, the QR and pairing link will embed a managed claim for that machine. Direct bridge access is attempted first; encrypted relay fallback stays behind the control plane.
 
 ## Repo Shape
 
@@ -68,9 +64,11 @@ packages/   Shared protocol, bridge, relay, UI, native modules
 
 - QR code in the browser and terminal
 - pairing link saved on device until disconnect
-- encrypted relay path for away-from-home access
-- relay room token derived from the pairing secret, so random clients cannot attach to a room
+- trusted device session saved on phone until disconnect
+- direct bridge tickets are short-lived and verified by the machine
+- encrypted relay fallback for away-from-home access
+- relay room token derived from the machine secret, so random clients cannot attach to a room
 
 ## Status
 
-Offdex now has a real path: phone or web app -> local bridge -> Codex CLI, with optional secure relay for remote access.
+Offdex now has a real path: phone or web app -> local bridge -> Codex CLI, with managed remote brokering for trusted phones and relay fallback hidden behind the control plane.

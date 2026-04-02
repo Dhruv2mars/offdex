@@ -6,6 +6,7 @@ import {
   createCodexSnapshot,
   findActiveTurnId,
   mapCodexThreadToOffdexThread,
+  parseCodexAccountSummary,
   resolveCodexExecutable,
 } from "../src";
 
@@ -243,5 +244,24 @@ describe("codex snapshot adapter", () => {
     expect(liveThread?.state).toBe("running");
     expect(liveThread?.messages).toHaveLength(1);
     expect(liveThread?.messages[0]?.body).toBe("OK");
+  });
+
+  test("parses the codex account summary from account/read payloads", () => {
+    expect(
+      parseCodexAccountSummary({
+        account: {
+          userId: "user-123",
+          email: "dhruv@example.com",
+          name: "Dhruv",
+          planType: "plus",
+        },
+      })
+    ).toEqual({
+      id: "user-123",
+      email: "dhruv@example.com",
+      name: "Dhruv",
+      planType: "plus",
+      isAuthenticated: true,
+    });
   });
 });

@@ -15,6 +15,7 @@ import {
   makeDemoWorkspaceSnapshot,
   makeMessage,
   type RuntimeTarget,
+  verifyBridgeAccessToken,
 } from "@offdex/protocol";
 import {
   CodexBridgeRuntime,
@@ -24,6 +25,7 @@ import {
   createCodexSnapshot,
   findActiveTurnId,
   mapCodexThreadToOffdexThread,
+  parseCodexAccountSummary,
   resolveCodexExecutable,
 } from "./codex-app-server";
 
@@ -36,6 +38,7 @@ export {
   createCodexSnapshot,
   findActiveTurnId,
   mapCodexThreadToOffdexThread,
+  parseCodexAccountSummary,
   resolveCodexExecutable,
 } from "./codex-app-server";
 
@@ -114,6 +117,7 @@ export interface BridgeServerOptions {
   desktopAvailable?: boolean;
   bridgeMode?: BridgeMode;
   relayUrl?: string;
+  controlPlaneUrl?: string;
   bridgeStateStore?: BridgeStateStore;
 }
 
@@ -192,7 +196,13 @@ export function createBridgeWorkspaceStore(
 
 export function createBridgePairingPayload(
   pairingProfile: OffdexPairingProfile,
-  bridgeState?: BridgePersistentState
+  bridgeState?: BridgePersistentState,
+  remoteBootstrap?: {
+    controlPlaneUrl: string;
+    machineId: string;
+    claimCode: string;
+    ownerLabel: string;
+  } | null
 ): BridgePairingPayload {
   return {
     bridgeUrl: pairingProfile.bridgeUrl,
@@ -207,6 +217,15 @@ export function createBridgePairingPayload(
               relayUrl: bridgeState.relayUrl,
               roomId: bridgeState.relayRoomId,
               secret: bridgeState.bridgeSecret,
+            }
+          : undefined,
+      remote:
+        remoteBootstrap && !bridgeState?.relayUrl
+          ? {
+              controlPlaneUrl: remoteBootstrap.controlPlaneUrl,
+              machineId: remoteBootstrap.machineId,
+              claimCode: remoteBootstrap.claimCode,
+              ownerLabel: remoteBootstrap.ownerLabel,
             }
           : undefined,
     }),
@@ -229,6 +248,19 @@ function toRelayHostWsUrl(relayUrl: string) {
   }
 
   return normalized;
+}
+
+function normalizeHttpBaseUrl(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+function readBridgeTicket(request: Request) {
+  const header = request.headers.get("authorization")?.trim() ?? "";
+  if (header.startsWith("Bearer ")) {
+    return header.slice("Bearer ".length);
+  }
+
+  return new URL(request.url).searchParams.get("ticket")?.trim() ?? null;
 }
 
 function createBridgeSecret() {
@@ -426,6 +458,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   const host = options.host ?? "0.0.0.0";
   const port = options.port ?? 42420;
   const bridgeMode = options.bridgeMode ?? "demo";
+  const controlPlaneUrl = options.controlPlaneUrl ?? process.env.OFFDEX_CONTROL_PLANE_URL ?? null;
   const relayUrl = options.relayUrl ?? process.env.OFFDEX_RELAY_URL ?? null;
   const desktopAvailable =
     options.desktopAvailable ?? Boolean(process.env.OFFDEX_DESKTOP_ENDPOINT);
@@ -448,6 +481,14 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   let relaySocket: WebSocket | null = null;
   let relayReconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let relayConnected = false;
+  let remoteBootstrap:
+    | {
+        controlPlaneUrl: string;
+        machineId: string;
+        claimCode: string;
+        ownerLabel: string;
+      }
+    | null = null;
   const codexRuntime =
     bridgeMode === "codex"
       ? new CodexBridgeRuntime({
@@ -467,9 +508,11 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     desktopAvailable,
     codexConnected: codexRuntime?.client.isConnected ?? false,
     relayConnected,
-    relayUrl: bridgeState.relayUrl,
+    relayUrl: managedRelayUrl ?? bridgeState.relayUrl,
     session: sessionStore.getActiveSession(),
   });
+
+  const managedRelayUrl = controlPlaneUrl ? normalizeHttpBaseUrl(controlPlaneUrl) : null;
 
   const refreshWorkspaceSnapshot = async () => {
     if (!codexRuntime) {
@@ -571,6 +614,52 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     };
   };
 
+  const registerManagedRemote = async () => {
+    if (!managedRelayUrl) {
+      return;
+    }
+
+    const pairing = workspaceStore.getSnapshot().pairing;
+    const account =
+      codexRuntime && bridgeMode === "codex"
+        ? await codexRuntime.readAccountSummary().catch(() => null)
+        : null;
+    const ownerId = account?.id ?? account?.email ?? `codex-${bridgeState.bridgeId}`;
+    const ownerLabel = account?.email ?? account?.name ?? "Codex on this Mac";
+    const response = await fetch(`${managedRelayUrl}/v1/machines/register`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        machineId: bridgeState.bridgeId,
+        machineSecret: bridgeState.bridgeSecret,
+        macName: pairing.macName,
+        ownerId,
+        ownerLabel,
+        bridgeUrl: pairing.bridgeUrl,
+        bridgeHints: pairing.bridgeHints,
+        runtimeTarget: workspaceStore.getSnapshot().pairing.runtimeTarget,
+        relayRoomId: bridgeState.relayRoomId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Managed remote registration failed: ${response.status}`);
+    }
+
+    const payload = (await response.json()) as {
+      pairing: { claimCode: string };
+    };
+
+    remoteBootstrap = {
+      controlPlaneUrl: managedRelayUrl,
+      machineId: bridgeState.bridgeId,
+      claimCode: payload.pairing.claimCode,
+      ownerLabel,
+    };
+  };
+
   const publishSnapshot = () => {
     const snapshotPayload = {
       type: "workspace.snapshot",
@@ -596,13 +685,14 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   });
 
   const connectRelayHost = () => {
-    if (!bridgeState.relayUrl) {
+    const relayBaseUrl = managedRelayUrl ?? bridgeState.relayUrl;
+    if (!relayBaseUrl) {
       return;
     }
 
     relaySocket?.close();
     relaySocket = new WebSocket(
-      `${toRelayHostWsUrl(bridgeState.relayUrl)}/ws/${bridgeState.relayRoomId}?role=host&clientId=${bridgeState.bridgeId}&token=${createRelayAuthToken(
+      `${toRelayHostWsUrl(relayBaseUrl)}/ws/${bridgeState.relayRoomId}?role=host&clientId=${bridgeState.bridgeId}&token=${createRelayAuthToken(
         bridgeState.bridgeSecret,
         bridgeState.relayRoomId
       )}`
@@ -685,7 +775,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
 
     const scheduleReconnect = () => {
       relayConnected = false;
-      if (relayReconnectTimer || !bridgeState.relayUrl) {
+      if (relayReconnectTimer || !relayBaseUrl) {
         return;
       }
 
@@ -722,6 +812,10 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     port,
     fetch(request, serverRef) {
       const url = new URL(request.url);
+      const bridgeTicket = readBridgeTicket(request);
+      if (bridgeTicket && !verifyBridgeAccessToken(bridgeState.bridgeSecret, bridgeTicket, {})) {
+        return withCors(Response.json({ error: "Invalid bridge ticket." }, { status: 403 }));
+      }
 
       if (request.method === "OPTIONS") {
         return withCors(new Response(null, { status: 204 }));
@@ -749,14 +843,22 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       if (url.pathname === "/pairing.json") {
         return withCors(
           Response.json(
-            createBridgePairingPayload(workspaceStore.getSnapshot().pairing, bridgeState)
+            createBridgePairingPayload(
+              workspaceStore.getSnapshot().pairing,
+              bridgeState,
+              remoteBootstrap
+            )
           )
         );
       }
 
       if (url.pathname === "/pairing") {
         return renderPairingPage(
-          createBridgePairingPayload(workspaceStore.getSnapshot().pairing, bridgeState)
+          createBridgePairingPayload(
+            workspaceStore.getSnapshot().pairing,
+            bridgeState,
+            remoteBootstrap
+          )
         ).then((html) =>
           withCors(
             new Response(html, {
@@ -861,7 +963,11 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     bridgeHints,
     macName: hostname(),
   });
-  connectRelayHost();
+  void registerManagedRemote()
+    .catch(() => {})
+    .finally(() => {
+      connectRelayHost();
+    });
 
   return {
     server,
@@ -869,7 +975,11 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     sessionStore,
     bridgeState,
     getPairingPayload() {
-      return createBridgePairingPayload(workspaceStore.getSnapshot().pairing, bridgeState);
+      return createBridgePairingPayload(
+        workspaceStore.getSnapshot().pairing,
+        bridgeState,
+        remoteBootstrap
+      );
     },
     stop() {
       unsubscribe();
