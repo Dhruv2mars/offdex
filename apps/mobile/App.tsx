@@ -111,6 +111,15 @@ export default function App() {
   const activeThread = isDraftThread
     ? draftThread
     : visibleThreads.find((thread) => thread.id === selectedThreadId) ?? visibleThreads[0];
+  const pairingPrimaryLabel = isLiveConnection
+    ? "Refresh bridge"
+    : connectionState === "degraded"
+      ? "Retry now"
+      : connectedBridgeUrl
+        ? "Reconnect bridge"
+        : "Connect to bridge";
+  const pairingSecondaryLabel =
+    isLiveConnection || connectionState !== "idle" || connectedBridgeUrl ? "Disconnect" : "Reset";
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -427,27 +436,30 @@ export default function App() {
                 <Pressable
                   style={styles.connectButton}
                   onPress={() => {
-                    void controller.connect().catch(() => {});
-                  }}
-                >
-                  <Text style={styles.connectButtonText}>
-                    {connectedBridgeUrl ? "Reconnect bridge" : "Connect to bridge"}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={styles.secondaryButton}
-                  onPress={() => {
-                    if (connectedBridgeUrl) {
+                    if (isLiveConnection) {
                       void controller.refresh().catch(() => {});
                       return;
                     }
 
+                    void controller.connect().catch(() => {});
+                  }}
+                >
+                  <Text style={styles.connectButtonText}>{pairingPrimaryLabel}</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={() => {
+                    if (isLiveConnection || connectionState !== "idle" || connectedBridgeUrl) {
+                      controller.disconnect();
+                      return;
+                    }
+
+                    controller.setBridgeBaseUrl("http://127.0.0.1:42420");
+                    setPairingDraft("");
                     controller.disconnect();
                   }}
                 >
-                  <Text style={styles.secondaryButtonText}>
-                    {connectedBridgeUrl ? "Refresh" : "Reset"}
-                  </Text>
+                  <Text style={styles.secondaryButtonText}>{pairingSecondaryLabel}</Text>
                 </Pressable>
                 {isBusy ? <ActivityIndicator color="#d6ff72" /> : null}
               </View>
