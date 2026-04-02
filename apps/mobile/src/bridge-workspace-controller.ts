@@ -45,6 +45,11 @@ export interface BridgeClient {
   ): () => void;
 }
 
+export interface BridgeTimerDriver {
+  setTimeout(callback: () => void, delayMs: number): unknown;
+  clearTimeout(timerId: unknown): void;
+}
+
 export interface BridgeWorkspaceState {
   snapshot: OffdexWorkspaceSnapshot;
   runtimeTarget: RuntimeTarget;
@@ -64,18 +69,32 @@ const defaultClient: BridgeClient = {
   subscribeToBridgeSnapshots,
 };
 
+const defaultTimerDriver: BridgeTimerDriver = {
+  setTimeout(callback, delayMs) {
+    return globalThis.setTimeout(callback, delayMs);
+  },
+  clearTimeout(timerId) {
+    globalThis.clearTimeout(timerId as ReturnType<typeof setTimeout>);
+  },
+};
+
 export class BridgeWorkspaceController {
   #listeners = new Set<(state: BridgeWorkspaceState) => void>();
   #demoController: DemoWorkspaceController;
   #preferences: BridgePreferencesStore;
   #client: BridgeClient;
+  #timer: BridgeTimerDriver;
   #unsubscribeLive: (() => void) | null = null;
+  #liveSubscriptionVersion = 0;
+  #reconnectTimer: unknown = null;
+  #reconnectAttempt = 0;
   #state: BridgeWorkspaceState;
 
   constructor(options?: {
     preferences?: BridgePreferencesStore;
     client?: BridgeClient;
     demoController?: DemoWorkspaceController;
+    timer?: BridgeTimerDriver;
   }) {
     this.#preferences = options?.preferences ?? {
       async getBridgeBaseUrl() {
@@ -84,6 +103,7 @@ export class BridgeWorkspaceController {
       async setBridgeBaseUrl() {},
     };
     this.#client = options?.client ?? defaultClient;
+    this.#timer = options?.timer ?? defaultTimerDriver;
     this.#demoController = options?.demoController ?? new DemoWorkspaceController();
     const snapshot = this.#demoController.getSnapshot();
     this.#state = {
@@ -143,52 +163,14 @@ export class BridgeWorkspaceController {
     const normalized = normalizeBridgeBaseUrl(bridgeBaseUrl);
     this.#setState({
       bridgeBaseUrl: normalized,
+      connectedBridgeUrl: normalized,
       isBusy: true,
       connectionState: "connecting",
       bridgeStatus: `Connecting to ${normalized}`,
     });
 
     try {
-      const [health, snapshot] = await Promise.all([
-        this.#client.fetchBridgeHealth(normalized),
-        this.#client.fetchBridgeSnapshot(normalized),
-      ]);
-
-      this.#replaceSnapshot(snapshot);
-      await this.#preferences.setBridgeBaseUrl(normalized);
-      this.#unsubscribeLive?.();
-      this.#unsubscribeLive = this.#client.subscribeToBridgeSnapshots(normalized, {
-        onSnapshot: (nextSnapshot) => {
-          this.#replaceSnapshot(nextSnapshot);
-        },
-        onStatusChange: (status) => {
-          this.#patchPairingState(status === "open" ? "paired" : "reconnecting");
-          this.#setState({
-            connectedBridgeUrl: normalized,
-            connectionState: status === "open" ? "live" : "degraded",
-            bridgeStatus:
-              status === "open"
-                ? `Connected to ${normalized}`
-                : status === "closed"
-                  ? `Live sync paused at ${normalized}`
-                  : `Bridge error at ${normalized}`,
-          });
-        },
-      });
-
-      this.#setState({
-        connectedBridgeUrl: normalized,
-        connectionState: "live",
-        bridgeStatus: `${health.transport} live at ${normalized}`,
-        isBusy: false,
-      });
-      this.#patchPairingProfile({
-        bridgeUrl: health.bridgeUrl,
-        bridgeHints: health.bridgeHints,
-        macName: health.macName,
-        state: "paired",
-        lastSeenAt: "Just now",
-      });
+      await this.#connectToBridge(normalized, { persistUrlOnFailure: false });
       return this.getState();
     } catch (error) {
       this.#setState({
@@ -203,8 +185,9 @@ export class BridgeWorkspaceController {
   }
 
   disconnect() {
-    this.#unsubscribeLive?.();
-    this.#unsubscribeLive = null;
+    this.#clearReconnectTimer();
+    this.#reconnectAttempt = 0;
+    this.#teardownLiveSubscription();
     this.#patchPairingState("unpaired");
     this.#setState({
       connectedBridgeUrl: null,
@@ -299,6 +282,152 @@ export class BridgeWorkspaceController {
   }
 
   dispose() {
+    this.#clearReconnectTimer();
+    this.#teardownLiveSubscription();
+  }
+
+  async #connectToBridge(
+    normalized: string,
+    options: { persistUrlOnFailure: boolean }
+  ) {
+    try {
+      const [health, snapshot] = await Promise.all([
+        this.#client.fetchBridgeHealth(normalized),
+        this.#client.fetchBridgeSnapshot(normalized),
+      ]);
+
+      this.#replaceSnapshot(snapshot);
+      await this.#preferences.setBridgeBaseUrl(normalized);
+      this.#beginLiveSubscription(normalized);
+      this.#clearReconnectTimer();
+      this.#reconnectAttempt = 0;
+      this.#setState({
+        connectedBridgeUrl: normalized,
+        connectionState: "live",
+        bridgeStatus: `${health.transport} live at ${normalized}`,
+        isBusy: false,
+      });
+      this.#patchPairingProfile({
+        bridgeUrl: health.bridgeUrl,
+        bridgeHints: health.bridgeHints,
+        macName: health.macName,
+        state: "paired",
+        lastSeenAt: "Just now",
+      });
+    } catch (error) {
+      this.#setState({
+        connectedBridgeUrl: options.persistUrlOnFailure ? normalized : null,
+        connectionState: options.persistUrlOnFailure ? "degraded" : "idle",
+        bridgeStatus:
+          error instanceof Error ? error.message : `Bridge connect failed at ${normalized}`,
+        isBusy: false,
+      });
+      throw error;
+    }
+  }
+
+  #beginLiveSubscription(normalized: string) {
+    this.#teardownLiveSubscription();
+    const subscriptionVersion = ++this.#liveSubscriptionVersion;
+
+    this.#unsubscribeLive = this.#client.subscribeToBridgeSnapshots(normalized, {
+      onSnapshot: (nextSnapshot) => {
+        if (subscriptionVersion !== this.#liveSubscriptionVersion) {
+          return;
+        }
+
+        this.#clearReconnectTimer();
+        this.#reconnectAttempt = 0;
+        this.#replaceSnapshot(nextSnapshot);
+        this.#patchPairingState("paired");
+        this.#setState({
+          connectedBridgeUrl: normalized,
+          connectionState: "live",
+          bridgeStatus: `Connected to ${normalized}`,
+          isBusy: false,
+        });
+      },
+      onStatusChange: (status) => {
+        if (subscriptionVersion !== this.#liveSubscriptionVersion) {
+          return;
+        }
+
+        this.#handleLiveStatus(normalized, status);
+      },
+    });
+  }
+
+  #handleLiveStatus(baseUrl: string, status: "open" | "closed" | "error") {
+    if (status === "open") {
+      this.#clearReconnectTimer();
+      this.#reconnectAttempt = 0;
+      this.#patchPairingState("paired");
+      this.#setState({
+        connectedBridgeUrl: baseUrl,
+        connectionState: "live",
+        bridgeStatus: `Connected to ${baseUrl}`,
+        isBusy: false,
+      });
+      return;
+    }
+
+    this.#patchPairingState("reconnecting");
+    this.#setState({
+      connectedBridgeUrl: baseUrl,
+      connectionState: "degraded",
+      isBusy: false,
+    });
+    this.#scheduleReconnect(baseUrl, status);
+  }
+
+  #scheduleReconnect(baseUrl: string, status: "closed" | "error") {
+    if (this.#reconnectTimer) {
+      return;
+    }
+
+    this.#reconnectAttempt += 1;
+    const delayMs = Math.min(1_000 * 2 ** (this.#reconnectAttempt - 1), 8_000);
+    const failureLabel = status === "closed" ? "Live sync paused" : "Bridge error";
+
+    this.#setState({
+      bridgeStatus: `${failureLabel} at ${baseUrl}. Retrying in ${Math.ceil(delayMs / 1000)}s.`,
+    });
+
+    this.#reconnectTimer = this.#timer.setTimeout(() => {
+      this.#reconnectTimer = null;
+      void this.#retryConnect(baseUrl);
+    }, delayMs);
+  }
+
+  async #retryConnect(baseUrl: string) {
+    if (this.#state.connectedBridgeUrl !== baseUrl) {
+      return;
+    }
+
+    this.#setState({
+      connectionState: "connecting",
+      isBusy: true,
+      bridgeStatus: `Reconnecting to ${baseUrl}`,
+    });
+
+    try {
+      await this.#connectToBridge(baseUrl, { persistUrlOnFailure: true });
+    } catch {
+      this.#scheduleReconnect(baseUrl, "error");
+    }
+  }
+
+  #clearReconnectTimer() {
+    if (!this.#reconnectTimer) {
+      return;
+    }
+
+    this.#timer.clearTimeout(this.#reconnectTimer);
+    this.#reconnectTimer = null;
+  }
+
+  #teardownLiveSubscription() {
+    this.#liveSubscriptionVersion += 1;
     this.#unsubscribeLive?.();
     this.#unsubscribeLive = null;
   }
