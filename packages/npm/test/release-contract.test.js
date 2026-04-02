@@ -22,4 +22,10 @@ test("release workflow publishes npm and platform binaries", () => {
   assert.match(releaseWorkflow, /gh release upload --clobber/);
   assert.match(releaseWorkflow, /offdex-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
   assert.match(releaseWorkflow, /npm publish --(?:provenance --)?access public/);
+  assert.match(releaseWorkflow, /bun-linux-x64-baseline/);
+  assert.match(releaseWorkflow, /bun-linux-arm64/);
+  assert.match(releaseWorkflow, /bun-windows-x64-baseline/);
+  assert.match(releaseWorkflow, /bun-darwin-arm64/);
+  assert.match(releaseWorkflow, /bun-darwin-x64/);
+  assert.doesNotMatch(releaseWorkflow, /bun-windows-arm64/);
 });

@@ -16,6 +16,9 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref_name }}
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   resolve_tag:
     runs-on: ubuntu-latest
@@ -186,22 +189,27 @@ jobs:
             platform: linux
             arch: x64
             ext: ""
+            target: bun-linux-x64-baseline
           - os: ubuntu-24.04-arm
             platform: linux
             arch: arm64
             ext: ""
+            target: bun-linux-arm64
           - os: windows-latest
             platform: win32
             arch: x64
             ext: ".exe"
+            target: bun-windows-x64-baseline
           - os: macos-13
             platform: darwin
             arch: x64
             ext: ""
+            target: bun-darwin-x64
           - os: macos-14
             platform: darwin
             arch: arm64
             ext: ""
+            target: bun-darwin-arm64
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -219,7 +227,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          bun build --compile packages/bridge/src/cli.ts --outfile "dist/offdex-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}"
+          bun build --compile --target="${{ matrix.target }}" packages/bridge/src/cli.ts --outfile "dist/offdex-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}"
       - shell: bash
         run: |
           set -euo pipefail

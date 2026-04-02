@@ -7,6 +7,35 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 const REPO = "Dhruv2mars/offdex";
+const SUPPORTED_TARGETS = new Map([
+  ["darwin:arm64", "bun-darwin-arm64"],
+  ["darwin:x64", "bun-darwin-x64"],
+  ["linux:arm64", "bun-linux-arm64"],
+  ["linux:x64", "bun-linux-x64-baseline"],
+  ["win32:x64", "bun-windows-x64-baseline"]
+]);
+
+export function supportedPlatformMatrix() {
+  return [...SUPPORTED_TARGETS.keys()].map((key) => {
+    const [platform, arch] = key.split(":");
+    return { platform, arch, target: SUPPORTED_TARGETS.get(key) };
+  });
+}
+
+export function isSupportedPlatform(platform = process.platform, arch = process.arch) {
+  return SUPPORTED_TARGETS.has(`${platform}:${arch}`);
+}
+
+export function supportedPlatformList() {
+  return supportedPlatformMatrix().map(({ platform, arch }) => `${platform}/${arch}`);
+}
+
+export function assertSupportedPlatform(platform = process.platform, arch = process.arch) {
+  if (isSupportedPlatform(platform, arch)) {
+    return;
+  }
+  throw new Error(`unsupported_platform:${platform}-${arch}`);
+}
 
 export function binNameForPlatform(platform = process.platform) {
   return platform === "win32" ? "offdex.exe" : "offdex";
@@ -196,6 +225,7 @@ export async function installRuntime({
   downloadFn = download,
   requestTextFn = requestText
 }) {
+  assertSupportedPlatform(platform, arch);
   const installRoot = resolveInstallRoot(env, home);
   const installBin = resolveInstalledBin(env, platform, home);
   const installMeta = resolveInstallMetaPath(env, home);

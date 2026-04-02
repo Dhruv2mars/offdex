@@ -87,11 +87,19 @@ The same release tag also publishes:
 - npm package: `@dhruv2mars/offdex`
 - GitHub release binaries for macOS, Linux, and Windows
 
+Current npm target matrix:
+
+- macOS: `arm64`, `x64`
+- Linux: `arm64`, `x64`
+- Windows: `x64`
+
 The npm installer pulls the correct release asset for the current platform when users run:
 
 ```bash
 npm install -g @dhruv2mars/offdex
 ```
+
+Windows `arm64` is not shipped yet because Bun does not currently support compiling that target.
 
 ### Managed Remote
 
