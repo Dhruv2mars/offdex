@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "bc16fa67f0d6",
+  "strategy": "manual-commit",
+  "branch": "feat/native-tooling-release",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "README.md",
+    "apps/web/app/page.tsx",
+    "apps/web/app/site-content.ts",
+    "package.json",
+    "packages/bridge/src/cli.ts",
+    "packages/npm/README.md",
+    "packages/npm/bin/install-lib.js",
+    "packages/npm/test/install-lib.test.js",
+    "scripts/release-tag.mjs",
+    "scripts/smoke-install.mjs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/bc/16fa67f0d6/0/metadata.json",
+      "transcript": "/bc/16fa67f0d6/0/full.jsonl",
+      "content_hash": "/bc/16fa67f0d6/0/content_hash.txt",
+      "prompt": "/bc/16fa67f0d6/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 231736212,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 221361408,
+    "output_tokens": 923938,
+    "api_call_count": 1836
+  }
+}
