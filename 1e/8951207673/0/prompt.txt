@@ -325,3 +325,7 @@ my app even after redownloading it again on platstore, says client version 54.0.
 ---
 
 is it still downloading or i need to download it myself
+
+---
+
+i have stated download on my phone, its gonna take a little while. we can move forward though
