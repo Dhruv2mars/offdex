@@ -48,6 +48,12 @@ export interface WorkspaceMutationInput {
   updatedAt?: string;
 }
 
+export interface OffdexPairingPayload {
+  bridgeUrl: string;
+  macName: string;
+  version: 1;
+}
+
 export function makeMessage(
   id: string,
   role: OffdexMessage["role"],
@@ -55,6 +61,43 @@ export function makeMessage(
   createdAt: string
 ): OffdexMessage {
   return { id, role, body, createdAt };
+}
+
+export function encodePairingUri(payload: Omit<OffdexPairingPayload, "version">) {
+  const search = new URLSearchParams({
+    bridge: payload.bridgeUrl,
+    name: payload.macName,
+    v: "1",
+  });
+  return `offdex://pair?${search.toString()}`;
+}
+
+export function decodePairingUri(uri: string): OffdexPairingPayload {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(uri);
+  } catch {
+    throw new Error("Invalid Offdex pairing link.");
+  }
+
+  if (parsed.protocol !== "offdex:" || parsed.hostname !== "pair") {
+    throw new Error("Invalid Offdex pairing link.");
+  }
+
+  const bridgeUrl = parsed.searchParams.get("bridge")?.trim();
+  const macName = parsed.searchParams.get("name")?.trim();
+  const version = parsed.searchParams.get("v");
+
+  if (!bridgeUrl || !macName || version !== "1") {
+    throw new Error("Invalid Offdex pairing link.");
+  }
+
+  return {
+    bridgeUrl,
+    macName,
+    version: 1,
+  };
 }
 
 export function makeDemoWorkspaceSnapshot(

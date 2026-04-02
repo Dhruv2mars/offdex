@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+  decodePairingUri,
+  encodePairingUri,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   makeMessage,
@@ -78,5 +80,36 @@ describe("workspace snapshot store", () => {
     expect(snapshot.pairing.bridgeUrl).toBe("http://192.168.1.8:42420");
     expect(snapshot.pairing.macName).toBe("studio-macbook");
     expect(snapshot.threads.length).toBeGreaterThan(0);
+  });
+});
+
+describe("pairing uri", () => {
+  test("encodes a deep link for local pairing", () => {
+    const uri = encodePairingUri({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+    });
+
+    expect(uri).toBe(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&v=1"
+    );
+  });
+
+  test("decodes a deep link back into local pairing info", () => {
+    const payload = decodePairingUri(
+      "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&v=1"
+    );
+
+    expect(payload).toEqual({
+      bridgeUrl: "http://192.168.1.8:42420",
+      macName: "studio-macbook",
+      version: 1,
+    });
+  });
+
+  test("rejects non-offdex pairing links", () => {
+    expect(() => decodePairingUri("https://example.com")).toThrow(
+      "Invalid Offdex pairing link."
+    );
   });
 });

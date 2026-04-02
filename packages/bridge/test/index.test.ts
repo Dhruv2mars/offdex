@@ -144,6 +144,27 @@ describe("bridge workspace store", () => {
 
     expect(optionsResponse.status).toBe(204);
     expect(optionsResponse.headers.get("access-control-allow-origin")).toBe("*");
+    expect(optionsResponse.headers.get("access-control-allow-private-network")).toBe("true");
     expect(healthResponse.headers.get("access-control-allow-origin")).toBe("*");
+  });
+
+  test("publishes a local pairing payload and deep link", async () => {
+    const bridge = startBridgeServer({ host: "127.0.0.1", port: 0 });
+    activeBridges.push(bridge);
+    const baseUrl = `http://127.0.0.1:${bridge.server.port}`;
+
+    const response = await fetch(`${baseUrl}/pairing.json`);
+    const payload = (await response.json()) as {
+      bridgeUrl: string;
+      bridgeHints: string[];
+      pairingUri: string;
+      macName: string;
+    };
+
+    expect(response.ok).toBe(true);
+    expect(payload.bridgeHints.length).toBeGreaterThan(0);
+    expect(payload.bridgeUrl).toContain(String(bridge.server.port));
+    expect(payload.pairingUri.startsWith("offdex://pair?")).toBe(true);
+    expect(payload.macName.length).toBeGreaterThan(0);
   });
 });
