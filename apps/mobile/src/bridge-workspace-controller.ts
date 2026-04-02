@@ -238,8 +238,9 @@ export class BridgeWorkspaceController {
     }
 
     if (!this.#state.connectedBridgeUrl) {
-      this.#demoController.sendUserTurn(threadId, trimmed);
-      return this.getState();
+      const error = new Error("Connect to your Mac first.");
+      this.#setState({ bridgeStatus: error.message });
+      throw error;
     }
 
     try {
