@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "dbf17d54df7c",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T12:30:20.288695Z",
+  "branch": "feat/deployable-relay",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".gitignore",
+    "packages/relay/src/cli.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "681118fc8444",
+  "token_usage": {
+    "input_tokens": 126702342,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 122639616,
+    "output_tokens": 515954,
+    "api_call_count": 996
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-02T12:30:16.851729Z",
+    "agent_lines": 0,
+    "human_added": 152,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 152,
+    "agent_percentage": 0
+  }
+}
