@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "f8051b705674",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T05:25:28.048477Z",
+  "branch": "feat/qr-onboarding",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/mobile/app.json",
+    "apps/mobile/App.tsx",
+    "packages/protocol/src/index.ts",
+    "packages/protocol/test/index.test.ts",
+    "packages/bridge/package.json",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/bridge/src/cli.ts",
+    "apps/mobile/src/bridge-workspace-controller.ts",
+    "apps/mobile/test/bridge-workspace-controller.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "25b486238927",
+  "token_usage": {
+    "input_tokens": 50270477,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 48570624,
+    "output_tokens": 257072,
+    "api_call_count": 397
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-02T05:25:26.641394Z",
+    "agent_lines": 322,
+    "human_added": 66,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 388,
+    "agent_percentage": 82.9896907216495
+  }
+}
