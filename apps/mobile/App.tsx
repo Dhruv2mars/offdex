@@ -37,8 +37,11 @@ export default function App() {
     runtimeTarget,
     bridgeBaseUrl,
     connectedBridgeUrl,
+    connectionTransport,
     connectionState,
     bridgeStatus,
+    relayUrl,
+    trustedPairing,
     isBusy,
   } = workspaceState;
   const [selectedThreadId, setSelectedThreadId] = useState(
@@ -153,6 +156,13 @@ export default function App() {
         : "Connect to bridge";
   const pairingSecondaryLabel =
     isLiveConnection || connectionState !== "idle" || connectedBridgeUrl ? "Disconnect" : "Reset";
+  const relayReady = Boolean(relayUrl);
+  const transportLabel =
+    connectionTransport === "relay"
+      ? "Secure relay"
+      : connectionTransport === "bridge"
+        ? "Local bridge"
+        : "Not connected";
 
   const openScanner = () => {
     setScanLocked(false);
@@ -493,8 +503,30 @@ export default function App() {
                 <SectionCard
                   eyebrow="Current machine"
                   title={snapshot.pairing.macName}
-                  body="Offdex is focused on the local bridge path for now. Connect to your Mac, stay live, and keep failure states obvious."
+                  body="Pair once, keep the Mac online, and Offdex will reconnect on its own until you explicitly disconnect this phone."
                 />
+                <View style={styles.sectionCard}>
+                  <Text style={styles.sectionEyebrow}>Trust</Text>
+                  <Text style={styles.sectionTitle}>
+                    {trustedPairing ? "This phone is trusted" : "This phone is not trusted yet"}
+                  </Text>
+                  <Text style={styles.sectionBody}>
+                    {trustedPairing
+                      ? "The pairing link is saved on this device. Offdex will keep trying the same Mac until you disconnect."
+                      : "Scan once or paste the pairing link once. After that, this phone should not need to pair again."}
+                  </Text>
+                </View>
+                <View style={styles.sectionCard}>
+                  <Text style={styles.sectionEyebrow}>Connection path</Text>
+                  <Text style={styles.sectionTitle}>{transportLabel}</Text>
+                  <Text style={styles.sectionBody}>
+                    {connectionTransport === "relay"
+                      ? `Remote access is routed through ${relayUrl}. Traffic stays encrypted end to end.`
+                      : relayReady
+                        ? `Your Mac is also attached to ${relayUrl}, so remote access is ready once this phone pairs from the QR or link.`
+                        : "Using the direct local bridge path right now."}
+                  </Text>
+                </View>
                 <View style={styles.sectionCard}>
                   <Text style={styles.sectionEyebrow}>Bridge</Text>
                   <TextInput
@@ -574,13 +606,13 @@ export default function App() {
                     <Text style={styles.scanButtonText}>Scan QR from your Mac</Text>
                   </Pressable>
                   <Text style={styles.bridgeStatusText}>
-                    Scan the QR on your Mac or paste the same Offdex link here.
+                    Scan once or paste the same Offdex link here. Offdex stores that trust until you disconnect this phone.
                   </Text>
                 </View>
                 <SectionCard
                   eyebrow="Bridge paths"
                   title={snapshot.pairing.bridgeUrl}
-                  body="Use one of these local paths when you move from browser testing to your actual phone."
+                  body="Use one of these local paths on the same Wi-Fi. If the bridge also has a relay URL, the same pairing code works away from home too."
                 />
                 <View style={styles.sectionCard}>
                   <Text style={styles.sectionEyebrow}>Local options</Text>
