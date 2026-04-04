@@ -440,3 +440,7 @@ im back, phone connected and on. go ahead, chop chop!
 ---
 
 react native devtools is open. if you can utilize it, do it. it may be better for us
+
+---
+
+i have signed in. you can continue
