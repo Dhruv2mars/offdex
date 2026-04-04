@@ -1,0 +1,5 @@
+learn from github.com/dhruv2mars/mdv (it is cloned in /dev/github folder) and make sure our release flow for offdex is fully working. it should be on npm, @dhruv2mars/offdex.
+
+---
+
+implement the trusted publisher.
