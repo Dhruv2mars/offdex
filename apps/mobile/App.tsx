@@ -4,8 +4,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
-import * as SystemUI from "expo-system-ui";
-import { memo, startTransition, useEffect, useMemo, useState } from "react";
+import { memo, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { FlashList } from "@shopify/flash-list";
 import {
   ActivityIndicator,
@@ -25,6 +24,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { OFFDEX_NEW_THREAD_ID, type OffdexThread } from "@offdex/protocol";
+import LaunchIntentModule from "./modules/launch-intent";
 import { mobileTabs, offdexTagline } from "./src/app-config";
 import { normalizeBridgeBaseUrl } from "./src/bridge-client";
 import { bridgePreferences } from "./src/bridge-preferences";
@@ -36,6 +36,8 @@ import {
   feedbackWarning,
 } from "./src/feedback";
 import { extractOffdexPairingUri } from "./src/pairing-scan";
+import { resolveInitialPairingUri } from "./src/initial-pairing";
+import { createLaunchUrlGate } from "./src/launch-url";
 import {
   getChatReadiness,
   getMachineAvailabilityLabel,
@@ -51,6 +53,7 @@ export default function App() {
     () => new BridgeWorkspaceController({ preferences: bridgePreferences }),
     []
   );
+  const launchUrlGate = useRef(createLaunchUrlGate());
   const [workspaceState, setWorkspaceState] = useState(() => controller.getState());
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<AppTab>("Chats");
@@ -80,32 +83,49 @@ export default function App() {
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
+  const applyPairingUri = (uri: string | null) => {
+    const launchUrl = launchUrlGate.current(uri);
+    const pairingUri = extractOffdexPairingUri(launchUrl);
+    if (!pairingUri) {
+      return;
+    }
+
+    startTransition(() => setActiveTab("Pairing"));
+    setPairingDraft(pairingUri);
+    setScanStatus(null);
+    void controller
+      .connectFromPairingUri(pairingUri)
+      .then(() => {
+        startTransition(() => setActiveTab("Chats"));
+        void feedbackSuccess();
+        setScannerVisible(false);
+        setScanLocked(false);
+      })
+      .catch((error) => {
+        void feedbackError();
+        setScanStatus(error instanceof Error ? error.message : "Pairing failed.");
+      });
+  };
+
   useEffect(() => {
     const unsubscribe = controller.subscribe((nextState) => setWorkspaceState(nextState));
-    void controller.hydrate();
-    const applyPairingUri = (uri: string | null) => {
-      const pairingUri = extractOffdexPairingUri(uri);
-      if (!pairingUri) {
+    void (async () => {
+      const initialPairingUri = resolveInitialPairingUri([
+        LaunchIntentModule.consumePendingUrl(),
+        await Linking.getInitialURL(),
+      ]);
+
+      if (initialPairingUri) {
+        applyPairingUri(initialPairingUri);
         return;
       }
 
-      setPairingDraft(pairingUri);
-      setScanStatus(null);
-      void controller
-        .connectFromPairingUri(pairingUri)
-        .then(() => {
-          void feedbackSuccess();
-          setScannerVisible(false);
-          setScanLocked(false);
-        })
-        .catch((error) => {
-          void feedbackError();
-          setScanStatus(error instanceof Error ? error.message : "Pairing failed.");
-        });
-    };
-
-    void Linking.getInitialURL().then((uri) => applyPairingUri(uri));
-    const subscription = Linking.addEventListener("url", ({ url }) => {
+      await controller.hydrate();
+    })();
+    const subscription = LaunchIntentModule.addListener("onUrl", ({ url }) => {
+      applyPairingUri(url);
+    });
+    const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
       applyPairingUri(url);
     });
     let appState = AppState.currentState;
@@ -126,6 +146,7 @@ export default function App() {
     return () => {
       unsubscribe();
       subscription.remove();
+      linkingSubscription.remove();
       appStateSubscription.remove();
       controller.dispose();
     };
@@ -221,11 +242,12 @@ export default function App() {
   const isWideLayout = width >= 980;
 
   useEffect(() => {
-    void SystemUI.setBackgroundColorAsync("#0b0d0c").catch(() => {});
-    if (Platform.OS === "android") {
-      void NavigationBar.setBackgroundColorAsync("#0b0d0c").catch(() => {});
-      void NavigationBar.setButtonStyleAsync("light").catch(() => {});
+    if (Platform.OS !== "android") {
+      return;
     }
+
+    void NavigationBar.setBackgroundColorAsync("#0b0d0c").catch(() => {});
+    void NavigationBar.setButtonStyleAsync("light").catch(() => {});
   }, []);
 
   const openScanner = () => {

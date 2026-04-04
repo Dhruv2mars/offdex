@@ -28,6 +28,8 @@ export interface BridgeHealth {
   } | null;
 }
 
+const DIRECT_HEALTH_PROBE_TIMEOUT_MS = 1_500;
+
 interface RelayConnectionTarget {
   bridgeUrl: string;
   macName: string;
@@ -410,7 +412,7 @@ export async function fetchBridgeHealth(baseUrl: string) {
   }
 
   const request = createDirectRequestInput(baseUrl);
-  const response = await fetch(`${request.bridgeUrl}/health`, {
+  const response = await fetchWithTimeout(`${request.bridgeUrl}/health`, {
     headers: request.headers,
   });
   if (!response.ok) {
@@ -687,7 +689,7 @@ export async function resolveManagedConnection(
         accessToken: ticket.direct.accessToken,
       });
       try {
-        await fetchBridgeHealth(directTarget);
+        await fetchBridgeHealthWithTimeout(directTarget, DIRECT_HEALTH_PROBE_TIMEOUT_MS);
         return {
           machine,
           connectionTarget: directTarget,
@@ -717,4 +719,49 @@ export async function resolveManagedConnection(
     connectionLabel: ticket.relay.relayUrl,
     connectionTransport: "relay" as const,
   };
+}
+
+async function fetchBridgeHealthWithTimeout(baseUrl: string, timeoutMs: number) {
+  const relayTarget = decodeRelayConnectionTarget(baseUrl);
+  if (relayTarget) {
+    return fetchBridgeHealth(baseUrl);
+  }
+
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetchWithTimeout(
+    `${request.bridgeUrl}/health`,
+    {
+      headers: request.headers,
+    },
+    timeoutMs
+  );
+
+  if (!response.ok) {
+    throw new Error(`Bridge health failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<BridgeHealth>;
+}
+
+function fetchWithTimeout(
+  input: string,
+  init?: RequestInit,
+  timeoutMs?: number
+) {
+  if (!timeoutMs || typeof AbortController === "undefined") {
+    return fetch(input, init);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const abortFromCaller = () => controller.abort();
+  init?.signal?.addEventListener("abort", abortFromCaller, { once: true });
+
+  return fetch(input, {
+    ...init,
+    signal: controller.signal,
+  }).finally(() => {
+    clearTimeout(timeout);
+    init?.signal?.removeEventListener("abort", abortFromCaller);
+  });
 }

@@ -92,6 +92,75 @@ describe("control plane", () => {
     expect(mePayload.machines[0]?.ownerLabel).toBe("dhruv@example.com");
   });
 
+  test("prefers a reachable lan public url when bound to all interfaces", async () => {
+    const controlPlane = startControlPlaneServer({
+      host: "0.0.0.0",
+      port: 0,
+      stateStore: createMemoryControlPlaneStateStore(),
+      readNetworkInterfaces: () => ({
+        en0: [
+          {
+            address: "192.168.1.3",
+            family: "IPv4",
+            internal: false,
+            netmask: "255.255.255.0",
+            mac: "aa:bb:cc:dd:ee:ff",
+            cidr: "192.168.1.3/24",
+          },
+          {
+            address: "fe80::1",
+            family: "IPv6",
+            internal: false,
+            netmask: "ffff:ffff:ffff:ffff::",
+            mac: "aa:bb:cc:dd:ee:ff",
+            cidr: "fe80::1/64",
+            scopeid: 0,
+          },
+        ],
+        lo0: [
+          {
+            address: "127.0.0.1",
+            family: "IPv4",
+            internal: true,
+            netmask: "255.0.0.0",
+            mac: "00:00:00:00:00:00",
+            cidr: "127.0.0.1/8",
+          },
+        ],
+      }),
+    });
+    activeServers.push(controlPlane);
+    const baseUrl = `http://127.0.0.1:${controlPlane.server.port}`;
+
+    const registerResponse = await fetch(`${baseUrl}/v1/machines/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        machineId: "machine-a",
+        machineSecret: "machine-secret-a",
+        macName: "Studio Mac",
+        ownerId: "chatgpt-user-1",
+        ownerLabel: "dhruv@example.com",
+        bridgeUrl: "http://192.168.1.8:42420",
+        bridgeHints: ["http://192.168.1.8:42420"],
+        runtimeTarget: "cli",
+      }),
+    });
+    const registerPayload = (await registerResponse.json()) as {
+      machine: {
+        remoteCapability: { controlPlaneUrl: string; relayUrl: string };
+      };
+    };
+
+    expect(registerResponse.ok).toBe(true);
+    expect(registerPayload.machine.remoteCapability.controlPlaneUrl).toBe(
+      `http://192.168.1.3:${controlPlane.server.port}`
+    );
+    expect(registerPayload.machine.remoteCapability.relayUrl).toBe(
+      `http://192.168.1.3:${controlPlane.server.port}`
+    );
+  });
+
   test("issues direct-first tickets with relay fallback for trusted devices", async () => {
     const controlPlane = startControlPlaneServer({
       host: "127.0.0.1",

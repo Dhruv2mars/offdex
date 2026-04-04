@@ -189,6 +189,10 @@ function titleFromThread(thread: CodexThread) {
   return thread.name?.trim() || thread.preview?.trim() || `Thread ${thread.id.slice(0, 6)}`;
 }
 
+function isMissingThreadError(error: unknown) {
+  return error instanceof Error && /thread not found/i.test(error.message);
+}
+
 function projectLabelFromThread(thread: CodexThread) {
   return basename(thread.cwd) || "workspace";
 }
@@ -914,15 +918,30 @@ export class CodexBridgeRuntime {
     const snapshot = this.options.workspaceStore.getSnapshot();
     const needsNewThread =
       threadId === NEW_THREAD_ID || !snapshot.threads.some((thread) => thread.id === threadId);
-    const targetThreadId = needsNewThread
+    let targetThreadId = needsNewThread
       ? (await this.client.startThread(this.options.cwd)).id
       : threadId;
+    let replacedStaleThread = false;
 
-    await this.client.startTurn(targetThreadId, trimmed, this.options.cwd);
+    try {
+      await this.client.startTurn(targetThreadId, trimmed, this.options.cwd);
+    } catch (error) {
+      if (!needsNewThread && isMissingThreadError(error)) {
+        targetThreadId = (await this.client.startThread(this.options.cwd)).id;
+        replacedStaleThread = true;
+        await this.client.startTurn(targetThreadId, trimmed, this.options.cwd);
+      } else {
+        throw error;
+      }
+    }
+
     const nextSnapshot = this.options.workspaceStore.getSnapshot();
+    if (replacedStaleThread) {
+      nextSnapshot.threads = nextSnapshot.threads.filter((thread) => thread.id !== threadId);
+    }
     const thread = ensureThread(nextSnapshot, targetThreadId, this.#runtimeTarget);
 
-    if (needsNewThread && thread.messages.length === 0) {
+    if ((needsNewThread || replacedStaleThread) && thread.messages.length === 0) {
       thread.title = trimmed;
       thread.projectLabel = basename(this.options.cwd) || "workspace";
     }
