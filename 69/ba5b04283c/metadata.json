@@ -3,8 +3,10 @@
   "checkpoint_id": "69ba5b04283c",
   "strategy": "manual-commit",
   "branch": "fix/bug-rampage",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
+    "apps/mobile/app/(tabs)/index.tsx",
+    "apps/mobile/app/chat/[id].tsx",
     "apps/mobile/tsconfig.json"
   ],
   "sessions": [
@@ -13,13 +15,19 @@
       "transcript": "/69/ba5b04283c/0/full.jsonl",
       "content_hash": "/69/ba5b04283c/0/content_hash.txt",
       "prompt": "/69/ba5b04283c/0/prompt.txt"
+    },
+    {
+      "metadata": "/69/ba5b04283c/1/metadata.json",
+      "transcript": "/69/ba5b04283c/1/full.jsonl",
+      "content_hash": "/69/ba5b04283c/1/content_hash.txt",
+      "prompt": "/69/ba5b04283c/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 309869845,
+    "input_tokens": 346739572,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 296947456,
-    "output_tokens": 1136737,
-    "api_call_count": 2431
+    "cache_read_tokens": 331758464,
+    "output_tokens": 1289834,
+    "api_call_count": 2744
   }
 }

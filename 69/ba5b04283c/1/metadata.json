@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "69ba5b04283c",
+  "session_id": "019d590f-f394-76c0-923c-64944a122116",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-04T16:57:23.825214Z",
+  "branch": "fix/bug-rampage",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/app/(tabs)/index.tsx",
+    "apps/mobile/app/chat/[id].tsx"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "ee8c488ef936",
+  "checkpoint_transcript_start": 1052,
+  "transcript_lines_at_start": 1052,
+  "token_usage": {
+    "input_tokens": 36869727,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 34811008,
+    "output_tokens": 153097,
+    "api_call_count": 313
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-04T16:57:13.188027Z",
+    "agent_lines": 15,
+    "human_added": 65,
+    "human_modified": 5,
+    "human_removed": 0,
+    "total_committed": 85,
+    "agent_percentage": 17.647058823529413
+  }
+}

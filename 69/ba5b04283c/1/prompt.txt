@@ -1,0 +1,15 @@
+this is offdex, my take on remodex (github.com/Emanuele-web04/remodex). its a cross-platform codex mobile app built using expo react native. 
+
+the ultimate goal with offdex is extremely clear:
+"offdex is like if openai themselves made a mobile app for codex." 
+
+for now, basic functionality is done, with a complete frontend revamp done right now. 
+i want you to first explore the complete codebase end to end. understand and analyse it. checkout latest commits as well to understand the growth. 
+
+then i want you to go on a bug exploration. find and fix all the issues, bugs you find which can cause problems and issues while running the app. once you are done, i would like you to testout and check web and mobile version yourself with full end to end user workflow. see if everything works perfectly as intended. 
+
+your goal is simple, go on a rampage of finding and fixing all the bugs, issues that can or are causing problems. you can utilize agent-browser for web based tasks. you can use expo orbit for emulators or/and my actual phone which is connected via adb.
+
+---
+
+ok, now the phone is unlocked, so you can do things via adb. also, you should do emulator testing as well via expo orbit, for both android and ios
