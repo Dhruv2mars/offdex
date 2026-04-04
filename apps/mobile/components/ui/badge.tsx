@@ -82,29 +82,63 @@ const statusConfig: Record<StatusType, { bg: string; text: string; dot?: string 
   reconnecting: { bg: "bg-warning/15", text: "text-warning", dot: "bg-warning" },
 };
 
-export interface StatusBadgeProps extends Omit<ViewProps, "children"> {
-  status: StatusType;
-  showDot?: boolean;
-}
+type StatusBadgeProps =
+  | (Omit<ViewProps, "children"> & {
+      status: StatusType;
+      showDot?: boolean;
+    })
+  | (Omit<ViewProps, "children"> & {
+      variant: BadgeVariant;
+      label: string;
+      showDot?: boolean;
+    });
 
-export function StatusBadge({ status, showDot = false, className, ...props }: StatusBadgeProps) {
-  const config = statusConfig[status];
-  const label = status.charAt(0).toUpperCase() + status.slice(1);
+export function StatusBadge({
+  className,
+  showDot = false,
+  ...props
+}: StatusBadgeProps) {
+  if ("status" in props) {
+    const { status, ...viewProps } = props;
+    const config = statusConfig[status];
+    const label = status.charAt(0).toUpperCase() + status.slice(1);
+
+    return (
+      <View
+        className={cn(
+          "flex-row items-center gap-1.5",
+          "rounded-full px-2.5 py-1",
+          config.bg,
+          className
+        )}
+        {...viewProps}
+      >
+        {showDot && config.dot && (
+          <View className={cn("h-1.5 w-1.5 rounded-full", config.dot)} />
+        )}
+        <Text className={cn("text-xs font-medium capitalize", config.text)}>
+          {label}
+        </Text>
+      </View>
+    );
+  }
+
+  const { variant, label, ...viewProps } = props;
 
   return (
     <View
       className={cn(
         "flex-row items-center gap-1.5",
         "rounded-full px-2.5 py-1",
-        config.bg,
+        variantStyles[variant],
         className
       )}
-      {...props}
+      {...viewProps}
     >
-      {showDot && config.dot && (
-        <View className={cn("h-1.5 w-1.5 rounded-full", config.dot)} />
+      {showDot && (
+        <View className={cn("h-1.5 w-1.5 rounded-full", variantTextStyles[variant].replace("text-", "bg-"))} />
       )}
-      <Text className={cn("text-xs font-medium capitalize", config.text)}>
+      <Text className={cn("text-xs font-medium", variantTextStyles[variant])}>
         {label}
       </Text>
     </View>

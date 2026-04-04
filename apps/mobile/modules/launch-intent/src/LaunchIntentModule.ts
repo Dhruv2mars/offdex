@@ -7,4 +7,28 @@ declare class LaunchIntentModule extends NativeModule<LaunchIntentModuleEvents> 
   peekPendingUrl(): string | null;
 }
 
-export default requireNativeModule<LaunchIntentModule>('LaunchIntent');
+type LaunchIntentModuleShape = LaunchIntentModule & {
+  addListener: NativeModule<LaunchIntentModuleEvents>["addListener"];
+};
+
+const fallbackModule: LaunchIntentModuleShape = {
+  addListener() {
+    return { remove() {} };
+  },
+  consumePendingUrl() {
+    return null;
+  },
+  peekPendingUrl() {
+    return null;
+  },
+} as LaunchIntentModuleShape;
+
+function loadLaunchIntentModule() {
+  try {
+    return requireNativeModule<LaunchIntentModule>("LaunchIntent") as LaunchIntentModuleShape;
+  } catch {
+    return fallbackModule;
+  }
+}
+
+export default loadLaunchIntentModule();

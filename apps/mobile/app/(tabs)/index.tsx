@@ -89,7 +89,8 @@ export default function ThreadListScreen() {
           data={threads}
           keyExtractor={(thread) => thread.id}
           estimatedItemSize={88}
-          contentContainerStyle={{ paddingBottom: 16 }}
+          style={{ flex: 1, backgroundColor: "#09090b" }}
+          contentContainerStyle={{ paddingBottom: 16, backgroundColor: "#09090b" }}
           refreshControl={
             <RefreshControl
               refreshing={isBusy}
@@ -136,8 +137,8 @@ export default function ThreadListScreen() {
         />
       ) : (
         <ScrollView
-          className="flex-1"
-          contentContainerClassName="flex-1"
+          className="flex-1 bg-background"
+          contentContainerClassName="flex-1 bg-background"
           refreshControl={
             <RefreshControl
               refreshing={isBusy}

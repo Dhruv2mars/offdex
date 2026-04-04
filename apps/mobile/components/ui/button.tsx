@@ -7,11 +7,18 @@ import * as Haptics from "expo-haptics";
 // Button Variants
 // ════════════════════════════════════════════════════════════════════════════
 
-type ButtonVariant = "default" | "secondary" | "ghost" | "destructive" | "outline";
+type ButtonVariant =
+  | "default"
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "destructive"
+  | "outline";
 type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variantStyles: Record<ButtonVariant, string> = {
   default: "bg-primary",
+  primary: "bg-primary",
   secondary: "bg-secondary",
   ghost: "bg-transparent",
   destructive: "bg-destructive",
@@ -20,6 +27,7 @@ const variantStyles: Record<ButtonVariant, string> = {
 
 const variantTextStyles: Record<ButtonVariant, string> = {
   default: "text-primary-foreground",
+  primary: "text-primary-foreground",
   secondary: "text-secondary-foreground",
   ghost: "text-foreground",
   destructive: "text-destructive-foreground",
@@ -57,7 +65,7 @@ export const Button = forwardRef<React.ElementRef<typeof Pressable>, ButtonProps
   (
     {
       className,
-      variant = "default",
+      variant = "primary",
       size = "default",
       children,
       loading = false,

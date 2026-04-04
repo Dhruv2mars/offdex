@@ -140,7 +140,8 @@ export default function ChatScreen() {
           data={messages}
           keyExtractor={(message) => message.id}
           estimatedItemSize={100}
-          contentContainerStyle={{ paddingVertical: 16 }}
+          style={{ flex: 1, backgroundColor: "#09090b" }}
+          contentContainerStyle={{ paddingVertical: 16, backgroundColor: "#09090b" }}
           inverted={false}
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center px-8 py-16">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { architecturePrinciples } from "../site-content";
 
 const layers = [
@@ -29,7 +30,7 @@ export default function ArchitecturePage() {
       <section className="mx-auto w-full max-w-5xl px-6 py-16 md:py-24">
         {/* Header */}
         <div className="flex items-center justify-between mb-16">
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -38,7 +39,7 @@ export default function ArchitecturePage() {
               <polyline points="12 19 5 12 12 5"/>
             </svg>
             Back home
-          </a>
+          </Link>
           <div className="flex items-center gap-3">
             <div className="h-6 w-6 rounded bg-muted flex items-center justify-center">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

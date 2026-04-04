@@ -4,11 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Terminal,
   Monitor,
-  Moon,
-  Sun,
-  Info,
   ExternalLink,
-  Github,
   ChevronRight,
   Trash2,
   Bug,
@@ -22,6 +18,14 @@ import {
 import { View, Text, Pressable, ScrollView } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
+import {
+  appBuildNumber,
+  appVersion,
+  offdexDocsUrl,
+  offdexFeedbackUrl,
+  offdexIssuesUrl,
+  offdexRepositoryUrl,
+} from "../../src/app-config";
 import { feedbackSelection, feedbackSuccess, feedbackError, feedbackWarning } from "../../src/feedback";
 
 import { Card } from "../../components/ui/card";
@@ -125,12 +129,42 @@ function SettingsSection({ title, children }: SettingsSectionProps) {
 // Settings Screen
 // ════════════════════════════════════════════════════════════════════════════
 
-const APP_VERSION = "2.0.0"; // TODO: Read from app.json
-const BUILD_NUMBER = "1";
+function getConnectionStateLabel(
+  connectionState: "idle" | "connecting" | "live" | "degraded"
+) {
+  if (connectionState === "live") {
+    return "Live";
+  }
+
+  if (connectionState === "connecting") {
+    return "Connecting";
+  }
+
+  if (connectionState === "degraded") {
+    return "Recovering";
+  }
+
+  return "Offline";
+}
+
+function getConnectionStateVariant(
+  connectionState: "idle" | "connecting" | "live" | "degraded"
+): "success" | "warning" | "secondary" {
+  if (connectionState === "live") {
+    return "success";
+  }
+
+  if (connectionState === "connecting" || connectionState === "degraded") {
+    return "warning";
+  }
+
+  return "secondary";
+}
 
 export default function SettingsScreen() {
   // Store state
   const runtimeTarget = useWorkspaceStore((s) => s.runtimeTarget);
+  const connectionState = useWorkspaceStore((s) => s.connectionState);
   const bridgeStatus = useWorkspaceStore((s) => s.bridgeStatus);
   const codexAccount = useWorkspaceStore((s) => s.codexAccount);
   const pairing = useWorkspaceStore((s) => s.snapshot.pairing);
@@ -178,7 +212,10 @@ export default function SettingsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScreenHeader title="Settings" />
 
-      <ScrollView className="flex-1">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="bg-background"
+      >
         {/* Runtime Target */}
         <SettingsSection title="Codex Runtime">
           <SettingsRow
@@ -245,10 +282,11 @@ export default function SettingsScreen() {
           <SettingsRow
             icon={Zap}
             label="Bridge Status"
+            description={bridgeStatus}
             trailing={
               <StatusBadge
-                variant={bridgeStatus === "connected" ? "success" : "secondary"}
-                label={bridgeStatus || "Unknown"}
+                variant={getConnectionStateVariant(connectionState)}
+                label={getConnectionStateLabel(connectionState)}
               />
             }
           />
@@ -270,25 +308,25 @@ export default function SettingsScreen() {
           <SettingsRow
             icon={FileText}
             label="Documentation"
-            onPress={() => openLink("https://platform.openai.com/docs/guides/codex")}
+            onPress={() => openLink(offdexDocsUrl)}
           />
           <Separator />
           <SettingsRow
-            icon={Github}
+            icon={ExternalLink}
             label="GitHub"
-            onPress={() => openLink("https://github.com/openai/codex")}
+            onPress={() => openLink(offdexRepositoryUrl)}
           />
           <Separator />
           <SettingsRow
             icon={Bug}
             label="Report an Issue"
-            onPress={() => openLink("https://github.com/openai/codex/issues")}
+            onPress={() => openLink(offdexIssuesUrl)}
           />
           <Separator />
           <SettingsRow
             icon={MessageCircle}
             label="Send Feedback"
-            onPress={() => openLink("mailto:codex-feedback@openai.com")}
+            onPress={() => openLink(offdexFeedbackUrl)}
           />
         </SettingsSection>
 
@@ -309,7 +347,7 @@ export default function SettingsScreen() {
             Offdex
           </Text>
           <Text className="text-xs text-muted-foreground">
-            Version {APP_VERSION} ({BUILD_NUMBER})
+            Version {appVersion} ({appBuildNumber})
           </Text>
           <Text className="text-xs text-muted-foreground mt-1">
             Made with love for Codex

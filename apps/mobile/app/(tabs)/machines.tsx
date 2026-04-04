@@ -122,7 +122,7 @@ function CurrentConnectionCard() {
   const codexAccount = useWorkspaceStore((s) => s.codexAccount);
   const runtimeTarget = useWorkspaceStore((s) => s.runtimeTarget);
   const disconnect = useWorkspaceStore((s) => s.disconnect);
-  const connect = useWorkspaceStore((s) => s.connect);
+  const refresh = useWorkspaceStore((s) => s.refresh);
 
   const handleDisconnect = useCallback(() => {
     void feedbackSelection();
@@ -132,12 +132,12 @@ function CurrentConnectionCard() {
   const handleReconnect = useCallback(async () => {
     void feedbackSelection();
     try {
-      await connect();
+      await refresh();
       void feedbackSuccess();
     } catch {
       void feedbackError();
     }
-  }, [connect]);
+  }, [refresh]);
 
   if (connectionState === "idle" && !pairing.macName) {
     return null;
@@ -263,6 +263,7 @@ export default function MachinesScreen() {
   const isBusy = useWorkspaceStore((s) => s.isBusy);
   const isConnecting = useWorkspaceStore((s) => s.isConnecting);
   const pairing = useWorkspaceStore((s) => s.snapshot.pairing);
+  const managedSession = useWorkspaceStore((s) => s.managedSession);
 
   // Actions
   const refreshMachines = useWorkspaceStore((s) => s.refreshMachines);
@@ -302,7 +303,7 @@ export default function MachinesScreen() {
     router.push("/pair");
   }, [router]);
 
-  const activeMachineId = pairing.state === "paired" ? undefined : undefined; // TODO: Track active machine ID
+  const activeMachineId = managedSession?.machineId;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
@@ -316,7 +317,8 @@ export default function MachinesScreen() {
       />
 
       <ScrollView
-        className="flex-1"
+        className="flex-1 bg-background"
+        contentContainerClassName="bg-background"
         refreshControl={
           <RefreshControl
             refreshing={isBusy}
@@ -355,7 +357,7 @@ export default function MachinesScreen() {
               <MachineItem
                 key={machine.machineId}
                 machine={machine}
-                isActive={false}
+                isActive={machine.machineId === activeMachineId}
                 isConnecting={isConnecting}
                 onPress={() => handleMachinePress(machine)}
               />
