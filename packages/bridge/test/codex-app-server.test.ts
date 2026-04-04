@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { WorkspaceSnapshotStore, makeDemoWorkspaceSnapshot } from "@offdex/protocol";
 import {
+  CodexBridgeRuntime,
   NEW_THREAD_ID,
   applyCodexNotification,
   buildCodexExecutableCandidates,
@@ -263,5 +265,74 @@ describe("codex snapshot adapter", () => {
       planType: "plus",
       isAuthenticated: true,
     });
+  });
+
+  test("moves a turn onto a fresh thread when codex rejects a stale thread id", async () => {
+    const store = new WorkspaceSnapshotStore(
+      makeDemoWorkspaceSnapshot("cli", {
+        state: "paired",
+      })
+    );
+    store.replaceSnapshot({
+      ...store.getSnapshot(),
+      threads: [
+        {
+          id: "stale-thread",
+          title: "Old thread",
+          projectLabel: "offdex",
+          runtimeTarget: "cli",
+          state: "completed",
+          unreadCount: 0,
+          updatedAt: "2d ago",
+          messages: [],
+        },
+      ],
+    });
+
+    const runtime = new CodexBridgeRuntime({
+      runtimeTarget: "cli",
+      workspaceStore: store,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+    });
+    const calls: string[] = [];
+
+    runtime.client.ensureConnected = async () => {};
+    runtime.client.subscribe = () => () => {};
+    runtime.client.startThread = async () => {
+      calls.push("startThread");
+      return {
+        id: "fresh-thread",
+        preview: "",
+        ephemeral: false,
+        modelProvider: "openai",
+        createdAt: 1774702996,
+        updatedAt: 1774703010,
+        status: { type: "idle" },
+        path: null,
+        cwd: "/Users/dhruv2mars/dev/github/offdex",
+        cliVersion: "0.116.0",
+        source: "appServer",
+        agentNickname: null,
+        agentRole: null,
+        gitInfo: null,
+        name: null,
+        turns: [],
+      };
+    };
+    runtime.client.startTurn = async (threadId: string) => {
+      calls.push(`startTurn:${threadId}`);
+      if (threadId === "stale-thread") {
+        throw new Error("thread not found: stale-thread");
+      }
+      return null;
+    };
+
+    const nextSnapshot = await runtime.sendTurn("stale-thread", "Start from a clean live thread.");
+
+    expect(calls).toEqual(["startTurn:stale-thread", "startThread", "startTurn:fresh-thread"]);
+    expect(nextSnapshot.threads[0]?.id).toBe("fresh-thread");
+    expect(nextSnapshot.threads.some((thread) => thread.id === "stale-thread")).toBe(false);
+    expect(nextSnapshot.threads[0]?.title).toBe("Start from a clean live thread.");
+    expect(nextSnapshot.threads[0]?.state).toBe("running");
   });
 });

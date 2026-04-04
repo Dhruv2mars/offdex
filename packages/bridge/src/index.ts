@@ -653,11 +653,17 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     }
 
     const payload = (await response.json()) as {
+      machine?: {
+        remoteCapability?: {
+          controlPlaneUrl?: string;
+        };
+      };
       pairing: { claimCode: string };
     };
 
     remoteBootstrap = {
-      controlPlaneUrl: managedRelayUrl,
+      controlPlaneUrl:
+        payload.machine?.remoteCapability?.controlPlaneUrl?.trim() || managedRelayUrl,
       machineId: bridgeState.bridgeId,
       claimCode: payload.pairing.claimCode,
       ownerLabel,

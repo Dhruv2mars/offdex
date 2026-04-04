@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, networkInterfaces } from "node:os";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { ServerWebSocket } from "bun";
@@ -56,6 +56,7 @@ export interface ControlPlaneServerOptions {
   port?: number;
   publicUrl?: string;
   stateStore?: ControlPlaneStateStore;
+  readNetworkInterfaces?: typeof networkInterfaces;
 }
 
 interface RelaySocketData {
@@ -76,6 +77,36 @@ function defaultStatePath() {
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+function resolveReachableHost(
+  host: string,
+  readNetworkInterfaces: typeof networkInterfaces = networkInterfaces
+) {
+  if (host !== "0.0.0.0") {
+    return host;
+  }
+
+  const interfaces = readNetworkInterfaces();
+  for (const addresses of Object.values(interfaces)) {
+    for (const address of addresses ?? []) {
+      if (address.family !== "IPv4" || address.internal) {
+        continue;
+      }
+
+      return address.address;
+    }
+  }
+
+  return "127.0.0.1";
+}
+
+export function resolveControlPlaneBaseUrl(
+  host: string,
+  port: number,
+  readNetworkInterfaces: typeof networkInterfaces = networkInterfaces
+) {
+  return normalizeBaseUrl(`http://${resolveReachableHost(host, readNetworkInterfaces)}:${port}`);
 }
 
 function nowIso() {
@@ -173,6 +204,7 @@ export function startControlPlaneServer(options: ControlPlaneServerOptions = {})
   const host = options.host ?? "0.0.0.0";
   const port = options.port ?? 42421;
   const stateStore = options.stateStore ?? createControlPlaneStateStore();
+  const readNetworkInterfaces = options.readNetworkInterfaces ?? networkInterfaces;
   let persistedState = stateStore.load();
   const hostRooms = new Set<string>();
   const socketsByRoom = new Map<string, Set<ServerWebSocket<RelaySocketData>>>();
@@ -183,7 +215,7 @@ export function startControlPlaneServer(options: ControlPlaneServerOptions = {})
   };
 
   let resolvedBaseUrl = normalizeBaseUrl(
-    options.publicUrl ?? `http://${host === "0.0.0.0" ? "127.0.0.1" : host}:${port}`
+    options.publicUrl ?? resolveControlPlaneBaseUrl(host, port, readNetworkInterfaces)
   );
 
   const listMachinesForOwner = (ownerId: string) =>
@@ -531,9 +563,7 @@ export function startControlPlaneServer(options: ControlPlaneServerOptions = {})
   });
 
   if (!options.publicUrl) {
-    resolvedBaseUrl = normalizeBaseUrl(
-      `http://${host === "0.0.0.0" ? "127.0.0.1" : host}:${server.port ?? port}`
-    );
+    resolvedBaseUrl = resolveControlPlaneBaseUrl(host, server.port ?? port, readNetworkInterfaces);
   }
 
   return {

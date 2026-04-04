@@ -246,6 +246,42 @@ describe("bridge workspace store", () => {
     controlPlane.stop();
   });
 
+  test("uses the control plane advertised public url in managed pairing payloads", async () => {
+    const { createMemoryControlPlaneStateStore, startControlPlaneServer } = await import(
+      "../../control-plane/src"
+    );
+    const controlPlane = startControlPlaneServer({
+      host: "127.0.0.1",
+      port: 0,
+      publicUrl: "http://192.168.1.3:42421",
+      stateStore: createMemoryControlPlaneStateStore(),
+    });
+    const bridge = startBridgeServer({
+      host: "127.0.0.1",
+      port: 0,
+      controlPlaneUrl: `http://127.0.0.1:${controlPlane.server.port}`,
+      bridgeStateStore: createBridgeStateStore({
+        initialState: {
+          bridgeId: "bridge-123",
+          bridgeSecret: "secret-123",
+          relayRoomId: "room-123",
+          relayUrl: null,
+          createdAt: "2026-04-02T00:00:00.000Z",
+        },
+      }),
+    });
+    activeBridges.push(bridge);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const pairing = decodePairingUri(bridge.getPairingPayload().pairingUri);
+
+    expect(pairing.version).toBe(3);
+    expect(pairing.remote?.controlPlaneUrl).toBe("http://192.168.1.3:42421");
+
+    controlPlane.stop();
+  });
+
   test("answers managed relay proxy requests through the control plane", async () => {
     const { createMemoryControlPlaneStateStore, startControlPlaneServer } = await import(
       "../../control-plane/src"
