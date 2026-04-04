@@ -1,180 +1,213 @@
 import { androidApkDownloadUrl, cliInstallCommand, githubReleasesUrl } from "./site-content";
 
-const machineSignals = [
-  "Trusted phone session survives backgrounding",
-  "Direct path first, relay fallback only when needed",
-  "Mac remains the source of truth for live Codex state",
-];
-
-const shellColumns = [
+const features = [
   {
-    label: "Machine",
-    title: "Your Mac keeps the real session.",
-    body: "Codex stays local on the machine you already trust. Offdex only carries the live control surface.",
-    items: ["Codex auth stays on the Mac", "QR pair once", "Reconnect forever until you disconnect"],
+    title: "Live sync",
+    description: "Real-time streaming from your Mac. Not a delayed mirror.",
   },
   {
-    label: "Threads",
-    title: "Live thread state, not a lagging companion view.",
-    body: "Thread truth streams from the bridge. The phone follows the same session instead of pretending with stale cached UI.",
-    items: ["Streaming turns", "Honest reconnect state", "Machine list with real readiness"],
+    title: "Secure pairing",
+    description: "QR code once, trusted session forever. Local-first.",
   },
   {
-    label: "Phone",
-    title: "Built like the app OpenAI forgot to ship.",
-    body: "Android-first, cross-platform, and ruthless about speed. Expo where it helps. Native escape hatches where they win.",
-    items: ["Expo SDK 55 base", "Native-feeling pairing flow", "Performance-first shell"],
+    title: "Same threads",
+    description: "Pick up exactly where you left off. No sync conflicts.",
   },
 ] as const;
 
-const workflow = [
-  "Open the bridge on your machine.",
-  "Scan the QR from Offdex once.",
-  "Leave the Mac online and pick up the same threads anywhere.",
+const steps = [
+  { step: "01", label: "Install bridge", description: "npm install -g @dhruv2mars/offdex" },
+  { step: "02", label: "Scan QR code", description: "Run codex --qr on your Mac" },
+  { step: "03", label: "Start coding", description: "Same threads, anywhere" },
 ] as const;
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-canvas text-ink">
+    <main className="min-h-screen bg-background text-foreground">
+      {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(208,255,95,0.13),transparent_30%),radial-gradient(circle_at_75%_0%,rgba(255,207,118,0.09),transparent_24%)]" />
-        <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-10 px-6 py-8 md:px-10 md:py-10">
-          <header className="flex flex-wrap items-center justify-between gap-4">
-            <div className="rounded-full border border-line bg-panel px-4 py-2 text-[11px] font-semibold tracking-[0.28em] uppercase text-lime">
-              Offdex
+        {/* Subtle radial gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.03),transparent_50%)]" />
+        
+        <div className="relative mx-auto max-w-5xl px-6 pt-20 pb-16 md:pt-32 md:pb-24">
+          {/* Header */}
+          <header className="flex items-center justify-between mb-20 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#09090b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <span className="text-sm font-semibold tracking-tight">Offdex</span>
             </div>
-            <div className="flex items-center gap-3 text-sm text-ink-soft">
-              <span>{`Offdex: Codex mobile app.`}</span>
-              <a
+            <nav className="flex items-center gap-6">
+              <a 
+                href={githubReleasesUrl}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Releases
+              </a>
+              <a 
                 href="/architecture"
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 transition hover:bg-white/8"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Architecture
               </a>
-            </div>
+            </nav>
           </header>
 
-          <div className="grid flex-1 gap-10 xl:grid-cols-[1.15fr_0.95fr]">
-            <div className="flex flex-col justify-between gap-10">
-              <div className="space-y-8">
-                <div className="inline-flex rounded-full border border-line bg-panel px-4 py-2 text-xs font-medium text-amber">
-                  Codex, carried properly
-                </div>
-                <div className="space-y-5">
-                  <p className="max-w-xl text-sm leading-7 text-ink-soft md:text-base">
-                    Offdex turns your phone into a real Codex surface, not a remote-control toy.
-                  </p>
-                  <h1 className="max-w-5xl font-[family-name:var(--font-accent-serif)] text-5xl leading-none tracking-[-0.055em] md:text-7xl">
-                    Codex on your phone,
-                    <br />
-                    with the same confidence as your Mac.
-                  </h1>
-                  <p className="max-w-2xl text-lg leading-8 text-ink-muted md:text-xl">
-                    The app is built around live trust: pair once, keep the Mac online, and stay on the same real thread from anywhere without the fake companion-app feel.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <a
-                      href={androidApkDownloadUrl}
-                      className="rounded-full border border-lime/40 bg-lime px-5 py-3 text-sm font-semibold text-[#091009] transition hover:bg-[#dfff8f]"
-                    >
-                      Download Android APK
-                    </a>
-                    <a
-                      href={githubReleasesUrl}
-                      className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-ink-soft transition hover:bg-white/8"
-                    >
-                      GitHub releases
-                    </a>
-                  </div>
-                  <div className="rounded-[22px] border border-white/8 bg-panel/90 px-5 py-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-lime">
-                      Install the bridge CLI
-                    </div>
-                    <div className="mt-3 overflow-x-auto rounded-[16px] border border-white/8 bg-black/15 px-4 py-3 font-mono text-sm text-ink-soft">
-                      {cliInstallCommand}
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Hero content */}
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-3 py-1.5 mb-8 animate-fade-in">
+              <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+              <span className="text-xs text-muted-foreground">Live on Android</span>
+            </div>
+            
+            <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.1] mb-6 animate-fade-in-delay">
+              Codex on your phone
+            </h1>
+            
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-10 max-w-2xl animate-fade-in-delay-2">
+              A proper mobile client for OpenAI Codex. Pair with your Mac once, then access your threads from anywhere with real-time sync.
+            </p>
 
-              <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-[34px] border border-line bg-panel p-6 shadow-[0_30px_90px_rgba(0,0,0,0.32)]">
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-lime">
-                    Why it feels right
-                  </div>
-                  <div className="mt-5 space-y-4">
-                    {machineSignals.map((signal) => (
-                      <div
-                        key={signal}
-                        className="rounded-[20px] border border-white/8 bg-panel-strong px-4 py-4 text-sm leading-7 text-ink-soft"
-                      >
-                        {signal}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-[34px] border border-white/10 bg-[#0d1513] p-6">
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-amber">
-                    Workflow
-                  </div>
-                  <div className="mt-5 space-y-4">
-                    {workflow.map((step, index) => (
-                      <div
-                        key={step}
-                        className="flex gap-4 border-white/8 border-b pb-4 last:border-b-0 last:pb-0"
-                      >
-                        <div className="mt-0.5 font-mono text-xs text-lime">{`0${index + 1}`}</div>
-                        <p className="text-sm leading-7 text-ink-soft">{step}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-6 rounded-[20px] border border-white/8 bg-black/10 px-4 py-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-lime">
-                      Public download
-                    </div>
-                    <p className="mt-3 text-sm leading-7 text-ink-soft">
-                      Android builds ship through GitHub Releases first, and the Mac/Linux/Windows bridge ships through npm as <span className="font-mono text-ink">{`@dhruv2mars/offdex`}</span>.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            {/* CTAs */}
+            <div className="flex flex-wrap gap-3 mb-12 animate-fade-in-delay-3">
+              <a
+                href={androidApkDownloadUrl}
+                className="inline-flex items-center gap-2 rounded-lg bg-foreground px-5 py-3 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download APK
+              </a>
+              <a
+                href={githubReleasesUrl}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-5 py-3 text-sm font-medium text-foreground hover:bg-card transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+              </a>
             </div>
 
-            <div className="rounded-[36px] border border-line bg-panel p-4 shadow-[0_35px_100px_rgba(0,0,0,0.35)]">
-              <div className="grid gap-4 lg:grid-cols-3">
-                {shellColumns.map((column) => (
-                  <article
-                    key={column.label}
-                    className="flex min-h-[360px] flex-col rounded-[28px] border border-white/8 bg-panel-strong p-5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-lime">
-                        {column.label}
-                      </div>
-                      <div className="h-2.5 w-2.5 rounded-full bg-lime/70" />
-                    </div>
-                    <h2 className="mt-5 text-xl font-semibold tracking-[-0.04em] text-ink">
-                      {column.title}
-                    </h2>
-                    <p className="mt-3 text-sm leading-7 text-ink-soft">{column.body}</p>
-                    <div className="mt-auto space-y-3 pt-8">
-                      {column.items.map((item) => (
-                        <div
-                          key={item}
-                          className="rounded-[18px] border border-white/8 bg-black/10 px-3 py-3 text-sm text-ink-soft"
-                        >
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
+            {/* Install command */}
+            <div className="rounded-xl border border-border bg-card/30 p-4 animate-fade-in-delay-3">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Install bridge CLI</span>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg bg-background border border-border px-4 py-3">
+                <span className="text-muted-foreground select-none">$</span>
+                <code className="font-mono text-sm flex-1">{cliInstallCommand}</code>
+                <button 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => navigator.clipboard.writeText(cliInstallCommand)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Features */}
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-5xl px-6 py-20 md:py-28">
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature, i) => (
+              <div key={feature.title} className="group">
+                <div className="h-10 w-10 rounded-lg border border-border bg-card/50 flex items-center justify-center mb-4 group-hover:border-muted-foreground/50 transition-colors">
+                  <span className="text-xs font-mono text-muted-foreground">0{i + 1}</span>
+                </div>
+                <h3 className="text-base font-semibold mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="border-t border-border bg-card/20">
+        <div className="mx-auto max-w-5xl px-6 py-20 md:py-28">
+          <div className="mb-12">
+            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">How it works</h2>
+            <p className="text-muted-foreground max-w-xl">Three steps to get Codex on your phone. Your Mac stays the source of truth.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {steps.map((item) => (
+              <div 
+                key={item.step}
+                className="rounded-xl border border-border bg-card/50 p-6 hover:border-muted-foreground/30 transition-colors"
+              >
+                <span className="text-xs font-mono text-muted-foreground">{item.step}</span>
+                <h3 className="text-base font-semibold mt-3 mb-2">{item.label}</h3>
+                <p className="text-sm text-muted-foreground">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture callout */}
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-5xl px-6 py-20 md:py-28">
+          <div className="rounded-2xl border border-border bg-card/30 p-8 md:p-12">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div>
+                <h2 className="text-xl md:text-2xl font-semibold mb-3">Local-first architecture</h2>
+                <p className="text-muted-foreground max-w-lg">
+                  No cloud intermediary. Your Mac bridges directly to your phone over local network or secure relay. Codex auth never leaves your machine.
+                </p>
+              </div>
+              <a
+                href="/architecture"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-5 py-3 text-sm font-medium hover:bg-card transition-colors whitespace-nowrap"
+              >
+                Read architecture docs
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border">
+        <div className="mx-auto max-w-5xl px-6 py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded bg-muted flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <span className="text-xs text-muted-foreground">Offdex</span>
+            </div>
+            <div className="flex items-center gap-6 text-xs text-muted-foreground">
+              <a href={githubReleasesUrl} className="hover:text-foreground transition-colors">Releases</a>
+              <a href="/architecture" className="hover:text-foreground transition-colors">Architecture</a>
+              <span>Built for Codex</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

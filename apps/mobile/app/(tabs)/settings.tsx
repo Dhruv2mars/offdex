@@ -1,0 +1,321 @@
+import { useCallback, useState } from "react";
+import { Alert, Linking } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Terminal,
+  Monitor,
+  Moon,
+  Sun,
+  Info,
+  ExternalLink,
+  Github,
+  ChevronRight,
+  Trash2,
+  Bug,
+  MessageCircle,
+  FileText,
+  Shield,
+  Laptop,
+  Zap,
+} from "lucide-react-native";
+
+import { View, Text, Pressable, ScrollView } from "../../lib/tw";
+import { cn } from "../../lib/utils";
+import { useWorkspaceStore } from "../../lib/store";
+import { feedbackSelection, feedbackSuccess, feedbackError, feedbackWarning } from "../../src/feedback";
+
+import { Card } from "../../components/ui/card";
+import { ScreenHeader } from "../../components/layout/header";
+import { Separator } from "../../components/ui/separator";
+import { StatusBadge } from "../../components/ui/badge";
+
+// ════════════════════════════════════════════════════════════════════════════
+// Settings Row Component
+// ════════════════════════════════════════════════════════════════════════════
+
+interface SettingsRowProps {
+  icon: React.ElementType;
+  label: string;
+  description?: string;
+  value?: string;
+  onPress?: () => void;
+  trailing?: React.ReactNode;
+  variant?: "default" | "destructive";
+}
+
+function SettingsRow({
+  icon: Icon,
+  label,
+  description,
+  value,
+  onPress,
+  trailing,
+  variant = "default",
+}: SettingsRowProps) {
+  const content = (
+    <View className="flex-row items-center py-3">
+      <View
+        className={cn(
+          "w-9 h-9 rounded-lg items-center justify-center mr-3",
+          variant === "destructive" ? "bg-destructive/10" : "bg-muted"
+        )}
+      >
+        <Icon
+          size={18}
+          color={variant === "destructive" ? "#ef4444" : "#a1a1aa"}
+        />
+      </View>
+      <View className="flex-1">
+        <Text
+          className={cn(
+            "text-sm font-medium",
+            variant === "destructive" ? "text-destructive" : "text-foreground"
+          )}
+        >
+          {label}
+        </Text>
+        {description && (
+          <Text className="text-xs text-muted-foreground mt-0.5">
+            {description}
+          </Text>
+        )}
+      </View>
+      {value && (
+        <Text className="text-sm text-muted-foreground mr-2">{value}</Text>
+      )}
+      {trailing}
+      {onPress && !trailing && (
+        <ChevronRight size={16} color="#71717a" />
+      )}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} className="active:bg-muted rounded-lg -mx-2 px-2">
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Settings Section Component
+// ════════════════════════════════════════════════════════════════════════════
+
+interface SettingsSectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+function SettingsSection({ title, children }: SettingsSectionProps) {
+  return (
+    <View className="mb-6">
+      <Text className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-4">
+        {title}
+      </Text>
+      <Card className="mx-4">{children}</Card>
+    </View>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Settings Screen
+// ════════════════════════════════════════════════════════════════════════════
+
+const APP_VERSION = "2.0.0"; // TODO: Read from app.json
+const BUILD_NUMBER = "1";
+
+export default function SettingsScreen() {
+  // Store state
+  const runtimeTarget = useWorkspaceStore((s) => s.runtimeTarget);
+  const bridgeStatus = useWorkspaceStore((s) => s.bridgeStatus);
+  const codexAccount = useWorkspaceStore((s) => s.codexAccount);
+  const pairing = useWorkspaceStore((s) => s.snapshot.pairing);
+
+  // Actions
+  const setRuntimeTarget = useWorkspaceStore((s) => s.setRuntimeTarget);
+  const disconnect = useWorkspaceStore((s) => s.disconnect);
+
+  const handleRuntimeToggle = useCallback(async () => {
+    void feedbackSelection();
+    const newTarget = runtimeTarget === "cli" ? "desktop" : "cli";
+    try {
+      await setRuntimeTarget(newTarget);
+      void feedbackSuccess();
+    } catch {
+      void feedbackError();
+    }
+  }, [runtimeTarget, setRuntimeTarget]);
+
+  const handleClearData = useCallback(() => {
+    void feedbackWarning();
+    Alert.alert(
+      "Clear All Data",
+      "This will disconnect from your Mac and clear all local data. You'll need to pair again.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: () => {
+            disconnect();
+            void feedbackSuccess();
+          },
+        },
+      ]
+    );
+  }, [disconnect]);
+
+  const openLink = useCallback((url: string) => {
+    void feedbackSelection();
+    Linking.openURL(url);
+  }, []);
+
+  return (
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+      <ScreenHeader title="Settings" />
+
+      <ScrollView className="flex-1">
+        {/* Runtime Target */}
+        <SettingsSection title="Codex Runtime">
+          <SettingsRow
+            icon={Terminal}
+            label="CLI Mode"
+            description="Use Codex CLI in terminal"
+            trailing={
+              <View
+                className={cn(
+                  "w-5 h-5 rounded-full border-2 items-center justify-center",
+                  runtimeTarget === "cli"
+                    ? "border-primary bg-primary"
+                    : "border-muted-foreground"
+                )}
+              >
+                {runtimeTarget === "cli" && (
+                  <View className="w-2 h-2 rounded-full bg-primary-foreground" />
+                )}
+              </View>
+            }
+            onPress={() => {
+              if (runtimeTarget !== "cli") {
+                void setRuntimeTarget("cli");
+                void feedbackSelection();
+              }
+            }}
+          />
+          <Separator />
+          <SettingsRow
+            icon={Monitor}
+            label="Desktop App Mode"
+            description="Use Codex desktop application"
+            trailing={
+              <View
+                className={cn(
+                  "w-5 h-5 rounded-full border-2 items-center justify-center",
+                  runtimeTarget === "desktop"
+                    ? "border-primary bg-primary"
+                    : "border-muted-foreground"
+                )}
+              >
+                {runtimeTarget === "desktop" && (
+                  <View className="w-2 h-2 rounded-full bg-primary-foreground" />
+                )}
+              </View>
+            }
+            onPress={() => {
+              if (runtimeTarget !== "desktop") {
+                void setRuntimeTarget("desktop");
+                void feedbackSelection();
+              }
+            }}
+          />
+        </SettingsSection>
+
+        {/* Connection Info */}
+        <SettingsSection title="Connection">
+          <SettingsRow
+            icon={Laptop}
+            label="Connected Mac"
+            value={pairing.macName || "Not connected"}
+          />
+          <Separator />
+          <SettingsRow
+            icon={Zap}
+            label="Bridge Status"
+            trailing={
+              <StatusBadge
+                variant={bridgeStatus === "connected" ? "success" : "secondary"}
+                label={bridgeStatus || "Unknown"}
+              />
+            }
+          />
+          <Separator />
+          <SettingsRow
+            icon={Shield}
+            label="Codex Account"
+            trailing={
+              <StatusBadge
+                variant={codexAccount?.isAuthenticated ? "success" : "warning"}
+                label={codexAccount?.isAuthenticated ? "Signed in" : "Not signed in"}
+              />
+            }
+          />
+        </SettingsSection>
+
+        {/* Links */}
+        <SettingsSection title="Resources">
+          <SettingsRow
+            icon={FileText}
+            label="Documentation"
+            onPress={() => openLink("https://platform.openai.com/docs/guides/codex")}
+          />
+          <Separator />
+          <SettingsRow
+            icon={Github}
+            label="GitHub"
+            onPress={() => openLink("https://github.com/openai/codex")}
+          />
+          <Separator />
+          <SettingsRow
+            icon={Bug}
+            label="Report an Issue"
+            onPress={() => openLink("https://github.com/openai/codex/issues")}
+          />
+          <Separator />
+          <SettingsRow
+            icon={MessageCircle}
+            label="Send Feedback"
+            onPress={() => openLink("mailto:codex-feedback@openai.com")}
+          />
+        </SettingsSection>
+
+        {/* Danger Zone */}
+        <SettingsSection title="Data">
+          <SettingsRow
+            icon={Trash2}
+            label="Clear All Data"
+            description="Disconnect and reset the app"
+            variant="destructive"
+            onPress={handleClearData}
+          />
+        </SettingsSection>
+
+        {/* App Info */}
+        <View className="items-center py-8">
+          <Text className="text-sm font-semibold text-foreground mb-1">
+            Offdex
+          </Text>
+          <Text className="text-xs text-muted-foreground">
+            Version {APP_VERSION} ({BUILD_NUMBER})
+          </Text>
+          <Text className="text-xs text-muted-foreground mt-1">
+            Made with love for Codex
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
