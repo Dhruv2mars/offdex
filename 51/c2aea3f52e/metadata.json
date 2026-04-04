@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "51c2aea3f52e",
+  "strategy": "manual-commit",
+  "branch": "fix/offdex-release-flow",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/release.yml",
+    "packages/npm/test/release-contract.test.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/51/c2aea3f52e/0/metadata.json",
+      "transcript": "/51/c2aea3f52e/0/full.jsonl",
+      "content_hash": "/51/c2aea3f52e/0/content_hash.txt",
+      "prompt": "/51/c2aea3f52e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 853909,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 806016,
+    "output_tokens": 20074,
+    "api_call_count": 20
+  }
+}

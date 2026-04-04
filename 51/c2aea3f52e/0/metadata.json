@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "51c2aea3f52e",
+  "session_id": "019d5750-b8ee-7020-84a1-dd16ec0834c7",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-04T07:12:27.16653Z",
+  "branch": "fix/offdex-release-flow",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/npm/test/release-contract.test.js",
+    ".github/workflows/release.yml"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "725bb78ccfd9",
+  "token_usage": {
+    "input_tokens": 853909,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 806016,
+    "output_tokens": 20074,
+    "api_call_count": 20
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-04T07:12:26.991803Z",
+    "agent_lines": 21,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 21,
+    "agent_percentage": 100
+  }
+}
