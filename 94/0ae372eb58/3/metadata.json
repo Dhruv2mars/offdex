@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "940ae372eb58",
+  "session_id": "019d586d-8b5c-7e80-a818-817be6c4b6b1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-04T12:20:27.689802Z",
+  "branch": "feat/device-hardening-pass",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/App.tsx",
+    "apps/mobile/app.json",
+    "apps/mobile/package.json",
+    "apps/mobile/src/bridge-client.ts",
+    "apps/mobile/test/bridge-client.test.ts",
+    "bun.lock",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/control-plane/src/cli.ts",
+    "packages/control-plane/src/index.ts",
+    "packages/control-plane/test/index.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "fd1ef27b17c8",
+  "token_usage": {
+    "input_tokens": 20337,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3456,
+    "output_tokens": 47,
+    "api_call_count": 1
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-04T12:20:27.633188Z",
+    "agent_lines": 207,
+    "human_added": 569,
+    "human_modified": 11,
+    "human_removed": 0,
+    "total_committed": 786,
+    "agent_percentage": 26.33587786259542
+  }
+}

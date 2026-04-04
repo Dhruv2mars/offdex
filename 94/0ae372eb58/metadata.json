@@ -3,7 +3,7 @@
   "checkpoint_id": "940ae372eb58",
   "strategy": "manual-commit",
   "branch": "feat/device-hardening-pass",
-  "checkpoints_count": 4,
+  "checkpoints_count": 5,
   "files_touched": [
     ".gitignore",
     "apps/mobile/App.tsx",
@@ -55,13 +55,19 @@
       "transcript": "/94/0ae372eb58/2/full.jsonl",
       "content_hash": "/94/0ae372eb58/2/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/94/0ae372eb58/3/metadata.json",
+      "transcript": "/94/0ae372eb58/3/full.jsonl",
+      "content_hash": "/94/0ae372eb58/3/content_hash.txt",
+      "prompt": "/94/0ae372eb58/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 307986424,
+    "input_tokens": 308006761,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 295071872,
-    "output_tokens": 1134417,
-    "api_call_count": 2418
+    "cache_read_tokens": 295075328,
+    "output_tokens": 1134464,
+    "api_call_count": 2419
   }
 }
