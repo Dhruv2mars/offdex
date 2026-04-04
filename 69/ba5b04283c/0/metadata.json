@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "69ba5b04283c",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-04T16:57:13.094899Z",
+  "branch": "fix/bug-rampage",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/tsconfig.json"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "6c7d70b01fb3",
+  "token_usage": {
+    "input_tokens": 309869845,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 296947456,
+    "output_tokens": 1136737,
+    "api_call_count": 2431
+  },
+  "session_metrics": {
+    "turn_count": 38
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-04T16:56:54.984664Z",
+    "agent_lines": 0,
+    "human_added": 89,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 89,
+    "agent_percentage": 0
+  }
+}
