@@ -13,3 +13,7 @@ your goal is simple, go on a rampage of finding and fixing all the bugs, issues 
 ---
 
 ok, now the phone is unlocked, so you can do things via adb. also, you should do emulator testing as well via expo orbit, for both android and ios
+
+---
+
+continue moving forward and exploring to find mire bugs , issues and fixing them along the way. this is a bugathon and fixathon!!!!
