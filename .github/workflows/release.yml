@@ -13,6 +13,11 @@ on:
         description: "Existing release tag to publish, ex: v0.0.1"
         required: true
         type: string
+      publish_android:
+        description: "Build and upload the signed Android APK"
+        required: false
+        default: false
+        type: boolean
 
 concurrency: ${{ github.workflow }}-${{ github.ref_name }}
 
@@ -23,6 +28,7 @@ jobs:
   resolve_tag:
     runs-on: ubuntu-latest
     outputs:
+      publish_android: ${{ steps.resolve.outputs.publish_android }}
       release_tag: ${{ steps.resolve.outputs.release_tag }}
     steps:
       - id: resolve
@@ -32,15 +38,20 @@ jobs:
           case "${GITHUB_EVENT_NAME}" in
             repository_dispatch)
               release_tag="$(jq -r '.client_payload.release_tag // empty' "$GITHUB_EVENT_PATH")"
+              publish_android="$(jq -r '.client_payload.publish_android // false' "$GITHUB_EVENT_PATH")"
               ;;
             workflow_dispatch)
               release_tag="$(jq -r '.inputs.release_tag // empty' "$GITHUB_EVENT_PATH")"
+              publish_android="$(jq -r '.inputs.publish_android // false' "$GITHUB_EVENT_PATH")"
               ;;
             *)
               release_tag="${GITHUB_REF_NAME}"
+              publish_android="false"
               ;;
           esac
           [[ "${release_tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "${publish_android}" == "true" || "${publish_android}" == "false" ]]
+          echo "publish_android=${publish_android}" >> "$GITHUB_OUTPUT"
           echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
 
   validate:
@@ -96,6 +107,7 @@ jobs:
         run: gh release view "${RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${RELEASE_TAG}" --title "${RELEASE_TAG}" --generate-notes
 
   build_android_release:
+    if: ${{ needs.resolve_tag.outputs.publish_android == 'true' }}
     needs: [resolve_tag, validate, create_release]
     runs-on: ubuntu-latest
     permissions:

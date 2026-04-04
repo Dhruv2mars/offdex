@@ -29,3 +29,12 @@ test("release workflow publishes npm and platform binaries", () => {
   assert.match(releaseWorkflow, /bun-darwin-x64/);
   assert.doesNotMatch(releaseWorkflow, /bun-windows-arm64/);
 });
+
+test("android signing is opt-in so npm release is not blocked by mobile secrets", () => {
+  assert.match(releaseWorkflow, /publish_android:/);
+  assert.match(releaseWorkflow, /default:\s*false/);
+  assert.match(
+    releaseWorkflow,
+    /build_android_release:\n(?:.*\n)*?\s+if:\s+\$\{\{\s*needs\.resolve_tag\.outputs\.publish_android == 'true'\s*\}\}/
+  );
+});
