@@ -1,0 +1,50 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "40ef1157a975",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/mobile/app.json",
+    "apps/mobile/app/(tabs)/_layout.tsx",
+    "apps/mobile/app/(tabs)/index.tsx",
+    "apps/mobile/app/(tabs)/machines.tsx",
+    "apps/mobile/app/(tabs)/settings.tsx",
+    "apps/mobile/app/_layout.tsx",
+    "apps/mobile/app/chat/[id].tsx",
+    "apps/mobile/app/pair.tsx",
+    "apps/mobile/components/chat/composer.tsx",
+    "apps/mobile/components/chat/message-bubble.tsx",
+    "apps/mobile/components/chat/thread-item.tsx",
+    "apps/mobile/components/layout/connection-banner.tsx",
+    "apps/mobile/components/layout/empty-state.tsx",
+    "apps/mobile/components/layout/header.tsx",
+    "apps/mobile/components/ui/badge.tsx",
+    "apps/mobile/components/ui/button.tsx",
+    "apps/mobile/components/ui/card.tsx",
+    "apps/mobile/components/ui/input.tsx",
+    "apps/mobile/components/ui/separator.tsx",
+    "apps/mobile/components/ui/skeleton.tsx",
+    "apps/mobile/global.css",
+    "apps/mobile/lib/store.ts",
+    "apps/mobile/lib/tw/index.tsx",
+    "apps/mobile/lib/utils.ts",
+    "apps/mobile/metro.config.js",
+    "apps/mobile/nativewind-env.d.ts",
+    "apps/mobile/package.json",
+    "apps/mobile/postcss.config.mjs",
+    "apps/web/app/architecture/page.tsx",
+    "apps/web/app/globals.css",
+    "apps/web/app/layout.tsx",
+    "apps/web/app/page.tsx",
+    "bun.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/40/ef1157a975/0/metadata.json",
+      "transcript": "/40/ef1157a975/0/full.jsonl",
+      "content_hash": "/40/ef1157a975/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
