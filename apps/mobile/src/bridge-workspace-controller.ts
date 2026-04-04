@@ -153,6 +153,7 @@ export class BridgeWorkspaceController {
   #liveSubscriptionVersion = 0;
   #reconnectTimer: unknown = null;
   #reconnectAttempt = 0;
+  #connectionAttempt = 0;
   #connectionTarget: string | null = null;
   #savedPairingUri: string | null = null;
   #managedSession: ManagedBridgeSession | null = null;
@@ -259,6 +260,7 @@ export class BridgeWorkspaceController {
     uri: string,
     options?: { persistPairingUri?: boolean }
   ) {
+    const connectionAttempt = ++this.#connectionAttempt;
     const payload = decodePairingUri(uri);
     this.#patchPairingProfile({
       bridgeUrl: payload.bridgeUrl,
@@ -266,6 +268,9 @@ export class BridgeWorkspaceController {
     });
     if (payload.remote) {
       const managedClaim = await this.#client.claimManagedPairing(payload.remote);
+      if (!this.#isCurrentConnectionAttempt(connectionAttempt)) {
+        return this.getState();
+      }
       this.#managedSession = {
         ...managedClaim.session,
         machineId: payload.remote.machineId,
@@ -277,7 +282,11 @@ export class BridgeWorkspaceController {
       });
       await this.#preferences.setManagedSession?.(this.#managedSession);
       await this.#preferences.setPairingUri?.(null);
-      return this.#connectManagedSession(this.#managedSession, payload.remote.machineId);
+      return this.#connectManagedSession(
+        this.#managedSession,
+        payload.remote.machineId,
+        connectionAttempt
+      );
     }
 
     this.#savedPairingUri = uri;
@@ -286,6 +295,7 @@ export class BridgeWorkspaceController {
       macName: payload.macName,
     });
     return this.connect(payload.bridgeUrl, {
+      connectionAttempt,
       pairingPayload: payload,
       persistPairingUri: options?.persistPairingUri ?? true,
     });
@@ -294,10 +304,12 @@ export class BridgeWorkspaceController {
   async connect(
     bridgeBaseUrl = this.#state.bridgeBaseUrl,
     options?: {
+      connectionAttempt?: number;
       pairingPayload?: OffdexPairingPayload;
       persistPairingUri?: boolean;
     }
   ) {
+    const connectionAttempt = options?.connectionAttempt ?? ++this.#connectionAttempt;
     const normalized = normalizeBridgeBaseUrl(bridgeBaseUrl);
     const connectionTarget =
       options?.pairingPayload?.relay ? encodeRelayConnectionTarget(options.pairingPayload) : normalized;
@@ -319,12 +331,16 @@ export class BridgeWorkspaceController {
 
     try {
       await this.#connectToBridge(connectionTarget, connectionLabel, {
+        connectionAttempt,
         persistUrlOnFailure: false,
         pairingUri: options?.persistPairingUri === false ? null : this.#savedPairingUri,
         bridgeBaseUrl: normalized,
       });
       return this.getState();
     } catch (error) {
+      if (!this.#isCurrentConnectionAttempt(connectionAttempt)) {
+        return this.getState();
+      }
       this.#connectionTarget = null;
       this.#setState({
         connectedBridgeUrl: null,
@@ -341,6 +357,7 @@ export class BridgeWorkspaceController {
   }
 
   disconnect() {
+    this.#connectionAttempt += 1;
     this.#clearReconnectTimer();
     this.#reconnectAttempt = 0;
     this.#teardownLiveSubscription();
@@ -355,6 +372,7 @@ export class BridgeWorkspaceController {
       connectionTransport: null,
       connectionState: "idle",
       bridgeStatus: "Disconnected",
+      isBusy: false,
       relayUrl: null,
         trustedPairing: false,
         machines: [],
@@ -375,10 +393,12 @@ export class BridgeWorkspaceController {
 
   async resume() {
     if (this.#managedSession) {
+      const connectionAttempt = ++this.#connectionAttempt;
       try {
         return await this.#connectManagedSession(
           this.#managedSession,
-          this.#managedSession.machineId
+          this.#managedSession.machineId,
+          connectionAttempt
         );
       } catch {
         this.#patchPairingState("reconnecting");
@@ -397,6 +417,7 @@ export class BridgeWorkspaceController {
     }
 
     this.#clearReconnectTimer();
+    const connectionAttempt = ++this.#connectionAttempt;
     this.#setState({
       connectedBridgeUrl: resumeBridgeUrl,
       connectionState: "connecting",
@@ -408,6 +429,7 @@ export class BridgeWorkspaceController {
 
     try {
       await this.#connectToBridge(connectionTarget, resumeBridgeUrl, {
+        connectionAttempt,
         persistUrlOnFailure: true,
         pairingUri: this.#savedPairingUri,
         bridgeBaseUrl: this.#state.bridgeBaseUrl,
@@ -502,24 +524,41 @@ export class BridgeWorkspaceController {
       throw new Error("Pair a trusted machine first.");
     }
 
-    await this.refreshManagedMachines();
-    return this.#connectManagedSession(this.#managedSession, machineId);
+    const connectionAttempt = ++this.#connectionAttempt;
+    await this.refreshManagedMachines(connectionAttempt);
+    if (!this.#isCurrentConnectionAttempt(connectionAttempt)) {
+      return this.getState();
+    }
+    return this.#connectManagedSession(this.#managedSession, machineId, connectionAttempt);
   }
 
-  async refreshManagedMachines() {
+  async refreshManagedMachines(connectionAttempt?: number) {
     if (!this.#managedSession) {
       return this.getState();
     }
 
     const machines = await this.#client.listManagedMachines(this.#managedSession);
+    if (
+      typeof connectionAttempt === "number" &&
+      !this.#isCurrentConnectionAttempt(connectionAttempt)
+    ) {
+      return this.getState();
+    }
     this.#setState({
       machines: machines.machines,
     });
     return this.getState();
   }
 
-  async #connectManagedSession(session: ManagedBridgeSession, machineId: string) {
+  async #connectManagedSession(
+    session: ManagedBridgeSession,
+    machineId: string,
+    connectionAttempt = ++this.#connectionAttempt
+  ) {
     const resolved = await this.#client.resolveManagedConnection(session, machineId);
+    if (!this.#isCurrentConnectionAttempt(connectionAttempt)) {
+      return this.getState();
+    }
     this.#managedSession = {
       ...session,
       machineId,
@@ -540,10 +579,14 @@ export class BridgeWorkspaceController {
     });
 
     await this.#connectToBridge(resolved.connectionTarget, resolved.connectionLabel, {
+      connectionAttempt,
       persistUrlOnFailure: true,
       pairingUri: null,
       bridgeBaseUrl: resolved.machine?.localBridgeUrl ?? this.#state.bridgeBaseUrl,
     });
+    if (!this.#isCurrentConnectionAttempt(connectionAttempt)) {
+      return this.getState();
+    }
     await this.#preferences.setManagedSession?.(this.#managedSession);
     return this.getState();
   }
@@ -552,6 +595,7 @@ export class BridgeWorkspaceController {
     connectionTarget: string,
     connectionLabel: string,
     options: {
+      connectionAttempt: number;
       persistUrlOnFailure: boolean;
       pairingUri: string | null;
       bridgeBaseUrl: string;
@@ -562,6 +606,9 @@ export class BridgeWorkspaceController {
         this.#client.fetchBridgeHealth(connectionTarget),
         this.#client.fetchBridgeSnapshot(connectionTarget),
       ]);
+      if (!this.#isCurrentConnectionAttempt(options.connectionAttempt)) {
+        return;
+      }
       const connectionTransport = getConnectionTransport(connectionTarget);
 
       this.#replaceSnapshot(snapshot);
@@ -589,6 +636,9 @@ export class BridgeWorkspaceController {
         lastSeenAt: "Just now",
       });
     } catch (error) {
+      if (!this.#isCurrentConnectionAttempt(options.connectionAttempt)) {
+        return;
+      }
       this.#setState({
         connectedBridgeUrl: options.persistUrlOnFailure ? connectionLabel : null,
         connectionTransport: options.persistUrlOnFailure
@@ -694,8 +744,13 @@ export class BridgeWorkspaceController {
 
   async #retryConnect(connectionTarget: string, connectionLabel: string) {
     if (this.#managedSession) {
+      const connectionAttempt = ++this.#connectionAttempt;
       try {
-        await this.#connectManagedSession(this.#managedSession, this.#managedSession.machineId);
+        await this.#connectManagedSession(
+          this.#managedSession,
+          this.#managedSession.machineId,
+          connectionAttempt
+        );
       } catch {
         this.#scheduleReconnect(connectionTarget, connectionLabel, "error");
       }
@@ -706,6 +761,7 @@ export class BridgeWorkspaceController {
       return;
     }
 
+    const connectionAttempt = ++this.#connectionAttempt;
     this.#setState({
       connectionState: "connecting",
       isBusy: true,
@@ -714,6 +770,7 @@ export class BridgeWorkspaceController {
 
     try {
       await this.#connectToBridge(connectionTarget, connectionLabel, {
+        connectionAttempt,
         persistUrlOnFailure: true,
         pairingUri: this.#savedPairingUri,
         bridgeBaseUrl: this.#state.bridgeBaseUrl,
@@ -730,6 +787,10 @@ export class BridgeWorkspaceController {
 
     this.#timer.clearTimeout(this.#reconnectTimer);
     this.#reconnectTimer = null;
+  }
+
+  #isCurrentConnectionAttempt(connectionAttempt: number) {
+    return connectionAttempt === this.#connectionAttempt;
   }
 
   #teardownLiveSubscription() {

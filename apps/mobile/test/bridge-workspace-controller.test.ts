@@ -610,6 +610,67 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().connectionState).toBe("idle");
   });
 
+  test("disconnect keeps a late bridge connect from restoring the session", async () => {
+    const snapshot = makeDemoWorkspaceSnapshot("cli");
+    let resolveHealth!: (value: Awaited<ReturnType<BridgeClient["fetchBridgeHealth"]>>) => void;
+    let resolveSnapshot!: (
+      value: Awaited<ReturnType<BridgeClient["fetchBridgeSnapshot"]>>
+    ) => void;
+
+    const client: BridgeClient = {
+      ...createFakeClient().client,
+      fetchBridgeHealth() {
+        return new Promise((resolve) => {
+          resolveHealth = resolve;
+        });
+      },
+      fetchBridgeSnapshot() {
+        return new Promise((resolve) => {
+          resolveSnapshot = resolve;
+        });
+      },
+    };
+
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client,
+    });
+
+    const connectPromise = controller.connect("http://127.0.0.1:42420");
+    await flushAsyncWork();
+
+    expect(controller.getState().connectionState).toBe("connecting");
+    expect(controller.getState().isBusy).toBe(true);
+
+    controller.disconnect();
+
+    resolveHealth({
+      ok: true,
+      transport: "bridge",
+      bridgeUrl: "http://127.0.0.1:42420",
+      bridgeHints: ["http://127.0.0.1:42420"],
+      macName: "studio-macbook",
+      desktopAvailable: false,
+      codexAccount: {
+        id: "owner-123",
+        email: "dhruv@example.com",
+        name: "Dhruv",
+        planType: "plus",
+        isAuthenticated: true,
+      },
+      session: null,
+    });
+    resolveSnapshot(snapshot);
+
+    await connectPromise;
+    await flushAsyncWork();
+
+    expect(controller.getState().connectionState).toBe("idle");
+    expect(controller.getState().connectedBridgeUrl).toBeNull();
+    expect(controller.getState().isBusy).toBe(false);
+    expect(controller.getState().trustedPairing).toBe(false);
+  });
+
   test("interrupts a running thread through the bridge", async () => {
     const fakeClient = createFakeClient();
     const controller = new BridgeWorkspaceController({
