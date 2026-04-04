@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "940ae372eb58",
+  "strategy": "manual-commit",
+  "branch": "feat/device-hardening-pass",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "apps/mobile/App.tsx",
+    "apps/mobile/app.json",
+    "apps/mobile/modules/launch-intent/android/src/main/java/expo/modules/launchintent/LaunchIntentModule.kt",
+    "apps/mobile/package.json",
+    "apps/mobile/src/launch-url.ts",
+    "apps/mobile/test/launch-url.test.ts",
+    "bun.lock",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/control-plane/src/cli.ts",
+    "packages/control-plane/src/index.ts",
+    "packages/control-plane/test/index.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/94/0ae372eb58/0/metadata.json",
+      "transcript": "/94/0ae372eb58/0/full.jsonl",
+      "content_hash": "/94/0ae372eb58/0/content_hash.txt",
+      "prompt": "/94/0ae372eb58/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 307986424,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 295071872,
+    "output_tokens": 1134417,
+    "api_call_count": 2418
+  }
+}

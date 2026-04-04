@@ -1,0 +1,45 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "940ae372eb58",
+  "session_id": "019d4c9e-2af8-7e83-b3f9-899de0baa3c1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-04T12:20:27.55851Z",
+  "branch": "feat/device-hardening-pass",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "apps/mobile/App.tsx",
+    "apps/mobile/app.json",
+    "apps/mobile/modules/launch-intent/android/src/main/java/expo/modules/launchintent/LaunchIntentModule.kt",
+    "apps/mobile/package.json",
+    "apps/mobile/src/launch-url.ts",
+    "apps/mobile/test/launch-url.test.ts",
+    "bun.lock",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/control-plane/src/cli.ts",
+    "packages/control-plane/src/index.ts",
+    "packages/control-plane/test/index.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "6c7d70b01fb3",
+  "token_usage": {
+    "input_tokens": 307986424,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 295071872,
+    "output_tokens": 1134417,
+    "api_call_count": 2418
+  },
+  "session_metrics": {
+    "turn_count": 37
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-04T12:20:09.975807Z",
+    "agent_lines": 242,
+    "human_added": 551,
+    "human_modified": 14,
+    "human_removed": 0,
+    "total_committed": 807,
+    "agent_percentage": 29.987608426270135
+  }
+}
