@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FlashList } from "@shopify/flash-list";
 import {
   Terminal,
   Monitor,
@@ -13,9 +14,9 @@ import {
   Shield,
   Laptop,
   Zap,
-} from "lucide-react-native";
+} from "../../lib/icons";
 
-import { View, Text, Pressable, ScrollView } from "../../lib/tw";
+import { View, Text, Pressable, Modal } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
 import {
@@ -29,6 +30,7 @@ import {
 import { feedbackSelection, feedbackSuccess, feedbackError, feedbackWarning } from "../../src/feedback";
 
 import { Card } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
 import { ScreenHeader } from "../../components/layout/header";
 import { Separator } from "../../components/ui/separator";
 import { StatusBadge } from "../../components/ui/badge";
@@ -162,6 +164,8 @@ function getConnectionStateVariant(
 }
 
 export default function SettingsScreen() {
+  const [clearDataConfirmVisible, setClearDataConfirmVisible] = useState(false);
+
   // Store state
   const runtimeTarget = useWorkspaceStore((s) => s.runtimeTarget);
   const connectionState = useWorkspaceStore((s) => s.connectionState);
@@ -172,6 +176,12 @@ export default function SettingsScreen() {
   // Actions
   const setRuntimeTarget = useWorkspaceStore((s) => s.setRuntimeTarget);
   const disconnect = useWorkspaceStore((s) => s.disconnect);
+
+  const confirmClearData = useCallback(() => {
+    setClearDataConfirmVisible(false);
+    disconnect();
+    void feedbackSuccess();
+  }, [disconnect]);
 
   const handleRuntimeToggle = useCallback(async () => {
     void feedbackSelection();
@@ -186,6 +196,12 @@ export default function SettingsScreen() {
 
   const handleClearData = useCallback(() => {
     void feedbackWarning();
+
+    if (Platform.OS === "web") {
+      setClearDataConfirmVisible(true);
+      return;
+    }
+
     Alert.alert(
       "Clear All Data",
       "This will disconnect from your Mac and clear all local data. You'll need to pair again.",
@@ -195,13 +211,12 @@ export default function SettingsScreen() {
           text: "Clear",
           style: "destructive",
           onPress: () => {
-            disconnect();
-            void feedbackSuccess();
+            confirmClearData();
           },
         },
       ]
     );
-  }, [disconnect]);
+  }, [confirmClearData]);
 
   const openLink = useCallback((url: string) => {
     void feedbackSelection();
@@ -209,151 +224,188 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
       <ScreenHeader title="Settings" />
 
-      <ScrollView
-        className="flex-1 bg-background"
-        contentContainerClassName="bg-background"
-      >
-        {/* Runtime Target */}
-        <SettingsSection title="Codex Runtime">
-          <SettingsRow
-            icon={Terminal}
-            label="CLI Mode"
-            description="Use Codex CLI in terminal"
-            trailing={
-              <View
-                className={cn(
-                  "w-5 h-5 rounded-full border-2 items-center justify-center",
-                  runtimeTarget === "cli"
-                    ? "border-primary bg-primary"
-                    : "border-muted-foreground"
-                )}
-              >
-                {runtimeTarget === "cli" && (
-                  <View className="w-2 h-2 rounded-full bg-primary-foreground" />
-                )}
-              </View>
-            }
-            onPress={() => {
-              if (runtimeTarget !== "cli") {
-                void setRuntimeTarget("cli");
-                void feedbackSelection();
-              }
-            }}
-          />
-          <Separator />
-          <SettingsRow
-            icon={Monitor}
-            label="Desktop App Mode"
-            description="Use Codex desktop application"
-            trailing={
-              <View
-                className={cn(
-                  "w-5 h-5 rounded-full border-2 items-center justify-center",
-                  runtimeTarget === "desktop"
-                    ? "border-primary bg-primary"
-                    : "border-muted-foreground"
-                )}
-              >
-                {runtimeTarget === "desktop" && (
-                  <View className="w-2 h-2 rounded-full bg-primary-foreground" />
-                )}
-              </View>
-            }
-            onPress={() => {
-              if (runtimeTarget !== "desktop") {
-                void setRuntimeTarget("desktop");
-                void feedbackSelection();
-              }
-            }}
-          />
-        </SettingsSection>
-
-        {/* Connection Info */}
-        <SettingsSection title="Connection">
-          <SettingsRow
-            icon={Laptop}
-            label="Connected Mac"
-            value={pairing.macName || "Not connected"}
-          />
-          <Separator />
-          <SettingsRow
-            icon={Zap}
-            label="Bridge Status"
-            description={bridgeStatus}
-            trailing={
-              <StatusBadge
-                variant={getConnectionStateVariant(connectionState)}
-                label={getConnectionStateLabel(connectionState)}
+      <FlashList
+        data={["settings-content"]}
+        keyExtractor={(item) => item}
+        style={{ flex: 1, backgroundColor: "#09090b" }}
+        contentContainerStyle={{ backgroundColor: "#09090b", paddingBottom: 24 }}
+        renderItem={() => (
+          <View className="pt-4">
+            <SettingsSection title="Codex Runtime">
+              <SettingsRow
+                icon={Terminal}
+                label="CLI Mode"
+                description="Use Codex CLI in terminal"
+                trailing={
+                  <View
+                    className={cn(
+                      "w-5 h-5 rounded-full border-2 items-center justify-center",
+                      runtimeTarget === "cli"
+                        ? "border-primary bg-primary"
+                        : "border-muted-foreground"
+                    )}
+                  >
+                    {runtimeTarget === "cli" && (
+                      <View className="w-2 h-2 rounded-full bg-primary-foreground" />
+                    )}
+                  </View>
+                }
+                onPress={() => {
+                  if (runtimeTarget !== "cli") {
+                    void setRuntimeTarget("cli");
+                    void feedbackSelection();
+                  }
+                }}
               />
-            }
-          />
-          <Separator />
-          <SettingsRow
-            icon={Shield}
-            label="Codex Account"
-            trailing={
-              <StatusBadge
-                variant={codexAccount?.isAuthenticated ? "success" : "warning"}
-                label={codexAccount?.isAuthenticated ? "Signed in" : "Not signed in"}
+              <Separator />
+              <SettingsRow
+                icon={Monitor}
+                label="Desktop App Mode"
+                description="Use Codex desktop application"
+                trailing={
+                  <View
+                    className={cn(
+                      "w-5 h-5 rounded-full border-2 items-center justify-center",
+                      runtimeTarget === "desktop"
+                        ? "border-primary bg-primary"
+                        : "border-muted-foreground"
+                    )}
+                  >
+                    {runtimeTarget === "desktop" && (
+                      <View className="w-2 h-2 rounded-full bg-primary-foreground" />
+                    )}
+                  </View>
+                }
+                onPress={() => {
+                  if (runtimeTarget !== "desktop") {
+                    void setRuntimeTarget("desktop");
+                    void feedbackSelection();
+                  }
+                }}
               />
-            }
-          />
-        </SettingsSection>
+            </SettingsSection>
 
-        {/* Links */}
-        <SettingsSection title="Resources">
-          <SettingsRow
-            icon={FileText}
-            label="Documentation"
-            onPress={() => openLink(offdexDocsUrl)}
-          />
-          <Separator />
-          <SettingsRow
-            icon={ExternalLink}
-            label="GitHub"
-            onPress={() => openLink(offdexRepositoryUrl)}
-          />
-          <Separator />
-          <SettingsRow
-            icon={Bug}
-            label="Report an Issue"
-            onPress={() => openLink(offdexIssuesUrl)}
-          />
-          <Separator />
-          <SettingsRow
-            icon={MessageCircle}
-            label="Send Feedback"
-            onPress={() => openLink(offdexFeedbackUrl)}
-          />
-        </SettingsSection>
+            <SettingsSection title="Connection">
+              <SettingsRow
+                icon={Laptop}
+                label="Connected Mac"
+                value={pairing.macName || "Not connected"}
+              />
+              <Separator />
+              <SettingsRow
+                icon={Zap}
+                label="Bridge Status"
+                description={bridgeStatus}
+                trailing={
+                  <StatusBadge
+                    variant={getConnectionStateVariant(connectionState)}
+                    label={getConnectionStateLabel(connectionState)}
+                  />
+                }
+              />
+              <Separator />
+              <SettingsRow
+                icon={Shield}
+                label="Codex Account"
+                trailing={
+                  <StatusBadge
+                    variant={codexAccount?.isAuthenticated ? "success" : "warning"}
+                    label={codexAccount?.isAuthenticated ? "Signed in" : "Not signed in"}
+                  />
+                }
+              />
+            </SettingsSection>
 
-        {/* Danger Zone */}
-        <SettingsSection title="Data">
-          <SettingsRow
-            icon={Trash2}
-            label="Clear All Data"
-            description="Disconnect and reset the app"
-            variant="destructive"
-            onPress={handleClearData}
-          />
-        </SettingsSection>
+            <SettingsSection title="Resources">
+              <SettingsRow
+                icon={FileText}
+                label="Documentation"
+                onPress={() => openLink(offdexDocsUrl)}
+              />
+              <Separator />
+              <SettingsRow
+                icon={ExternalLink}
+                label="GitHub"
+                onPress={() => openLink(offdexRepositoryUrl)}
+              />
+              <Separator />
+              <SettingsRow
+                icon={Bug}
+                label="Report an Issue"
+                onPress={() => openLink(offdexIssuesUrl)}
+              />
+              <Separator />
+              <SettingsRow
+                icon={MessageCircle}
+                label="Send Feedback"
+                onPress={() => openLink(offdexFeedbackUrl)}
+              />
+            </SettingsSection>
 
-        {/* App Info */}
-        <View className="items-center py-8">
-          <Text className="text-sm font-semibold text-foreground mb-1">
-            Offdex
-          </Text>
-          <Text className="text-xs text-muted-foreground">
-            Version {appVersion} ({appBuildNumber})
-          </Text>
-          <Text className="text-xs text-muted-foreground mt-1">
-            Made with love for Codex
-          </Text>
-        </View>
-      </ScrollView>
+            <SettingsSection title="Data">
+              <SettingsRow
+                icon={Trash2}
+                label="Clear All Data"
+                description="Disconnect and reset the app"
+                variant="destructive"
+                onPress={handleClearData}
+              />
+            </SettingsSection>
+
+            <View className="items-center py-8">
+              <Text className="text-sm font-semibold text-foreground mb-1">
+                Offdex
+              </Text>
+              <Text className="text-xs text-muted-foreground">
+                Version {appVersion} ({appBuildNumber})
+              </Text>
+              <Text className="text-xs text-muted-foreground mt-1">
+                Made with love for Codex
+              </Text>
+            </View>
+          </View>
+        )}
+      />
+
+      {Platform.OS === "web" && (
+        <Modal
+          visible={clearDataConfirmVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setClearDataConfirmVisible(false)}
+        >
+          <View className="flex-1 items-center justify-center bg-black/70 px-6">
+            <Card className="w-full max-w-sm p-5">
+              <Text className="text-lg font-semibold text-foreground">
+                Clear All Data
+              </Text>
+              <Text className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                This will disconnect from your Mac and clear all local data. You&apos;ll need to
+                pair again.
+              </Text>
+              <View className="mt-5 flex-row gap-3">
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onPress={() => setClearDataConfirmVisible(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onPress={confirmClearData}
+                >
+                  Clear
+                </Button>
+              </View>
+            </Card>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }

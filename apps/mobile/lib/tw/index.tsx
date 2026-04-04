@@ -71,7 +71,14 @@ export const Pressable = forwardRef<
   React.ElementRef<typeof RNPressable>,
   PressableProps
 >((props, ref) => {
-  return renderCssElement(RNPressable, { ...props, ref }, { className: "style" });
+  const nextProps = {
+    ...props,
+    ref,
+    accessibilityRole:
+      props.accessibilityRole ?? (typeof props.onPress === "function" ? "button" : undefined),
+  };
+
+  return renderCssElement(RNPressable, nextProps, { className: "style" });
 });
 Pressable.displayName = "CSS(Pressable)";
 
