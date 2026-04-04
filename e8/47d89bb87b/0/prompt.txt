@@ -17,3 +17,7 @@ ok, now the phone is unlocked, so you can do things via adb. also, you should do
 ---
 
 continue moving forward and exploring to find mire bugs , issues and fixing them along the way. this is a bugathon and fixathon!!!!
+
+---
+
+continue then. chop chop!!!
