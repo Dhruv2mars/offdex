@@ -3,10 +3,10 @@ import { RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Plus, MessageSquare } from "lucide-react-native";
+import { Plus, MessageSquare } from "../../lib/icons";
 import { OFFDEX_NEW_THREAD_ID, type OffdexThread } from "@offdex/protocol";
 
-import { View, ScrollView, Text } from "../../lib/tw";
+import { View, Text } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
 import { feedbackError, feedbackSuccess, feedbackSelection } from "../../src/feedback";
@@ -62,7 +62,7 @@ export default function ThreadListScreen() {
   const showThreads = threads.length > 0 || connectionState !== "idle";
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
       {/* Header */}
       <ScreenHeader
         title="Chats"
@@ -88,7 +88,6 @@ export default function ThreadListScreen() {
         <FlashList
           data={threads}
           keyExtractor={(thread) => thread.id}
-          estimatedItemSize={88}
           style={{ flex: 1, backgroundColor: "#09090b" }}
           contentContainerStyle={{ paddingBottom: 16, backgroundColor: "#09090b" }}
           refreshControl={
@@ -136,9 +135,12 @@ export default function ThreadListScreen() {
           }
         />
       ) : (
-        <ScrollView
-          className="flex-1 bg-background"
-          contentContainerClassName="flex-1 bg-background"
+        <FlashList
+          data={[]}
+          keyExtractor={(_, index) => `empty-${index}`}
+          renderItem={null}
+          style={{ flex: 1, backgroundColor: "#09090b" }}
+          contentContainerStyle={{ flexGrow: 1, backgroundColor: "#09090b" }}
           refreshControl={
             <RefreshControl
               refreshing={isBusy}
@@ -147,8 +149,8 @@ export default function ThreadListScreen() {
               colors={["#fafafa"]}
             />
           }
-        >
-          <EmptyState
+          ListEmptyComponent={
+            <EmptyState
             icon={MessageSquare}
             title="No conversations yet"
             description="Connect to your Mac to see your Codex threads, or start a new one."
@@ -157,7 +159,8 @@ export default function ThreadListScreen() {
               onPress: handleNewThread,
             }}
           />
-        </ScrollView>
+          }
+        />
       )}
     </SafeAreaView>
   );

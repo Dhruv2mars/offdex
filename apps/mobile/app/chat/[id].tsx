@@ -1,9 +1,15 @@
 import { useCallback, useRef, useEffect, useState } from "react";
 import { Platform, Keyboard } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, MoreHorizontal, Folder, Terminal, Monitor } from "lucide-react-native";
+import {
+  ChevronLeft,
+  MoreHorizontal,
+  Folder,
+  Terminal,
+  Monitor,
+} from "../../lib/icons";
 import { OFFDEX_NEW_THREAD_ID, type OffdexMessage } from "@offdex/protocol";
 
 import { View, Text, Pressable, KeyboardAvoidingView } from "../../lib/tw";
@@ -21,7 +27,7 @@ import { Composer } from "../../components/chat/composer";
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const listRef = useRef<FlashList<OffdexMessage>>(null);
+  const listRef = useRef<FlashListRef<OffdexMessage>>(null);
   const [workingDuration, setWorkingDuration] = useState(0);
 
   // Store state
@@ -86,7 +92,7 @@ export default function ChatScreen() {
   const RuntimeIcon = runtimeTarget === "cli" ? Terminal : Monitor;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
       {/* Custom Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         {/* Back Button */}
@@ -139,10 +145,8 @@ export default function ChatScreen() {
           ref={listRef}
           data={messages}
           keyExtractor={(message) => message.id}
-          estimatedItemSize={100}
           style={{ flex: 1, backgroundColor: "#09090b" }}
           contentContainerStyle={{ paddingVertical: 16, backgroundColor: "#09090b" }}
-          inverted={false}
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center px-8 py-16">
               {isNewThread ? (

@@ -1,6 +1,6 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
-import { LaunchIntentModuleEvents } from './LaunchIntent.types';
+import { LaunchIntentEventPayload, LaunchIntentModuleEvents } from './LaunchIntent.types';
 
 declare class LaunchIntentModule extends NativeModule<LaunchIntentModuleEvents> {
   consumePendingUrl(): string | null;
@@ -8,7 +8,10 @@ declare class LaunchIntentModule extends NativeModule<LaunchIntentModuleEvents> 
 }
 
 type LaunchIntentModuleShape = LaunchIntentModule & {
-  addListener: NativeModule<LaunchIntentModuleEvents>["addListener"];
+  addListener(
+    eventName: keyof LaunchIntentModuleEvents,
+    listener: (payload: LaunchIntentEventPayload) => void
+  ): { remove(): void };
 };
 
 const fallbackModule: LaunchIntentModuleShape = {
@@ -21,7 +24,7 @@ const fallbackModule: LaunchIntentModuleShape = {
   peekPendingUrl() {
     return null;
   },
-} as LaunchIntentModuleShape;
+} as unknown as LaunchIntentModuleShape;
 
 function loadLaunchIntentModule() {
   try {

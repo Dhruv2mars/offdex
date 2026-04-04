@@ -54,8 +54,8 @@ export const MessageBubble = memo(function MessageBubble({
         {isStreaming && isAssistant && (
           <View className="flex-row items-center gap-1 mt-2">
             <View className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse" />
-            <View className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: '200ms' }} />
-            <View className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: '400ms' }} />
+            <View className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse" />
+            <View className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse" />
           </View>
         )}
       </View>
@@ -90,8 +90,8 @@ export function WorkingIndicator({ duration }: WorkingIndicatorProps) {
         {/* Animated dots */}
         <View className="flex-row items-center gap-1">
           <View className="h-2 w-2 rounded-full bg-success animate-pulse" />
-          <View className="h-2 w-2 rounded-full bg-success animate-pulse" style={{ animationDelay: '200ms' }} />
-          <View className="h-2 w-2 rounded-full bg-success animate-pulse" style={{ animationDelay: '400ms' }} />
+          <View className="h-2 w-2 rounded-full bg-success animate-pulse" />
+          <View className="h-2 w-2 rounded-full bg-success animate-pulse" />
         </View>
         
         <Text className="text-sm text-muted-foreground">

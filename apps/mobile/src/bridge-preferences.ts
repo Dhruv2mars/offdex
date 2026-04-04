@@ -40,10 +40,11 @@ export function createBridgePreferences({
   secureStore,
 }: BridgePreferencesOptions): BridgePreferencesStore {
   const secureStoreAvailable = canUseSecureStore(secureStore);
+  const secure = secureStoreAvailable ? secureStore : null;
 
   async function getTrustedPairingUri() {
-    if (secureStoreAvailable) {
-      const secureValue = await secureStore.getItemAsync(PAIRING_URI_KEY);
+    if (secure) {
+      const secureValue = await secure.getItemAsync(PAIRING_URI_KEY);
       if (secureValue) {
         return secureValue;
       }
@@ -54,8 +55,8 @@ export function createBridgePreferences({
       return null;
     }
 
-    if (secureStoreAvailable) {
-      await secureStore.setItemAsync(PAIRING_URI_KEY, legacyValue);
+    if (secure) {
+      await secure.setItemAsync(PAIRING_URI_KEY, legacyValue);
       await asyncStorage.removeItem(PAIRING_URI_KEY);
     }
 
@@ -63,8 +64,8 @@ export function createBridgePreferences({
   }
 
   async function getManagedSession() {
-    const stored = secureStoreAvailable
-      ? await secureStore.getItemAsync(MANAGED_SESSION_KEY)
+    const stored = secure
+      ? await secure.getItemAsync(MANAGED_SESSION_KEY)
       : await asyncStorage.getItem(MANAGED_SESSION_KEY);
     if (!stored) {
       return null;
@@ -85,15 +86,15 @@ export function createBridgePreferences({
     },
     async setPairingUri(value: string | null) {
       if (!value) {
-        if (secureStoreAvailable) {
-          await secureStore.deleteItemAsync(PAIRING_URI_KEY);
+        if (secure) {
+          await secure.deleteItemAsync(PAIRING_URI_KEY);
         }
         await asyncStorage.removeItem(PAIRING_URI_KEY);
         return;
       }
 
-      if (secureStoreAvailable) {
-        await secureStore.setItemAsync(PAIRING_URI_KEY, value);
+      if (secure) {
+        await secure.setItemAsync(PAIRING_URI_KEY, value);
         await asyncStorage.removeItem(PAIRING_URI_KEY);
         return;
       }
@@ -105,16 +106,16 @@ export function createBridgePreferences({
     },
     async setManagedSession(value: ManagedBridgeSession | null) {
       if (!value) {
-        if (secureStoreAvailable) {
-          await secureStore.deleteItemAsync(MANAGED_SESSION_KEY);
+        if (secure) {
+          await secure.deleteItemAsync(MANAGED_SESSION_KEY);
         }
         await asyncStorage.removeItem(MANAGED_SESSION_KEY);
         return;
       }
 
       const serialized = JSON.stringify(value);
-      if (secureStoreAvailable) {
-        await secureStore.setItemAsync(MANAGED_SESSION_KEY, serialized);
+      if (secure) {
+        await secure.setItemAsync(MANAGED_SESSION_KEY, serialized);
         await asyncStorage.removeItem(MANAGED_SESSION_KEY);
         return;
       }
@@ -122,9 +123,9 @@ export function createBridgePreferences({
       await asyncStorage.setItem(MANAGED_SESSION_KEY, serialized);
     },
     async clearPairing() {
-      if (secureStoreAvailable) {
-        await secureStore.deleteItemAsync(PAIRING_URI_KEY);
-        await secureStore.deleteItemAsync(MANAGED_SESSION_KEY);
+      if (secure) {
+        await secure.deleteItemAsync(PAIRING_URI_KEY);
+        await secure.deleteItemAsync(MANAGED_SESSION_KEY);
       }
       await asyncStorage.multiRemove([
         BRIDGE_BASE_URL_KEY,

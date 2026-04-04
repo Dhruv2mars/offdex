@@ -62,8 +62,8 @@ export default function RootLayout() {
       void handleUrl(url);
     });
 
-    const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
-      void handleUrl(url);
+    const linkingSubscription = Linking.addEventListener("url", (event) => {
+      void handleUrl(event.url);
     });
 
     return () => {
@@ -96,7 +96,6 @@ export default function RootLayout() {
   // Set Android navigation bar color
   useEffect(() => {
     if (Platform.OS !== "android") return;
-    void NavigationBar.setBackgroundColorAsync("#09090b").catch(() => {});
     void NavigationBar.setButtonStyleAsync("light").catch(() => {});
   }, []);
 
