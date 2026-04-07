@@ -8,6 +8,7 @@ import {
   readPackageVersion,
   resolveInstalledBin,
   resolvePackageBinDir,
+  resolveWorkspaceBridgeCli,
   shouldInstallBinary
 } from "./offdex-lib.js";
 
@@ -15,6 +16,15 @@ const args = process.argv.slice(2);
 const installedBin = resolveInstalledBin(process.env, process.platform);
 const packageVersion = readPackageVersion();
 const currentInstalledVersion = installedVersion(process.env);
+const workspaceBridgeCli = resolveWorkspaceBridgeCli();
+
+if (workspaceBridgeCli && !existsSync(installedBin)) {
+  const result = spawnSync("bun", [workspaceBridgeCli, ...args], {
+    stdio: "inherit",
+    env: process.env
+  });
+  process.exit(result.status ?? 1);
+}
 
 if (
   shouldInstallBinary({
