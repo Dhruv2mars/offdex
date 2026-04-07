@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MOBILE_WORKSPACE = fileURLToPath(
@@ -97,7 +97,10 @@ export function patchReactNativeCSSPackage() {
   };
 }
 
-if (import.meta.main) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const result = patchReactNativeCSSPackage();
   console.log(
     result.changed

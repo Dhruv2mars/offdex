@@ -55,6 +55,13 @@
       ],
       "expo-secure-store",
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "03283b1b-b8d7-49e0-b6f7-9ec953021787"
+      }
+    },
+    "owner": "dhruv2mars"
   }
 }

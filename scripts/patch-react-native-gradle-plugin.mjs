@@ -65,7 +65,10 @@ export function patchReactNativeGradlePlugin() {
   };
 }
 
-if (import.meta.main) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const result = patchReactNativeGradlePlugin();
   console.log(
     result.changed
