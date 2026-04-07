@@ -1,7 +1,7 @@
 import { View, Text, Pressable } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
-import { Wifi, WifiOff, RefreshCw } from "lucide-react-native";
+import { Wifi, WifiOff, RefreshCw } from "../../lib/icons";
 import * as Haptics from "expo-haptics";
 
 // ════════════════════════════════════════════════════════════════════════════

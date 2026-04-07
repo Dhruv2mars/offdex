@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { MessageSquare, Cpu, Settings } from "lucide-react-native";
+import { MessageSquare, Cpu, Settings } from "../../lib/icons";
 import { View, Text } from "../../lib/tw";
 import { useWorkspaceStore } from "../../lib/store";
 

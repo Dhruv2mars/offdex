@@ -1,6 +1,6 @@
 import { View, Text, Pressable, type ViewProps } from "../../lib/tw";
 import { cn } from "../../lib/utils";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft } from "../../lib/icons";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 

@@ -1,7 +1,7 @@
 import { View, Text } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
-import { LucideIcon } from "lucide-react-native";
+import type { LucideIcon } from "../../lib/icons";
 
 // ════════════════════════════════════════════════════════════════════════════
 // Empty State Component
@@ -67,10 +67,7 @@ export function EmptyState({
 
 export interface SectionHeaderProps {
   title: string;
-  action?: {
-    label: string;
-    onPress: () => void;
-  };
+  action?: React.ReactNode;
   className?: string;
 }
 
@@ -80,14 +77,7 @@ export function SectionHeader({ title, action, className }: SectionHeaderProps) 
       <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </Text>
-      {action && (
-        <Text
-          className="text-xs font-medium text-primary"
-          onPress={action.onPress}
-        >
-          {action.label}
-        </Text>
-      )}
+      {action}
     </View>
   );
 }

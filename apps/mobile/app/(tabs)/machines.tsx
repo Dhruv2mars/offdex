@@ -14,10 +14,10 @@ import {
   RefreshCw,
   Laptop,
   Globe,
-} from "lucide-react-native";
+} from "../../lib/icons";
 import type { OffdexMachineRecord } from "@offdex/protocol";
 
-import { View, Text, Pressable, ScrollView } from "../../lib/tw";
+import { View, Text, Pressable } from "../../lib/tw";
 import { cn, formatRelativeTime } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
 import { feedbackSelection, feedbackSuccess, feedbackError } from "../../src/feedback";
@@ -306,7 +306,7 @@ export default function MachinesScreen() {
   const activeMachineId = managedSession?.machineId;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
       <ScreenHeader
         title="Machines"
         rightAction={
@@ -316,9 +316,11 @@ export default function MachinesScreen() {
         }
       />
 
-      <ScrollView
-        className="flex-1 bg-background"
-        contentContainerClassName="bg-background"
+      <FlashList
+        data={machines}
+        keyExtractor={(machine) => machine.machineId}
+        style={{ flex: 1, backgroundColor: "#09090b" }}
+        contentContainerStyle={{ backgroundColor: "#09090b", paddingBottom: 24 }}
         refreshControl={
           <RefreshControl
             refreshing={isBusy}
@@ -327,43 +329,29 @@ export default function MachinesScreen() {
             colors={["#fafafa"]}
           />
         }
-      >
-        {/* Current Connection */}
-        <CurrentConnectionCard />
-
-        <Separator className="my-4" />
-
-        {/* Available Machines */}
-        <SectionHeader
-          title="Available Machines"
-          action={
-            <Pressable
-              onPress={handleRefresh}
-              className="flex-row items-center gap-1.5 py-1 px-2 rounded-md active:bg-muted"
-            >
-              <RefreshCw
-                size={12}
-                color="#71717a"
-                className={cn(isBusy && "animate-spin")}
-              />
-              <Text className="text-xs text-muted-foreground">Refresh</Text>
-            </Pressable>
-          }
-        />
-
-        {machines.length > 0 ? (
-          <View className="gap-2 pb-4">
-            {machines.map((machine) => (
-              <MachineItem
-                key={machine.machineId}
-                machine={machine}
-                isActive={machine.machineId === activeMachineId}
-                isConnecting={isConnecting}
-                onPress={() => handleMachinePress(machine)}
-              />
-            ))}
+        ListHeaderComponent={
+          <View>
+            <CurrentConnectionCard />
+            <Separator className="my-4" />
+            <SectionHeader
+              title="Available Machines"
+              action={
+                <Pressable
+                  onPress={handleRefresh}
+                  className="flex-row items-center gap-1.5 py-1 px-2 rounded-md active:bg-muted"
+                >
+                  <RefreshCw
+                    size={12}
+                    color="#71717a"
+                    className={cn(isBusy && "animate-spin")}
+                  />
+                  <Text className="text-xs text-muted-foreground">Refresh</Text>
+                </Pressable>
+              }
+            />
           </View>
-        ) : (
+        }
+        ListEmptyComponent={
           <View className="px-4 py-8">
             <EmptyState
               icon={Laptop}
@@ -375,25 +363,34 @@ export default function MachinesScreen() {
               }}
             />
           </View>
-        )}
-
-        {/* Help Text */}
-        <View className="px-4 py-6">
-          <Card className="bg-muted/30">
-            <View className="flex-row items-start gap-3">
-              <QrCode size={20} color="#71717a" className="mt-0.5" />
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground mb-1">
-                  Connect via QR Code
-                </Text>
-                <Text className="text-xs text-muted-foreground leading-relaxed">
-                  Run <Text className="font-mono bg-muted px-1 rounded">codex --qr</Text> on your Mac to display a pairing QR code, then scan it with this app.
-                </Text>
+        }
+        ListFooterComponent={
+          <View className="px-4 py-6">
+            <Card className="bg-muted/30">
+              <View className="flex-row items-start gap-3">
+                <QrCode size={20} color="#71717a" className="mt-0.5" />
+                <View className="flex-1">
+                  <Text className="text-sm font-medium text-foreground mb-1">
+                    Connect via QR Code
+                  </Text>
+                  <Text className="text-xs text-muted-foreground leading-relaxed">
+                    Run <Text className="font-mono bg-muted px-1 rounded">codex --qr</Text> on your Mac to display a pairing QR code, then scan it with this app.
+                  </Text>
+                </View>
               </View>
-            </View>
-          </Card>
-        </View>
-      </ScrollView>
+            </Card>
+          </View>
+        }
+        renderItem={({ item: machine }) => (
+          <MachineItem
+            machine={machine}
+            isActive={machine.machineId === activeMachineId}
+            isConnecting={isConnecting}
+            onPress={() => handleMachinePress(machine)}
+          />
+        )}
+        ItemSeparatorComponent={() => <View className="h-2" />}
+      />
     </SafeAreaView>
   );
 }
