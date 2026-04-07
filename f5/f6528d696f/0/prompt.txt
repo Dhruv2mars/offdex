@@ -29,3 +29,14 @@ do more sweeps, find bugs, fix bugs. all you need to make sure is that there are
 ---
 
 continue the bug-find-and-fix rampage. full sweeps, use offdex just like a real user, complete workflow. if you find issues, bugs, fix them then and there. continue this cycle
+
+---
+
+ok, critical questions:
+- is the mobile app works perfectly on android? check it via android emulator. 
+- is the mobile app works perfectly on ios? check it via ios emulator. 
+- is the cli works perfectly? 
+- is the webUI works perfectly in the browser? i assume and expect that it will be a nextjs app. 
+- is the landing page works perfectly in the browser? i assume and expect that it will be a nextjs app. 
+
+check and make sure we are at the perfection stage on all of the above. work till the time we are not.
