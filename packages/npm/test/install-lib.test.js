@@ -6,6 +6,7 @@ import {
   isSupportedPlatform,
   isWorkspaceCheckout,
   shouldSkipPackageInstall,
+  shouldReportProgress,
   supportedPlatformList,
   targetForPlatform,
 } from "../bin/install-lib.js";
@@ -67,6 +68,25 @@ test("npm installer can be explicitly skipped by environment", () => {
       packageRoot: "/tmp/offdex-package",
       env: { OFFDEX_SKIP_INSTALL: "1" },
     }),
+    true
+  );
+});
+
+test("npm installer progress reports at useful percentage steps", () => {
+  assert.equal(
+    shouldReportProgress({ receivedBytes: 1, totalBytes: 100, lastPercent: -1 }),
+    true
+  );
+  assert.equal(
+    shouldReportProgress({ receivedBytes: 5, totalBytes: 100, lastPercent: 0 }),
+    false
+  );
+  assert.equal(
+    shouldReportProgress({ receivedBytes: 10, totalBytes: 100, lastPercent: 0 }),
+    true
+  );
+  assert.equal(
+    shouldReportProgress({ receivedBytes: 100, totalBytes: 100, lastPercent: 90 }),
     true
   );
 });

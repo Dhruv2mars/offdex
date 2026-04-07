@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import {
   installRuntime,
   resolvePackageVersion,
+  shouldReportProgress,
   shouldSkipPackageInstall,
   supportedPlatformList
 } from "./install-lib.js";
@@ -17,7 +18,21 @@ if (shouldSkipPackageInstall({ env: process.env, packageRoot })) {
   process.exit(0);
 }
 
-installRuntime({ version: packageVersion })
+let lastPercent = -10;
+
+installRuntime({
+  version: packageVersion,
+  onProgress({ receivedBytes, totalBytes }) {
+    if (!shouldReportProgress({ receivedBytes, totalBytes, lastPercent })) {
+      return;
+    }
+
+    lastPercent = Math.floor((receivedBytes / totalBytes) * 100);
+    console.error(
+      `offdex: downloading native runtime ${lastPercent}% (${Math.round(receivedBytes / 1024 / 1024)}MB/${Math.round(totalBytes / 1024 / 1024)}MB)`
+    );
+  },
+})
   .then(({ installBin }) => {
     console.log(`offdex: installed ${installBin}`);
   })

@@ -13,10 +13,37 @@ import {
 } from "./offdex-lib.js";
 
 const args = process.argv.slice(2);
+const HELP_TEXT = `Offdex CLI
+
+Usage:
+  offdex bridge [options]
+  offdex help
+
+Options:
+  --host <host>                 Bridge host. Default: 0.0.0.0
+  --port <port>                 Bridge port. Default: 42420
+  --mode <codex|demo>           Bridge runtime mode. Default: codex
+  --control-plane-url <url>     Managed remote control plane URL
+  -h, --help                    Show help
+
+Environment fallbacks:
+  OFFDEX_BRIDGE_HOST
+  OFFDEX_BRIDGE_PORT
+  OFFDEX_BRIDGE_MODE
+  OFFDEX_CONTROL_PLANE_URL
+`;
 const installedBin = resolveInstalledBin(process.env, process.platform);
 const packageVersion = readPackageVersion();
 const currentInstalledVersion = installedVersion(process.env);
 const workspaceBridgeCli = resolveWorkspaceBridgeCli();
+
+if (
+  !existsSync(installedBin) &&
+  (args.length === 0 || args[0] === "help" || args[0] === "--help" || args[0] === "-h")
+) {
+  console.log(HELP_TEXT);
+  process.exit(0);
+}
 
 if (workspaceBridgeCli && !existsSync(installedBin)) {
   const result = spawnSync("bun", [workspaceBridgeCli, ...args], {

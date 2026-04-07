@@ -3,7 +3,7 @@
     "name": "Offdex",
     "slug": "offdex",
     "scheme": "offdex",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.dhruv2mars.offdex",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#09090b",
         "foregroundImage": "./assets/android-icon-foreground.png",
