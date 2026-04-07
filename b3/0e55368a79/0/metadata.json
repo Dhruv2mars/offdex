@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "b30e55368a79",
+  "session_id": "019d590f-f394-76c0-923c-64944a122116",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-07T17:22:26.030249Z",
+  "branch": "fix/eas-android-install",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "3065c118d97c",
+  "token_usage": {
+    "input_tokens": 135122767,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 129585664,
+    "output_tokens": 419093,
+    "api_call_count": 1105
+  },
+  "session_metrics": {
+    "turn_count": 8
+  }
+}
