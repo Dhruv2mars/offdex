@@ -93,6 +93,7 @@ function createFakeClient() {
   let healthRequestCount = 0;
   let managedListRequestCount = 0;
   let failHealthRequests = 0;
+  let failManagedListRequests = 0;
   let liveHandlers:
     | {
         onSnapshot: (nextSnapshot: typeof snapshot) => void;
@@ -222,6 +223,10 @@ function createFakeClient() {
     },
     async listManagedMachines(session) {
       managedListRequestCount += 1;
+      if (failManagedListRequests > 0) {
+        failManagedListRequests -= 1;
+        throw new TypeError("Network request failed");
+      }
       return {
         session,
         machines,
@@ -262,6 +267,9 @@ function createFakeClient() {
     },
     failNextHealthRequests(count = 1) {
       failHealthRequests = count;
+    },
+    failNextManagedListRequests(count = 1) {
+      failManagedListRequests = count;
     },
   };
 }
@@ -562,6 +570,32 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().connectionState).toBe("live");
     expect(controller.getState().connectionTransport).toBe("direct");
     expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
+  });
+
+  test("hydrates a saved managed session failure without surfacing an unhandled startup error", async () => {
+    const fakeClient = createFakeClient();
+    fakeClient.failNextManagedListRequests();
+    const preferences = createFakePreferences();
+    await preferences.setManagedSession?.({
+      controlPlaneUrl: "https://control.offdex.app",
+      machineId: "machine-123",
+      token: "session-token-123",
+      ownerId: "owner-123",
+      ownerLabel: "dhruv@example.com",
+      deviceId: "device-123",
+    });
+    const controller = new BridgeWorkspaceController({
+      preferences,
+      client: fakeClient.client,
+    });
+
+    await expect(controller.hydrate()).resolves.toMatchObject({
+      connectionState: "degraded",
+      managedSession: {
+        machineId: "machine-123",
+      },
+      bridgeStatus: "Network request failed",
+    });
   });
 
   test("refreshes the trusted machine list without reconnecting", async () => {

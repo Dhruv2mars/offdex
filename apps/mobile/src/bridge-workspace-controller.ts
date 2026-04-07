@@ -225,18 +225,34 @@ export class BridgeWorkspaceController {
       this.#setState({
         managedSession: savedManagedSession,
       });
-      const managedMachines = await this.#client.listManagedMachines(savedManagedSession);
-      this.#setState({
-        machines: managedMachines.machines,
-      });
-      await this.#connectManagedSession(savedManagedSession, savedManagedSession.machineId);
+      try {
+        const managedMachines = await this.#client.listManagedMachines(savedManagedSession);
+        this.#setState({
+          machines: managedMachines.machines,
+        });
+        await this.#connectManagedSession(savedManagedSession, savedManagedSession.machineId);
+      } catch (error) {
+        this.#patchPairingState("reconnecting");
+        this.#setState({
+          connectionState: "degraded",
+          isBusy: false,
+          managedSession: savedManagedSession,
+          trustedPairing: true,
+          bridgeStatus:
+            error instanceof Error ? error.message : "Managed reconnect failed.",
+        });
+      }
       return this.getState();
     }
 
     const savedPairingUri = (await this.#preferences.getPairingUri?.()) ?? null;
     if (savedPairingUri) {
       this.#savedPairingUri = savedPairingUri;
-      await this.connectFromPairingUri(savedPairingUri, { persistPairingUri: false });
+      try {
+        await this.connectFromPairingUri(savedPairingUri, { persistPairingUri: false });
+      } catch {
+        this.#patchPairingState("reconnecting");
+      }
       return this.getState();
     }
 
@@ -247,7 +263,9 @@ export class BridgeWorkspaceController {
 
     const normalized = normalizeBridgeBaseUrl(savedBridgeUrl);
     this.#setState({ bridgeBaseUrl: normalized });
-    await this.connect(normalized);
+    try {
+      await this.connect(normalized);
+    } catch {}
     return this.getState();
   }
 
