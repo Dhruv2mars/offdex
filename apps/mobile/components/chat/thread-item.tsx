@@ -128,8 +128,8 @@ export function NewThreadCard({ isActive, isAwaiting, onPress }: NewThreadCardPr
         {isAwaiting && (
           <View className="flex-row items-center gap-1.5">
             <View className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            <View className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: '200ms' }} />
-            <View className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" style={{ animationDelay: '400ms' }} />
+            <View className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <View className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
           </View>
         )}
       </View>

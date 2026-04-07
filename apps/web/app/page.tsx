@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { androidApkDownloadUrl, cliInstallCommand, githubReleasesUrl } from "./site-content";
+import { InstallCommand } from "./install-command";
 
 const features = [
   {
@@ -49,12 +51,12 @@ export default function Home() {
               >
                 Releases
               </a>
-              <a 
+              <Link 
                 href="/architecture"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Architecture
-              </a>
+              </Link>
             </nav>
           </header>
 
@@ -98,24 +100,7 @@ export default function Home() {
             </div>
 
             {/* Install command */}
-            <div className="rounded-xl border border-border bg-card/30 p-4 animate-fade-in-delay-3">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Install bridge CLI</span>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-background border border-border px-4 py-3">
-                <span className="text-muted-foreground select-none">$</span>
-                <code className="font-mono text-sm flex-1">{cliInstallCommand}</code>
-                <button 
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => navigator.clipboard.writeText(cliInstallCommand)}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
+            <InstallCommand command={cliInstallCommand} />
           </div>
         </div>
       </section>
@@ -171,7 +156,7 @@ export default function Home() {
                   No cloud intermediary. Your Mac bridges directly to your phone over local network or secure relay. Codex auth never leaves your machine.
                 </p>
               </div>
-              <a
+              <Link
                 href="/architecture"
                 className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-5 py-3 text-sm font-medium hover:bg-card transition-colors whitespace-nowrap"
               >
@@ -180,7 +165,7 @@ export default function Home() {
                   <line x1="5" y1="12" x2="19" y2="12"/>
                   <polyline points="12 5 19 12 12 19"/>
                 </svg>
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -202,7 +187,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-6 text-xs text-muted-foreground">
               <a href={githubReleasesUrl} className="hover:text-foreground transition-colors">Releases</a>
-              <a href="/architecture" className="hover:text-foreground transition-colors">Architecture</a>
+              <Link href="/architecture" className="hover:text-foreground transition-colors">Architecture</Link>
               <span>Built for Codex</span>
             </div>
           </div>

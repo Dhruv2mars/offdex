@@ -3,7 +3,7 @@ import { StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
-import { X, Camera, FlashlightOff, Flashlight, RefreshCw } from "lucide-react-native";
+import { X, Camera, FlashlightOff, Flashlight, RefreshCw } from "../lib/icons";
 
 import { View, Text, Pressable } from "../lib/tw";
 import { cn } from "../lib/utils";
@@ -90,7 +90,7 @@ export default function PairScreen() {
   // Permission denied
   if (permission && !permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }}>
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <Pressable
@@ -141,7 +141,7 @@ export default function PairScreen() {
       />
 
       {/* Overlay */}
-      <SafeAreaView className="flex-1">
+      <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <Pressable

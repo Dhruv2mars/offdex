@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -17,12 +17,35 @@ export function patchFoojayResolverVersion(source) {
 }
 
 export function patchReactNativeGradlePlugin() {
-  const packageJsonPath = resolve(
-    dirname(MOBILE_WORKSPACE),
-    "../../node_modules/.bun",
-    `@react-native+gradle-plugin@${MOBILE_PACKAGE.dependencies["react-native"]}`,
-    "node_modules/@react-native/gradle-plugin/package.json"
-  );
+  const mobileDir = dirname(MOBILE_WORKSPACE);
+  const candidates = [
+    () => require.resolve("@react-native/gradle-plugin/package.json"),
+    () =>
+      require.resolve("@react-native/gradle-plugin/package.json", {
+        paths: [mobileDir],
+      }),
+    () =>
+      resolve(
+        mobileDir,
+        "../../node_modules/.bun",
+        `@react-native+gradle-plugin@${MOBILE_PACKAGE.dependencies["react-native"]}`,
+        "node_modules/@react-native/gradle-plugin/package.json"
+      ),
+  ];
+  const packageJsonPath = candidates
+    .map((resolveCandidate) => {
+      try {
+        return resolveCandidate();
+      } catch {
+        return null;
+      }
+    })
+    .find((candidate) => candidate && existsSync(candidate));
+
+  if (!packageJsonPath) {
+    throw new Error("Unable to resolve @react-native/gradle-plugin/package.json");
+  }
+
   const settingsPath = join(dirname(packageJsonPath), "settings.gradle.kts");
   const current = readFileSync(settingsPath, "utf8");
   const patched = patchFoojayResolverVersion(current);

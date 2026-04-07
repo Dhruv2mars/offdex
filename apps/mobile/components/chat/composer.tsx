@@ -3,7 +3,7 @@ import { TextInput as RNTextInput, Platform } from "react-native";
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
-import { Send, Square, Wifi } from "lucide-react-native";
+import { Send, Square, Wifi } from "../../lib/icons";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { feedbackError, feedbackSuccess, feedbackWarning, feedbackSelection } from "../../src/feedback";

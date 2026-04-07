@@ -1,44 +1,39 @@
 import "../global.css";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Platform, Linking, AppState } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useWorkspaceStore } from "../lib/store";
 import LaunchIntentModule from "../modules/launch-intent";
+import { createLaunchUrlGate } from "../src/launch-url";
 import { extractOffdexPairingUri } from "../src/pairing-scan";
-import { resolveInitialPairingUri } from "../src/initial-pairing";
+import { initializeWorkspaceFromLaunch } from "../src/initial-pairing";
 import { feedbackError, feedbackSuccess } from "../src/feedback";
 
 export default function RootLayout() {
   const initialize = useWorkspaceStore((s) => s.initialize);
   const connectFromPairingUri = useWorkspaceStore((s) => s.connectFromPairingUri);
+  const launchUrlGate = useRef(createLaunchUrlGate());
 
   // Initialize workspace on mount
   useEffect(() => {
     const setup = async () => {
-      // Check for initial pairing URL
-      const initialPairingUri = resolveInitialPairingUri([
-        LaunchIntentModule.consumePendingUrl(),
-        await Linking.getInitialURL(),
-      ]);
-
-      if (initialPairingUri) {
-        const pairingUri = extractOffdexPairingUri(initialPairingUri);
-        if (pairingUri) {
-          try {
-            await connectFromPairingUri(pairingUri);
-            void feedbackSuccess();
-          } catch {
-            void feedbackError();
-          }
-          return;
-        }
-      }
-
-      // Normal initialization
-      await initialize();
+      await initializeWorkspaceFromLaunch({
+        candidates: [
+          launchUrlGate.current(LaunchIntentModule.consumePendingUrl()),
+          launchUrlGate.current(await Linking.getInitialURL()),
+        ],
+        connectFromPairingUri,
+        initialize,
+        onConnected: () => {
+          void feedbackSuccess();
+        },
+        onError: () => {
+          void feedbackError();
+        },
+      });
     };
 
     void setup();
@@ -47,7 +42,7 @@ export default function RootLayout() {
   // Handle deep links
   useEffect(() => {
     const handleUrl = async (url: string) => {
-      const pairingUri = extractOffdexPairingUri(url);
+      const pairingUri = extractOffdexPairingUri(launchUrlGate.current(url));
       if (pairingUri) {
         try {
           await connectFromPairingUri(pairingUri);
@@ -62,8 +57,8 @@ export default function RootLayout() {
       void handleUrl(url);
     });
 
-    const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
-      void handleUrl(url);
+    const linkingSubscription = Linking.addEventListener("url", (event) => {
+      void handleUrl(event.url);
     });
 
     return () => {
@@ -96,7 +91,6 @@ export default function RootLayout() {
   // Set Android navigation bar color
   useEffect(() => {
     if (Platform.OS !== "android") return;
-    void NavigationBar.setBackgroundColorAsync("#09090b").catch(() => {});
     void NavigationBar.setButtonStyleAsync("light").catch(() => {});
   }, []);
 
