@@ -1,6 +1,5 @@
 import "../global.css";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { Platform, Linking, AppState } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
@@ -96,7 +95,6 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,

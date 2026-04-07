@@ -1,6 +1,6 @@
 {
   "name": "@dhruv2mars/offdex",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Codex mobile bridge CLI for Offdex",
   "type": "module",
   "bin": {

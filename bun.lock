@@ -107,7 +107,7 @@
     },
     "packages/npm": {
       "name": "@dhruv2mars/offdex",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "bin": {
         "offdex": "bin/offdex.js",
       },
