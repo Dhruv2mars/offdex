@@ -1,0 +1,31 @@
+this is offdex, my take on remodex (github.com/Emanuele-web04/remodex). its a cross-platform codex mobile app built using expo react native. 
+
+the ultimate goal with offdex is extremely clear:
+"offdex is like if openai themselves made a mobile app for codex." 
+
+for now, basic functionality is done, with a complete frontend revamp done right now. 
+i want you to first explore the complete codebase end to end. understand and analyse it. checkout latest commits as well to understand the growth. 
+
+then i want you to go on a bug exploration. find and fix all the issues, bugs you find which can cause problems and issues while running the app. once you are done, i would like you to testout and check web and mobile version yourself with full end to end user workflow. see if everything works perfectly as intended. 
+
+your goal is simple, go on a rampage of finding and fixing all the bugs, issues that can or are causing problems. you can utilize agent-browser for web based tasks. you can use expo orbit for emulators or/and my actual phone which is connected via adb.
+
+---
+
+ok, now the phone is unlocked, so you can do things via adb. also, you should do emulator testing as well via expo orbit, for both android and ios
+
+---
+
+continue moving forward and exploring to find mire bugs , issues and fixing them along the way. this is a bugathon and fixathon!!!!
+
+---
+
+continue then. chop chop!!!
+
+---
+
+do more sweeps, find bugs, fix bugs. all you need to make sure is that there are no issues or bugs in any part of the project that can cause any problems or issues in the real world usage. and to check that, use agent-browser and expo related skills to run the app on emulators and actual phone via adb. continue the bug-fixing rampage.
+
+---
+
+continue the bug-find-and-fix rampage. full sweeps, use offdex just like a real user, complete workflow. if you find issues, bugs, fix them then and there. continue this cycle
