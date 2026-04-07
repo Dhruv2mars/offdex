@@ -271,7 +271,9 @@ export default function MachinesScreen() {
 
   // Refresh machines on mount
   useEffect(() => {
-    void refreshMachines();
+    void refreshMachines().catch(() => {
+      void feedbackError();
+    });
   }, [refreshMachines]);
 
   const handleRefresh = useCallback(async () => {
