@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { Alert, Linking, Platform } from "react-native";
+import { createPortal } from "react-dom";
+import { Alert, Linking, Platform, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FlashList } from "@shopify/flash-list";
 import {
   Terminal,
   Monitor,
@@ -16,7 +16,7 @@ import {
   Zap,
 } from "../../lib/icons";
 
-import { View, Text, Pressable, Modal } from "../../lib/tw";
+import { View, Text, Pressable, ScrollView } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
 import {
@@ -227,13 +227,11 @@ export default function SettingsScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
       <ScreenHeader title="Settings" />
 
-      <FlashList
-        data={["settings-content"]}
-        keyExtractor={(item) => item}
+      <ScrollView
         style={{ flex: 1, backgroundColor: "#09090b" }}
         contentContainerStyle={{ backgroundColor: "#09090b", paddingBottom: 24 }}
-        renderItem={() => (
-          <View className="pt-4">
+      >
+        <View className="pt-4">
             <SettingsSection title="Codex Runtime">
               <SettingsRow
                 icon={Terminal}
@@ -366,18 +364,14 @@ export default function SettingsScreen() {
                 Made with love for Codex
               </Text>
             </View>
-          </View>
-        )}
-      />
+        </View>
+      </ScrollView>
 
-      {Platform.OS === "web" && (
-        <Modal
-          visible={clearDataConfirmVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setClearDataConfirmVisible(false)}
-        >
-          <View className="flex-1 items-center justify-center bg-black/70 px-6">
+      {Platform.OS === "web" &&
+        clearDataConfirmVisible &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <View style={styles.webConfirmBackdrop}>
             <Card className="w-full max-w-sm p-5">
               <Text className="text-lg font-semibold text-foreground">
                 Clear All Data
@@ -403,9 +397,24 @@ export default function SettingsScreen() {
                 </Button>
               </View>
             </Card>
-          </View>
-        </Modal>
-      )}
+          </View>,
+          document.body
+        )}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  webConfirmBackdrop: {
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    bottom: 0,
+    justifyContent: "center",
+    left: 0,
+    paddingHorizontal: 24,
+    position: "fixed" as never,
+    right: 0,
+    top: 0,
+    zIndex: 9999,
+  },
+});
