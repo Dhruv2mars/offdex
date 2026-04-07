@@ -136,6 +136,18 @@ export function parseChecksumForAsset(text, asset) {
   return null;
 }
 
+export function shouldReportProgress({ receivedBytes, totalBytes, lastPercent }) {
+  if (!totalBytes || totalBytes <= 0) {
+    return false;
+  }
+
+  const percent = Math.floor((receivedBytes / totalBytes) * 100);
+  if (lastPercent < 0) {
+    return true;
+  }
+  return percent === 100 || percent >= lastPercent + 10;
+}
+
 function requestProtocolFor(url) {
   return new URL(url).protocol;
 }
@@ -183,7 +195,7 @@ export function requestText(url, redirects = 0) {
   });
 }
 
-export function download(url, outputPath, redirects = 0) {
+export function download(url, outputPath, redirects = 0, options = {}) {
   if (redirects > 5) {
     throw new Error("too_many_redirects");
   }
@@ -207,7 +219,7 @@ export function download(url, outputPath, redirects = 0) {
           response.headers.location
         ) {
           response.resume();
-          download(response.headers.location, outputPath, redirects + 1).then(resolve, reject);
+          download(response.headers.location, outputPath, redirects + 1, options).then(resolve, reject);
           return;
         }
         if (response.statusCode !== 200) {
@@ -215,6 +227,12 @@ export function download(url, outputPath, redirects = 0) {
           reject(new Error(`http ${response.statusCode}`));
           return;
         }
+        const totalBytes = Number(response.headers["content-length"] || 0);
+        let receivedBytes = 0;
+        response.on("data", (chunk) => {
+          receivedBytes += chunk.length;
+          options.onProgress?.({ receivedBytes, totalBytes });
+        });
         const file = createWriteStream(partPath);
         file.on("error", async (error) => {
           await rm(partPath, { force: true });
@@ -238,6 +256,9 @@ export function download(url, outputPath, redirects = 0) {
         });
       }
     );
+    request.setTimeout(options.timeoutMs ?? 30_000, () => {
+      request.destroy(new Error("download_timeout"));
+    });
     request.on("error", async (error) => {
       await rm(partPath, { force: true });
       reject(error);
@@ -252,7 +273,8 @@ export async function installRuntime({
   arch = process.arch,
   home = homedir(),
   downloadFn = download,
-  requestTextFn = requestText
+  requestTextFn = requestText,
+  onProgress
 }) {
   assertSupportedPlatform(platform, arch);
   const installRoot = resolveInstallRoot(env, home);
@@ -279,7 +301,7 @@ export async function installRuntime({
   const tempPath = `${installBin}.download`;
   try {
     try {
-      await downloadFn(`${baseUrl}/${asset}`, tempPath);
+      await downloadFn(`${baseUrl}/${asset}`, tempPath, 0, { onProgress });
     } catch {
       throw new Error(`failed_download:${asset}`);
     }
