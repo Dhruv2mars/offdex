@@ -76,7 +76,7 @@ export default function DocsPage() {
           {/* Sidebar Navigation */}
           <aside className="hidden lg:block">
             <div className="sticky top-24">
-              <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+              <h3 className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 Quick Start
               </h3>
               <nav className="mt-6 flex flex-col gap-3 border-l border-[#ebebeb]">
@@ -99,7 +99,7 @@ export default function DocsPage() {
             <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
               Documentation
             </h1>
-            <p className="mt-6 max-w-2xl text-[18px] leading-[1.65] text-muted-foreground">
+            <p className="mt-6 max-w-2xl text-[18px] leading-[1.6] text-muted-foreground">
               Learn how to install the bridge, start your local network tunnel, and securely pair your disposable clients.
             </p>
 
@@ -119,7 +119,7 @@ export default function DocsPage() {
                     </h2>
                   </div>
                   
-                  <p className="mt-6 max-w-2xl text-[16px] leading-[1.7] text-muted-foreground md:text-[18px]">
+                  <p className="mt-6 max-w-2xl text-[16px] leading-[1.6] text-muted-foreground md:text-[18px]">
                     {section.body}
                   </p>
 

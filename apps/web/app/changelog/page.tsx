@@ -89,11 +89,11 @@ function cleanReleaseBody(body: string) {
 }
 
 const markdownStyles = [
-  "font-sans text-[15px] leading-[1.65] text-muted-foreground break-words",
+  "font-sans text-[15px] leading-[1.6] text-muted-foreground break-words",
   // Headings
-  "[&_h1]:text-[20px] [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:tracking-[-0.8px] [&_h1]:mb-4 [&_h1]:mt-8 first:[&_h1]:mt-0",
-  "[&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:tracking-[-0.6px] [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:border-t [&_h2]:border-[#ebebeb] [&_h2]:pt-4 first:[&_h2]:mt-0 first:[&_h2]:border-t-0 first:[&_h2]:pt-0",
-  "[&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:tracking-[-0.32px] [&_h3]:text-foreground [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:border-t [&_h3]:border-[#ebebeb] [&_h3]:pt-4 first:[&_h3]:mt-0 first:[&_h3]:border-t-0 first:[&_h3]:pt-0",
+  "[&_h1]:text-[20px] [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:tracking-[-0.96px] [&_h1]:mb-4 [&_h1]:mt-8 first:[&_h1]:mt-0",
+  "[&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:tracking-[-0.8px] [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:border-t [&_h2]:border-[#ebebeb] [&_h2]:pt-4 first:[&_h2]:mt-0 first:[&_h2]:border-t-0 first:[&_h2]:pt-0",
+  "[&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:tracking-[-0.64px] [&_h3]:text-foreground [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:border-t [&_h3]:border-[#ebebeb] [&_h3]:pt-4 first:[&_h3]:mt-0 first:[&_h3]:border-t-0 first:[&_h3]:pt-0",
   // Paragraphs
   "[&_p]:mb-3 last:[&_p]:mb-0",
   // Lists
@@ -101,7 +101,7 @@ const markdownStyles = [
   "[&_li]:relative [&_li]:pl-4 before:[&_li]:absolute before:[&_li]:left-0 before:[&_li]:top-[0.6em] before:[&_li]:h-[4px] before:[&_li]:w-[4px] before:[&_li]:rounded-full before:[&_li]:bg-[#cccccc]",
   // Code & Pre
   "[&_code]:rounded-[4px] [&_code]:bg-[#fafafa] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-foreground [&_code]:border [&_code]:border-[#ebebeb]",
-  "[&_pre]:bg-[#fafafa] [&_pre]:p-4 [&_pre]:rounded-[8px] [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-[#ebebeb] [&_pre]:mb-6",
+  "[&_pre]:bg-[#fafafa] [&_pre]:p-4 [&_pre]:rounded-[6px] [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-[#ebebeb] [&_pre]:mb-6",
   "[&_pre_code]:border-none [&_pre_code]:bg-transparent [&_pre_code]:p-0"
 ].join(" ");
 
@@ -170,12 +170,12 @@ export default async function ChangelogPage() {
                         {release.title}
                       </h2>
                       {release.isPrerelease ? (
-                        <span className="rounded-full bg-[#fafafa] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[#de1d8d] shadow-border">
+                        <span className="rounded-full bg-[#fafafa] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#de1d8d] shadow-border">
                           Prerelease
                         </span>
                       ) : null}
                       {isLatest ? (
-                        <span className="rounded-full bg-[#fafafa] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[#0a72ef] shadow-border">
+                        <span className="rounded-full bg-[#fafafa] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] shadow-border">
                           Latest
                         </span>
                       ) : null}
@@ -183,7 +183,7 @@ export default async function ChangelogPage() {
 
                     {/* Markdown Body */}
                     <div
-                      className={`mt-6 overflow-hidden rounded-[16px] bg-background shadow-card ${
+                      className={`mt-6 overflow-hidden rounded-[12px] bg-background shadow-card ${
                         isLatest ? "ring-1 ring-[#0a72ef]/10" : ""
                       }`}
                     >
@@ -201,7 +201,7 @@ export default async function ChangelogPage() {
             })}
           </div>
         ) : (
-          <div className="rounded-[16px] bg-background p-12 text-center shadow-card md:ml-[180px]">
+          <div className="rounded-[12px] bg-background p-12 text-center shadow-card md:ml-[180px]">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#ffefe5] shadow-border">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff5b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -209,7 +209,7 @@ export default async function ChangelogPage() {
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
             </div>
-            <h3 className="mt-6 text-[20px] font-semibold tracking-[-0.8px] text-foreground">
+            <h3 className="mt-6 text-[20px] font-semibold tracking-[-0.96px] text-foreground">
               Release feed unavailable
             </h3>
             <p className="mt-3 text-[15px] text-muted-foreground">
@@ -219,7 +219,7 @@ export default async function ChangelogPage() {
               href={githubReleasesUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-8 inline-flex rounded-[8px] bg-foreground px-5 py-[10px] text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
+              className="mt-8 inline-flex rounded-[6px] bg-foreground px-5 py-[10px] text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
             >
               Go to GitHub
             </a>
