@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { WebAppClient } from "../app/web-app-client";
+import { WebAppClient } from "./web-app-client";
 
 export const metadata: Metadata = {
   title: "Offdex Web UI",
