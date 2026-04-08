@@ -1,9 +1,1 @@
-i would like you to sizeup Offdex to match the mascot. and also, since we both know that the github icon on top right in the navbar looks smaller. i would lke you to sizeup that as well to match both mascot and offdex.
-
----
-
-ok, mascot and offdex are perfect size now. but i still dont see the github icon being bigger? why is that
-
----
-
 do something but make sure that github icon is matching the mascot in size. i didnt see any change when you did it last time
