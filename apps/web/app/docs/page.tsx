@@ -42,7 +42,7 @@ const docsSections = [
     title: "Pair from phone or web",
     body:
       "Open the mobile app or the web client, scan or follow the pairing link, and trust the client once. After that, the bridge handles reconnection.",
-    command: "Open /webui or the mobile app and pair once",
+    command: "Pairing URL and QR are printed in the terminal",
     accent: "text-[#ff5b4f]",
     bg: "bg-[#ffefe5]",
     points: [
@@ -56,7 +56,7 @@ const docsSections = [
     title: "Mac owns the session",
     body:
       "Offdex is designed so the bridge owns authentication, context, and command execution. Phone and web surfaces are just controlled windows into that same runtime.",
-    command: "Bridge authority stays local",
+    command: "No state is stored permanently on your mobile device",
     accent: "text-foreground",
     bg: "bg-[#fafafa]",
     points: [
@@ -66,173 +66,99 @@ const docsSections = [
   },
 ];
 
-const quickLinks = [
-  {
-    title: "CLI install",
-    href: githubReleasesUrl,
-    label: "Release binaries",
-  },
-  {
-    title: "Android app",
-    href: androidApkDownloadUrl,
-    label: "Latest APK",
-  },
-  {
-    title: "Web client",
-    href: webAppUrl,
-    label: "Open WebUI",
-  },
-];
-
 export default function DocsPage() {
   return (
-    <main className="flex-1">
-      <section className="mx-auto w-full max-w-[1200px] px-6 py-16 md:px-8 md:py-20">
-        <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
+    <main className="flex-1 pb-32">
+      <div className="mx-auto w-full max-w-[1100px] px-6 py-16 md:px-8 md:py-24">
+        <div className="grid gap-12 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-20">
+          
+          {/* Sidebar Navigation */}
           <aside className="hidden lg:block">
-            <div className="sticky top-24 rounded-[20px] bg-[#fafafa] p-5 shadow-card">
-              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
-                Navigation
-              </p>
-              <nav className="mt-5 space-y-2">
+            <div className="sticky top-24">
+              <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+                Quick Start
+              </h3>
+              <nav className="mt-6 flex flex-col gap-3 border-l border-[#ebebeb]">
                 {docsSections.map((section) => (
                   <a
                     key={section.id}
                     href={`#${section.id}`}
-                    className="block rounded-[10px] px-3 py-2 text-[14px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-ring"
+                    className="group flex items-center gap-3 pl-4 text-[14px] text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    {section.title}
+                    <span className="opacity-0 transition-opacity group-hover:opacity-100">&rarr;</span>
+                    <span className="-ml-3 transition-transform group-hover:translate-x-2">{section.title}</span>
                   </a>
                 ))}
+              </nav>
+
+              <h3 className="mt-12 font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+                Resources
+              </h3>
+              <nav className="mt-6 flex flex-col gap-3">
+                <a href={webAppUrl} className="text-[14px] text-muted-foreground transition-colors hover:text-foreground">Open WebUI</a>
+                <Link href="/download" className="text-[14px] text-muted-foreground transition-colors hover:text-foreground">Download Clients</Link>
+                <Link href="/changelog" className="text-[14px] text-muted-foreground transition-colors hover:text-foreground">Release Notes</Link>
               </nav>
             </div>
           </aside>
 
+          {/* Main Content */}
           <div className="min-w-0">
-            <div className="rounded-[24px] bg-background p-1">
-              <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground shadow-border">
-                Documentation
-              </span>
-              <h1 className="mt-8 text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[64px] md:tracking-[-2.56px]">
-                Get started fast
-              </h1>
-              <p className="mt-6 max-w-3xl text-[18px] leading-[1.7] text-muted-foreground">
-                Mintlify-style structure, but with the same Offdex shell: dense
-                navigation, quick cards, and direct operating guidance for the
-                bridge, pairing flow, and local-first routing.
-              </p>
-            </div>
+            <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
+              Documentation
+            </h1>
+            <p className="mt-6 max-w-2xl text-[18px] leading-[1.65] text-muted-foreground">
+              Learn how to install the bridge, start your local network tunnel, and securely pair your disposable clients.
+            </p>
 
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {quickLinks.map((link) => (
-                <a
-                  key={link.title}
-                  href={link.href}
-                  className="rounded-[18px] bg-[#fafafa] p-5 shadow-card transition-shadow hover:shadow-card-hover focus-ring"
-                >
-                  <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-                    Quick link
-                  </p>
-                  <h2 className="mt-4 text-[20px] font-semibold tracking-[-0.8px] text-foreground">
-                    {link.title}
-                  </h2>
-                  <p className="mt-2 text-[14px] text-muted-foreground">
-                    {link.label}
-                  </p>
-                </a>
-              ))}
-            </div>
-
-            <div className="mt-10 space-y-6">
+            <div className="mt-16 md:mt-24">
               {docsSections.map((section) => (
                 <section
                   key={section.id}
                   id={section.id}
-                  className="scroll-mt-24 rounded-[22px] bg-background p-6 shadow-card md:p-8"
+                  className="mt-20 scroll-mt-32 first:mt-0"
                 >
-                  <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                    <div className="max-w-2xl">
-                      <div className="flex items-center gap-4">
-                        <span
-                          className={`flex h-[30px] items-center rounded-full px-3 font-mono text-[12px] font-semibold ${section.bg} ${section.accent}`}
-                        >
-                          {section.step}
-                        </span>
-                        <h2 className="text-[28px] font-semibold tracking-[-1.12px] text-foreground">
-                          {section.title}
-                        </h2>
-                      </div>
-                      <p className="mt-5 text-[16px] leading-[1.7] text-muted-foreground">
-                        {section.body}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`flex h-[28px] items-center rounded-full px-3 font-mono text-[12px] font-semibold ${section.bg} ${section.accent}`}>
+                      {section.step}
+                    </span>
+                    <h2 className="text-[28px] font-semibold tracking-[-1.12px] text-foreground md:text-[32px] md:tracking-[-1.28px]">
+                      {section.title}
+                    </h2>
+                  </div>
+                  
+                  <p className="mt-6 max-w-2xl text-[16px] leading-[1.7] text-muted-foreground md:text-[18px]">
+                    {section.body}
+                  </p>
 
-                    <div className="min-w-0 rounded-[16px] bg-[#fafafa] p-4 shadow-border md:w-[320px]">
-                      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-                        Command flow
-                      </p>
-                      <code className="mt-4 block overflow-x-auto text-[14px] leading-[1.7] text-foreground">
-                        {section.command}
-                      </code>
+                  <div className="mt-8 overflow-hidden rounded-[12px] bg-background shadow-border">
+                    <div className="flex h-10 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-4">
+                      <div className="flex gap-2">
+                        <div className="h-[10px] w-[10px] rounded-full bg-[#ff5f56]" />
+                        <div className="h-[10px] w-[10px] rounded-full bg-[#ffbd2e]" />
+                        <div className="h-[10px] w-[10px] rounded-full bg-[#27c93f]" />
+                      </div>
+                    </div>
+                    <div className="p-5 font-mono text-[13px] leading-[1.8] text-foreground">
+                      <span className="text-muted-foreground mr-3">$</span>
+                      {section.command}
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-3 md:grid-cols-2">
+                  <ul className="mt-8 space-y-3">
                     {section.points.map((point) => (
-                      <div
-                        key={point}
-                        className="rounded-[14px] bg-[#fafafa] px-4 py-4 text-[14px] leading-[1.65] text-muted-foreground shadow-border"
-                      >
-                        {point}
-                      </div>
+                      <li key={point} className="flex items-start gap-3 text-[15px] leading-[1.6] text-muted-foreground">
+                        <svg className="mt-[4px] shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>{point}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </section>
               ))}
             </div>
           </div>
-
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 space-y-4">
-              <div className="rounded-[20px] bg-[#fafafa] p-5 shadow-card">
-                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
-                  Fast path
-                </p>
-                <ol className="mt-5 space-y-3 text-[14px] leading-[1.7] text-muted-foreground">
-                  <li>1. Install the bridge on the machine that runs Codex.</li>
-                  <li>2. Start the bridge and keep that session authenticated.</li>
-                  <li>3. Pair once from mobile or web, then reconnect as needed.</li>
-                </ol>
-              </div>
-              <div className="rounded-[20px] bg-[#fafafa] p-5 shadow-card">
-                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
-                  Product surfaces
-                </p>
-                <div className="mt-5 space-y-3">
-                  <a
-                    href={webAppUrl}
-                    className="block rounded-[12px] bg-background px-4 py-3 text-[14px] font-medium text-foreground shadow-border transition-colors hover:bg-white focus-ring"
-                  >
-                    Open WebUI
-                  </a>
-                  <Link
-                    href="/download"
-                    className="block rounded-[12px] bg-background px-4 py-3 text-[14px] font-medium text-foreground shadow-border transition-colors hover:bg-white focus-ring"
-                  >
-                    Download clients
-                  </Link>
-                  <Link
-                    href="/changelog"
-                    className="block rounded-[12px] bg-background px-4 py-3 text-[14px] font-medium text-foreground shadow-border transition-colors hover:bg-white focus-ring"
-                  >
-                    Read release notes
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

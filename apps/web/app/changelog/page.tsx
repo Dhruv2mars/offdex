@@ -8,165 +8,123 @@ export default async function ChangelogPage() {
   const latestRelease = releases[0] ?? null;
 
   return (
-    <main className="flex-1">
-      <section className="mx-auto w-full max-w-[1200px] px-6 py-20 md:px-8 md:py-24">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="max-w-3xl">
-            <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground shadow-border">
-              Changelog
-            </span>
-            <h1 className="mt-8 text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[64px] md:tracking-[-2.56px]">
-              Latest releases
-            </h1>
-            <p className="mt-6 max-w-2xl text-[18px] leading-[1.65] text-muted-foreground">
-              Offdex release notes ship directly from GitHub. Every new tag lands
-              here automatically, so this page stays aligned with the binaries
-              and npm package users actually install.
-            </p>
-          </div>
-
-          <aside className="rounded-[20px] bg-[#fafafa] p-6 shadow-card">
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
-              Release feed
-            </p>
-            <div className="mt-6 space-y-4">
-              <div className="rounded-[14px] bg-background p-4 shadow-border">
-                <p className="text-[14px] font-semibold text-foreground">
-                  Source of truth
-                </p>
-                <p className="mt-2 text-[14px] leading-[1.6] text-muted-foreground">
-                  GitHub Releases drive the changelog and the Android download
-                  target at the same time.
-                </p>
-              </div>
-              <div className="rounded-[14px] bg-background p-4 shadow-border">
-                <p className="text-[14px] font-semibold text-foreground">
-                  Refresh window
-                </p>
-                <p className="mt-2 text-[14px] leading-[1.6] text-muted-foreground">
-                  The page revalidates every hour and falls back to GitHub if the
-                  API is unavailable.
-                </p>
-              </div>
-              <a
-                href={githubReleasesUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center rounded-[10px] bg-foreground px-4 py-3 text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
-              >
-                View all releases
-              </a>
-            </div>
-          </aside>
+    <main className="flex-1 pb-32">
+      {/* Header */}
+      <section className="mx-auto w-full max-w-[800px] px-6 pt-24 pb-16 text-center md:px-8 md:pt-32">
+        <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
+          Changelog
+        </h1>
+        <p className="mx-auto mt-6 max-w-[600px] text-[18px] leading-[1.6] text-muted-foreground">
+          Offdex release notes ship directly from GitHub. Every new tag lands here automatically, ensuring you stay aligned with the latest binaries.
+        </p>
+        <div className="mt-8">
+          <a
+            href={githubReleasesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex rounded-[6px] bg-background px-6 py-[12px] text-[15px] font-medium text-foreground shadow-border transition-colors hover:bg-[#fafafa] focus-ring"
+          >
+            View on GitHub
+          </a>
         </div>
+      </section>
 
-        {latestRelease ? (
-          <div className="mt-12 rounded-[20px] bg-[#fafafa] p-6 shadow-card md:p-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-[#0a72ef]">
-                  Latest shipped
-                </p>
-                <h2 className="mt-3 text-[28px] font-semibold tracking-[-1.12px] text-foreground">
-                  {latestRelease.title}
-                </h2>
-                <p className="mt-2 text-[15px] text-muted-foreground">
-                  {latestRelease.tag} · {formatReleaseDate(latestRelease.publishedAt)}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href={latestRelease.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-[10px] bg-background px-4 py-3 text-[14px] font-medium text-foreground shadow-border transition-colors hover:bg-white focus-ring"
-                >
-                  Read release
-                </a>
-                {latestRelease.androidDownloadUrl ? (
-                  <a
-                    href={latestRelease.androidDownloadUrl}
-                    className="rounded-[10px] bg-foreground px-4 py-3 text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
-                  >
-                    Download APK
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : null}
+      {/* Timeline */}
+      <section className="mx-auto w-full max-w-[800px] px-6 md:px-8">
+        {releases.length > 0 ? (
+          <div className="relative border-l border-[#ebebeb] pl-8 ml-3 md:ml-4">
+            {releases.map((release, index) => {
+              const isLatest = index === 0;
 
-        <div className="mt-12 space-y-6">
-          {releases.length > 0 ? (
-            releases.map((release) => (
-              <article
-                key={release.tag}
-                className="rounded-[20px] bg-background p-6 shadow-card md:p-8"
-              >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="max-w-3xl">
+              return (
+                <article key={release.tag} className="relative mb-16 last:mb-0">
+                  {/* Timeline Dot */}
+                  <div
+                    className={`absolute -left-[41px] top-1.5 h-4 w-4 rounded-full border-[3px] border-background shadow-border ${
+                      isLatest ? "bg-[#0a72ef]" : "bg-[#ebebeb]"
+                    }`}
+                  />
+
+                  {/* Release Content */}
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-[26px] font-semibold tracking-[-1.04px] text-foreground">
+                      <h2 className={`text-[24px] font-semibold tracking-[-0.96px] ${isLatest ? "text-foreground" : "text-[#4d4d4d]"}`}>
                         {release.title}
                       </h2>
                       {release.isPrerelease ? (
-                        <span className="rounded-full bg-[#fff0f7] px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[#de1d8d]">
+                        <span className="rounded-full bg-[#fff0f7] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[#de1d8d]">
                           Prerelease
                         </span>
                       ) : null}
+                      {isLatest ? (
+                        <span className="rounded-full bg-[#ebf5ff] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[#0a72ef]">
+                          Latest
+                        </span>
+                      ) : null}
                     </div>
-                    <p className="mt-3 text-[14px] text-muted-foreground">
-                      {release.tag} · {formatReleaseDate(release.publishedAt)}
-                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-3">
-                    <a
-                      href={release.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-[10px] bg-[#fafafa] px-4 py-3 text-[14px] font-medium text-foreground shadow-border transition-colors hover:bg-white focus-ring"
-                    >
-                      Open on GitHub
-                    </a>
-                    {release.androidDownloadUrl ? (
-                      <a
-                        href={release.androidDownloadUrl}
-                        className="rounded-[10px] bg-foreground px-4 py-3 text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
-                      >
-                        Download APK
-                      </a>
-                    ) : null}
+
+                  <div className="mt-2 flex items-center gap-3 text-[14px] font-medium text-muted-foreground">
+                    <span className="font-mono">{release.tag}</span>
+                    <span>&middot;</span>
+                    <span>{formatReleaseDate(release.publishedAt)}</span>
                   </div>
-                </div>
-                <pre className="mt-6 whitespace-pre-wrap text-[15px] leading-[1.75] text-muted-foreground font-sans">
-                  {release.body}
-                </pre>
-              </article>
-            ))
-          ) : (
-            <div className="rounded-[20px] bg-[#fafafa] p-8 shadow-card">
-              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-[#ff5b4f]">
-                Release feed unavailable
-              </p>
-              <h2 className="mt-4 text-[28px] font-semibold tracking-[-1.12px] text-foreground">
-                GitHub is still the canonical changelog
-              </h2>
-              <p className="mt-4 max-w-2xl text-[16px] leading-[1.65] text-muted-foreground">
-                The live GitHub API did not return releases right now. Users can
-                still read every published note and download artifacts from the
-                release index.
-              </p>
-              <a
-                href={githubReleasesUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 inline-flex rounded-[10px] bg-foreground px-4 py-3 text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
-              >
-                View all releases
-              </a>
+
+                  <div className={`mt-6 overflow-hidden rounded-[16px] bg-background shadow-card ${isLatest ? "ring-1 ring-[#0a72ef]/10" : ""}`}>
+                    <div className="p-6 md:p-8">
+                      <pre className="whitespace-pre-wrap font-sans text-[15px] leading-[1.75] text-[#4d4d4d]">
+                        {release.body || "No release notes provided."}
+                      </pre>
+                      
+                      <div className="mt-8 flex flex-wrap gap-3">
+                        <a
+                          href={release.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-[8px] bg-[#fafafa] px-4 py-[10px] text-[13px] font-medium text-foreground shadow-border transition-colors hover:bg-white focus-ring"
+                        >
+                          View release
+                        </a>
+                        {release.androidDownloadUrl ? (
+                          <a
+                            href={release.androidDownloadUrl}
+                            className="rounded-[8px] bg-foreground px-4 py-[10px] text-[13px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
+                          >
+                            Download APK
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-[16px] bg-background p-12 text-center shadow-card">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#ffefe5] shadow-border">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff5b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
             </div>
-          )}
-        </div>
+            <h3 className="mt-6 text-[20px] font-semibold tracking-[-0.8px] text-foreground">
+              Release feed unavailable
+            </h3>
+            <p className="mt-3 text-[15px] text-muted-foreground">
+              We couldn't load the releases from GitHub. You can still view them directly.
+            </p>
+            <a
+              href={githubReleasesUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 inline-flex rounded-[8px] bg-foreground px-5 py-[10px] text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
+            >
+              Go to GitHub
+            </a>
+          </div>
+        )}
       </section>
     </main>
   );
