@@ -4,20 +4,29 @@
   "strategy": "manual-commit",
   "branch": "feat/design-md-frontend-refactor",
   "checkpoints_count": 1,
-  "files_touched": null,
+  "files_touched": [
+    "apps/mobile/test/design-system.test.ts",
+    "apps/web/test/design-system.test.ts"
+  ],
   "sessions": [
     {
       "metadata": "/38/f73d22da32/0/metadata.json",
       "transcript": "/38/f73d22da32/0/full.jsonl",
       "content_hash": "/38/f73d22da32/0/content_hash.txt",
       "prompt": "/38/f73d22da32/0/prompt.txt"
+    },
+    {
+      "metadata": "/38/f73d22da32/1/metadata.json",
+      "transcript": "/38/f73d22da32/1/full.jsonl",
+      "content_hash": "/38/f73d22da32/1/content_hash.txt",
+      "prompt": "/38/f73d22da32/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 470339208,
+    "input_tokens": 474986996,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 454053504,
-    "output_tokens": 1436561,
-    "api_call_count": 3546
+    "cache_read_tokens": 458571264,
+    "output_tokens": 1445483,
+    "api_call_count": 3584
   }
 }
