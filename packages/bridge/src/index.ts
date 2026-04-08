@@ -510,6 +510,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     desktopAvailable,
     codexConnected: codexRuntime?.client.isConnected ?? false,
     codexAccount,
+    liveClientCount: listeners.size,
     relayConnected,
     relayUrl: managedRelayUrl ?? bridgeState.relayUrl,
     session: sessionStore.getActiveSession(),

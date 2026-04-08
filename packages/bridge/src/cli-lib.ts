@@ -13,53 +13,126 @@ export type CliOptions = {
 
 export const DEFAULT_PORT = 42420;
 export const DEFAULT_HOST = "0.0.0.0";
+export const OFFDEX_WEB_URL = "https://offdexapp.vercel.app";
+export const OFFDEX_GITHUB_URL = "https://github.com/Dhruv2mars/offdex";
+export const OFFDEX_ISSUES_URL = `${OFFDEX_GITHUB_URL}/issues`;
+
+export type BridgeRunStateView = {
+  pid: number;
+  host: string;
+  port: number;
+  startedAt: string;
+};
+
+export type BridgeHealthView = {
+  macName?: string;
+  bridgeMode?: string;
+  codexConnected?: boolean;
+  codexAccount?: {
+    email?: string | null;
+    plan?: string | null;
+  } | null;
+  liveClientCount?: number;
+  relayConnected?: boolean;
+  relayUrl?: string | null;
+};
 
 export function usage() {
   return [
-    "Offdex CLI",
-    "",
-    "Usage:",
-    "  offdex",
-    "  offdex start [options]",
-    "  offdex status [options]",
-    "  offdex stop [options]",
-    "  offdex --help",
+    "Offdex help",
+    "Codex mobile app.",
     "",
     "Commands:",
-    "  start                         Start the Mac bridge and show the pairing QR",
-    "  status                        Check the local bridge",
-    "  stop                          Stop the local bridge started by Offdex",
+    "  offdex",
+    "      Open the Offdex home screen.",
     "",
-    "Options:",
-    "  --host <host>                 Bridge host. Default: 0.0.0.0",
-    "  --port <port>                 Bridge port. Default: 42420",
-    "  --mode <codex|demo>           Bridge runtime mode. Default: codex",
-    "  --control-plane-url <url>     Managed remote control plane URL",
-    "  -h, --help                    Show help",
+    "  offdex help",
+    "      Show commands, docs, and support links.",
+    "",
+    "  offdex start [options]",
+    "      Start the bridge and show the pairing QR.",
+    "",
+    "  offdex status [options]",
+    "      Show bridge, Codex, client, and remote status.",
+    "",
+    "  offdex stop [options]",
+    "      Stop the local bridge started by Offdex.",
+    "",
+    "Start options:",
+    "  --host <host>                 Default: 0.0.0.0",
+    "  --port <port>                 Default: 42420",
+    "  --mode <codex|demo>           Default: codex",
+    "  --control-plane-url <url>     Enable managed remote pairing.",
     "",
     "Environment fallbacks:",
     "  OFFDEX_BRIDGE_HOST",
     "  OFFDEX_BRIDGE_PORT",
     "  OFFDEX_BRIDGE_MODE",
     "  OFFDEX_CONTROL_PLANE_URL",
+    "",
+    "Links:",
+    `  Docs:     ${OFFDEX_WEB_URL}`,
+    `  GitHub:   ${OFFDEX_GITHUB_URL}`,
+    `  Feedback: ${OFFDEX_ISSUES_URL}`,
   ].join("\n");
 }
 
 export function onboarding() {
   return [
     "Offdex",
-    "Codex from your phone.",
+    "Codex mobile app.",
+    "",
+    "Use Codex from your phone while the real Codex session keeps running on this Mac.",
     "",
     "Get started:",
-    "  1. Run offdex start",
-    "  2. Open Offdex on your phone",
-    "  3. Scan the QR from this terminal",
+    "  1. Run: offdex start",
+    "  2. Open Offdex on your phone.",
+    "  3. Scan the QR from this terminal.",
+    "  4. Send a prompt and watch Codex reply live.",
     "",
-    "Useful commands:",
-    "  offdex start      Start the Mac bridge",
-    "  offdex status     Check if Offdex is running",
-    "  offdex stop       Stop the local bridge",
-    "  offdex --help     Show all options",
+    "Core commands:",
+    "  offdex help       Commands, docs, GitHub, feedback.",
+    "  offdex start      Start the bridge and show the QR.",
+    "  offdex status     Show bridge, Codex, and client status.",
+    "  offdex stop       Stop the local bridge.",
+    "",
+    `Docs: ${OFFDEX_WEB_URL}`,
+  ].join("\n");
+}
+
+export function formatBridgeStatus(input: {
+  baseUrl: string;
+  state: BridgeRunStateView | null;
+  health: BridgeHealthView;
+}) {
+  const account = input.health.codexAccount;
+  const codexLine =
+    input.health.bridgeMode === "demo"
+      ? "Codex: demo mode"
+      : input.health.codexConnected
+        ? `Codex: signed in${account?.email ? ` as ${account.email}` : ""}${account?.plan ? ` (${account.plan})` : ""}`
+        : "Codex: sign in on this Mac";
+  const clientCount = input.health.liveClientCount ?? 0;
+  const remoteLine = input.health.relayConnected
+    ? `Remote: connected${input.health.relayUrl ? ` via ${input.health.relayUrl}` : ""}`
+    : "Remote: local network only";
+
+  return [
+    "Offdex is running",
+    `Bridge: ${input.baseUrl}`,
+    input.health.macName ? `Machine: ${input.health.macName}` : null,
+    `Runtime: ${input.health.bridgeMode ?? "codex"}`,
+    codexLine,
+    `Clients: ${clientCount} live`,
+    remoteLine,
+    input.state?.startedAt ? `Started: ${input.state.startedAt}` : null,
+  ].filter(Boolean).join("\n");
+}
+
+export function formatOfflineStatus() {
+  return [
+    "Offdex is not running",
+    "Start it with: offdex start",
   ].join("\n");
 }
 

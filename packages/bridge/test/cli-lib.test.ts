@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_HOST,
   DEFAULT_PORT,
+  formatBridgeStatus,
+  formatOfflineStatus,
   onboarding,
   parseArgs,
   parseBridgeMode,
@@ -107,17 +109,58 @@ describe("bridge cli parser", () => {
 });
 
 describe("bridge cli copy", () => {
-  test("onboarding is not the help screen", () => {
-    expect(onboarding()).toContain("Run offdex start");
+  test("onboarding is a polished static home screen, not the help screen", () => {
+    expect(onboarding()).toContain("Offdex");
+    expect(onboarding()).toContain("Codex mobile app");
+    expect(onboarding()).toContain("offdex start");
     expect(onboarding()).toContain("Scan the QR");
+    expect(onboarding()).toContain("offdex status");
     expect(onboarding()).not.toContain("Usage:");
   });
 
-  test("usage points users at start instead of bridge", () => {
+  test("usage exposes the five public commands and project links", () => {
+    expect(usage()).toContain("offdex");
+    expect(usage()).toContain("offdex help");
     expect(usage()).toContain("offdex start");
     expect(usage()).toContain("offdex status");
     expect(usage()).toContain("offdex stop");
+    expect(usage()).toContain("https://offdexapp.vercel.app");
+    expect(usage()).toContain("https://github.com/Dhruv2mars/offdex/issues");
     expect(usage()).not.toContain("offdex bridge [options]");
+  });
+
+  test("status output reports runtime, codex, clients, and remote state", () => {
+    expect(
+      formatBridgeStatus({
+        baseUrl: "http://127.0.0.1:42420",
+        state: { pid: 123, host: "0.0.0.0", port: 42420, startedAt: "2026-04-08T00:00:00.000Z" },
+        health: {
+          macName: "Studio Mac",
+          bridgeMode: "codex",
+          codexConnected: true,
+          codexAccount: { email: "user@example.com", plan: "Plus" },
+          liveClientCount: 2,
+          relayConnected: true,
+        },
+      })
+    ).toContain("Clients: 2 live");
+    expect(
+      formatBridgeStatus({
+        baseUrl: "http://127.0.0.1:42420",
+        state: null,
+        health: {
+          bridgeMode: "demo",
+          codexConnected: false,
+          liveClientCount: 0,
+          relayConnected: false,
+        },
+      })
+    ).toContain("Codex: demo mode");
+  });
+
+  test("offline status gives the next command", () => {
+    expect(formatOfflineStatus()).toContain("Offdex is not running");
+    expect(formatOfflineStatus()).toContain("offdex start");
   });
 });
 

@@ -14,45 +14,59 @@ import {
 
 const args = process.argv.slice(2);
 const ONBOARDING_TEXT = `Offdex
-Codex from your phone.
+Codex mobile app.
+
+Use Codex from your phone while the real Codex session keeps running on this Mac.
 
 Get started:
-  1. Run offdex start
-  2. Open Offdex on your phone
-  3. Scan the QR from this terminal
+  1. Run: offdex start
+  2. Open Offdex on your phone.
+  3. Scan the QR from this terminal.
+  4. Send a prompt and watch Codex reply live.
 
-Useful commands:
-  offdex start      Start the Mac bridge
-  offdex status     Check if Offdex is running
-  offdex stop       Stop the local bridge
-  offdex --help     Show all options
+Core commands:
+  offdex help       Commands, docs, GitHub, feedback.
+  offdex start      Start the bridge and show the QR.
+  offdex status     Show bridge, Codex, and client status.
+  offdex stop       Stop the local bridge.
+
+Docs: https://offdexapp.vercel.app
 `;
-const HELP_TEXT = `Offdex CLI
-
-Usage:
-  offdex
-  offdex start [options]
-  offdex status [options]
-  offdex stop [options]
-  offdex --help
+const HELP_TEXT = `Offdex help
+Codex mobile app.
 
 Commands:
-  start                         Start the Mac bridge and show the pairing QR
-  status                        Check the local bridge
-  stop                          Stop the local bridge started by Offdex
+  offdex
+      Open the Offdex home screen.
 
-Options:
-  --host <host>                 Bridge host. Default: 0.0.0.0
-  --port <port>                 Bridge port. Default: 42420
-  --mode <codex|demo>           Bridge runtime mode. Default: codex
-  --control-plane-url <url>     Managed remote control plane URL
-  -h, --help                    Show help
+  offdex help
+      Show commands, docs, and support links.
+
+  offdex start [options]
+      Start the bridge and show the pairing QR.
+
+  offdex status [options]
+      Show bridge, Codex, client, and remote status.
+
+  offdex stop [options]
+      Stop the local bridge started by Offdex.
+
+Start options:
+  --host <host>                 Default: 0.0.0.0
+  --port <port>                 Default: 42420
+  --mode <codex|demo>           Default: codex
+  --control-plane-url <url>     Enable managed remote pairing.
 
 Environment fallbacks:
   OFFDEX_BRIDGE_HOST
   OFFDEX_BRIDGE_PORT
   OFFDEX_BRIDGE_MODE
   OFFDEX_CONTROL_PLANE_URL
+
+Links:
+  Docs:     https://offdexapp.vercel.app
+  GitHub:   https://github.com/Dhruv2mars/offdex
+  Feedback: https://github.com/Dhruv2mars/offdex/issues
 `;
 const installedBin = resolveInstalledBin(process.env, process.platform);
 const packageVersion = readPackageVersion();
