@@ -51,8 +51,24 @@ describe("web DESIGN.md system", () => {
     expect(home).toContain("Start from the bridge.");
     expect(home).toContain("Command map");
     expect(home).not.toContain("Mobile and web for the same Codex session");
-    expect(webui).toContain("Session cockpit");
-    expect(webui).toContain("Machine trust");
+    expect(webui).toContain("What do you want Codex to do?");
     expect(architecture).toContain("Signal path");
+  });
+
+  test("uses a ChatGPT-style web UI sidebar shell", () => {
+    const page = readAppFile("webui/page.tsx");
+    const webui = readAppFile("webui/web-app-client.tsx");
+
+    expect(page).not.toContain("sticky top-0");
+    expect(webui).toContain("data-webui-sidebar");
+    expect(webui).toContain("aria-label=\"Toggle sidebar\"");
+    expect(webui).toContain("Offdex");
+    expect(webui).toContain("New chat");
+    expect(webui).toContain("Projects");
+    expect(webui).toContain("Threads");
+    expect(webui).toContain("Settings");
+    expect(webui).not.toContain("Session cockpit");
+    expect(webui).not.toContain("Turn stack");
+    expect(webui).not.toContain("Machine trust");
   });
 });
