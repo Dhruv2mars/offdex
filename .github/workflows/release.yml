@@ -92,6 +92,86 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "version_code=${version_code}" >> "$GITHUB_OUTPUT"
 
+  detect_areas:
+    needs: resolve_tag
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.areas.outputs.cli }}
+      mobile: ${{ steps.areas.outputs.mobile }}
+      web: ${{ steps.areas.outputs.web }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - id: areas
+        env:
+          RELEASE_TAG: ${{ needs.resolve_tag.outputs.release_tag }}
+        shell: bash
+        run: node scripts/release-areas.mjs "${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+
+  validate_cli:
+    if: ${{ needs.detect_areas.outputs.cli == 'true' }}
+    needs: [resolve_tag, detect_areas]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - shell: bash
+        run: bun install --frozen-lockfile
+      - shell: bash
+        run: npm test --prefix packages/npm
+      - shell: bash
+        run: bun test packages/bridge/test/cli-lib.test.ts packages/bridge/test/index.test.ts
+      - shell: bash
+        run: bun run typecheck --filter=@offdex/bridge
+      - shell: bash
+        run: bun run test:install-smoke
+
+  validate_mobile:
+    if: ${{ needs.detect_areas.outputs.mobile == 'true' }}
+    needs: [resolve_tag, detect_areas]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - uses: oven-sh/setup-bun@v2
+      - shell: bash
+        run: bun install --frozen-lockfile
+      - shell: bash
+        run: bun run test --filter=@offdex/mobile
+      - shell: bash
+        run: bun run typecheck --filter=@offdex/mobile
+      - shell: bash
+        run: bun run build --filter=@offdex/mobile
+
+  validate_web:
+    if: ${{ needs.detect_areas.outputs.web == 'true' }}
+    needs: [resolve_tag, detect_areas]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve_tag.outputs.release_tag }}
+      - uses: oven-sh/setup-bun@v2
+      - shell: bash
+        run: bun install --frozen-lockfile
+      - shell: bash
+        run: bun run test --filter=@offdex/web
+      - shell: bash
+        run: bun run typecheck --filter=@offdex/web
+      - shell: bash
+        run: bun run build --filter=@offdex/web
+
   create_release:
     needs: [resolve_tag, validate]
     runs-on: ubuntu-latest
@@ -192,7 +272,8 @@ jobs:
           done
 
   build_cli_upload:
-    needs: [resolve_tag, validate, create_release]
+    if: ${{ needs.detect_areas.outputs.cli == 'true' }}
+    needs: [resolve_tag, validate, detect_areas, validate_cli, create_release]
     strategy:
       fail-fast: false
       matrix:
@@ -267,7 +348,8 @@ jobs:
           done
 
   publish_npm:
-    needs: [resolve_tag, validate, build_cli_upload]
+    if: ${{ needs.detect_areas.outputs.cli == 'true' }}
+    needs: [resolve_tag, validate, detect_areas, build_cli_upload]
     runs-on: ubuntu-latest
     permissions:
       contents: read

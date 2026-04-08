@@ -31,6 +31,17 @@ test("release workflow publishes npm and platform binaries", () => {
   assert.doesNotMatch(releaseWorkflow, /bun-windows-arm64/);
 });
 
+test("release workflow detects web, mobile, and cli areas before publishing", () => {
+  assert.match(releaseWorkflow, /detect_areas:/);
+  assert.match(releaseWorkflow, /node scripts\/release-areas\.mjs/);
+  assert.match(releaseWorkflow, /validate_cli:/);
+  assert.match(releaseWorkflow, /validate_mobile:/);
+  assert.match(releaseWorkflow, /validate_web:/);
+  assert.match(releaseWorkflow, /needs\.detect_areas\.outputs\.cli == 'true'/);
+  assert.match(releaseWorkflow, /needs\.detect_areas\.outputs\.mobile == 'true'/);
+  assert.match(releaseWorkflow, /needs\.detect_areas\.outputs\.web == 'true'/);
+});
+
 test("release workflow keeps Android builds opt-in for fast CLI releases", () => {
   assert.match(releaseWorkflow, /publish_android:/);
   assert.match(releaseWorkflow, /default:\s*false/);
