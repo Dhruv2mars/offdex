@@ -49,7 +49,7 @@ export default function PairScreen() {
       try {
         await connectFromPairingUri(pairingUri);
         void feedbackSuccess();
-        router.replace("/(tabs)");
+        router.replace("/");
       } catch (error) {
         void feedbackError();
         Alert.alert(

@@ -14,9 +14,10 @@ import { feedbackError, feedbackSuccess, feedbackWarning, feedbackSelection } fr
 
 export interface ComposerProps {
   className?: string;
+  onRequestConnection?: () => void;
 }
 
-export function Composer({ className }: ComposerProps) {
+export function Composer({ className, onRequestConnection }: ComposerProps) {
   const inputRef = useRef<RNTextInput>(null);
   const router = useRouter();
   
@@ -45,7 +46,11 @@ export function Composer({ className }: ComposerProps) {
         variant: "secondary" as const,
         onPress: () => {
           void feedbackSelection();
-          router.push("/(tabs)/machines");
+          if (onRequestConnection) {
+            onRequestConnection();
+          } else {
+            router.push("/pair");
+          }
         },
       };
     }
@@ -57,7 +62,11 @@ export function Composer({ className }: ComposerProps) {
         variant: "secondary" as const,
         onPress: () => {
           void feedbackSelection();
-          router.push("/(tabs)/machines");
+          if (onRequestConnection) {
+            onRequestConnection();
+          } else {
+            router.push("/pair");
+          }
         },
       };
     }

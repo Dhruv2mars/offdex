@@ -20,6 +20,7 @@ export {
   Folder,
   Globe,
   Laptop,
+  Menu,
   MessageCircle,
   MessageSquare,
   Monitor,
