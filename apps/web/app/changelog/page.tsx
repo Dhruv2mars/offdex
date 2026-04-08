@@ -4,6 +4,32 @@ import ReactMarkdown from "react-markdown";
 
 export const revalidate = 3600;
 
+function cleanReleaseBody(body: string) {
+  if (!body) return "No release notes provided.";
+
+  return body
+    // Remove "Full Changelog" section completely
+    .replace(/\*\*Full Changelog\*\*:.*$/is, "")
+    // Remove "What's Changed" heading as it is redundant
+    .replace(/## What's Changed\n/g, "")
+    // Remove "New Contributors" section
+    .replace(/## New Contributors.*$/is, "")
+    // Strip contributor mentions ("by @username")
+    .replace(/\s*by @[\w-]+\s*/g, " ")
+    // Strip PR numbers ("in #123" or "(#123)")
+    .replace(/\s*in #\d+/g, "")
+    .replace(/\s*\(#\d+\)/g, "")
+    // Strip direct PR URLs
+    .replace(/\s*in https:\/\/github\.com\/[^\s]+/g, "")
+    // Remove markdown links but keep their text label
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+    // Clean up empty bullets or trailing spaces
+    .replace(/(\* |- )\s*$/gm, "")
+    .replace(/ +/g, " ") // Collapse multiple spaces
+    .replace(/\n\s*\n\s*\n/g, "\n\n") // Max 2 newlines
+    .trim();
+}
+
 export default async function ChangelogPage() {
   const releases = await fetchGitHubReleases();
   const latestRelease = releases[0] ?? null;
@@ -63,23 +89,10 @@ export default async function ChangelogPage() {
 
                   <div className={`mt-6 overflow-hidden rounded-[16px] bg-background shadow-card ${isLatest ? "ring-1 ring-[#0a72ef]/10" : ""}`}>
                     <div className="p-6 md:p-8">
-                      <div className="font-sans text-[15px] leading-[1.7] text-[#4d4d4d] [&_h1]:text-[20px] [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-6 [&_h3]:mb-3 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1.5 [&_li]:text-[#4d4d4d] [&_a]:text-[#0a72ef] hover:[&_a]:underline [&_code]:rounded-[4px] [&_code]:bg-[#fafafa] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-foreground [&_code]:border [&_code]:border-[#ebebeb] [&_pre]:bg-[#fafafa] [&_pre]:p-4 [&_pre]:rounded-[8px] [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-[#ebebeb] [&_pre]:mb-4 [&_pre_code]:border-none [&_pre_code]:bg-transparent [&_pre_code]:p-0">
+                      <div className="font-sans text-[15px] leading-[1.65] text-muted-foreground [&_h1]:text-[18px] [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:tracking-[-0.8px] [&_h1]:mb-3 [&_h1]:mt-6 first:[&_h1]:mt-0 [&_h2]:text-[16px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:tracking-[-0.6px] [&_h2]:mb-3 [&_h2]:mt-6 first:[&_h2]:mt-0 [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:text-foreground [&_h3]:mb-2 [&_h3]:mt-4 [&_p]:mb-4 last:[&_p]:mb-0 [&_ul]:list-none [&_ul]:mb-4 [&_ul]:space-y-2 [&_li]:relative [&_li]:pl-4 before:[&_li]:absolute before:[&_li]:left-0 before:[&_li]:top-[0.6em] before:[&_li]:h-[4px] before:[&_li]:w-[4px] before:[&_li]:rounded-full before:[&_li]:bg-[#cccccc] [&_code]:rounded-[4px] [&_code]:bg-[#fafafa] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-foreground [&_code]:border [&_code]:border-[#ebebeb] [&_pre]:bg-[#fafafa] [&_pre]:p-4 [&_pre]:rounded-[8px] [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-[#ebebeb] [&_pre]:mb-4 [&_pre_code]:border-none [&_pre_code]:bg-transparent [&_pre_code]:p-0">
                         <ReactMarkdown>
-                          {release.body
-                            ? release.body.replace(/\*\*Full Changelog\*\*: https:\/\/github\.com\/.*$/i, "").trim()
-                            : "No release notes provided."}
+                          {cleanReleaseBody(release.body)}
                         </ReactMarkdown>
-                      </div>
-                      
-                      <div className="mt-8 flex flex-wrap gap-3">
-                        <a
-                          href={release.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-[8px] bg-foreground px-4 py-[10px] text-[13px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
-                        >
-                          View on GitHub &rarr;
-                        </a>
                       </div>
                     </div>
                   </div>
