@@ -1,5 +1,7 @@
 export const siteTagline = "Offdex: Codex mobile app.";
 
+export const githubRepoUrl = "https://github.com/Dhruv2mars/offdex";
+
 export const githubReleasesUrl = "https://github.com/Dhruv2mars/offdex/releases";
 
 export const androidApkDownloadUrl =
