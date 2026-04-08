@@ -457,6 +457,7 @@ describe("bridge state store", () => {
     );
 
     expect(output).toContain("Scan with Offdex");
+    expect(output).toContain("Pair with your phone");
     expect(output).not.toContain("offdex://pair?");
     expect(output).toContain("▀");
     expect(output).not.toContain("\u001b[");
@@ -477,11 +478,12 @@ describe("bridge state store", () => {
     });
 
     expect(output).toContain("Offdex is running");
+    expect(output).toContain("== Offdex is running ==");
     expect(output).toContain("Scan the QR");
-    expect(output).toContain("Bridge: http://127.0.0.1:42420");
-    expect(output).toContain("Web UI: https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420");
+    expect(output).toContain("Bridge   http://127.0.0.1:42420");
+    expect(output).toContain("Web UI   https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420");
     expect(output).toContain("pair=offdex%3A%2F%2Fpair");
-    expect(output).toContain("Remote: connected");
+    expect(output).toContain("Remote   connected");
     expect(output).toContain("offdex status");
     expect(output).not.toContain("Local paths:");
     expect(output).not.toContain("offdex://pair?");

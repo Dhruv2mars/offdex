@@ -152,6 +152,9 @@ describe("bridge cli copy", () => {
   test("onboarding is a polished static home screen, not the help screen", () => {
     expect(onboarding()).toContain("Offdex");
     expect(onboarding()).toContain("Codex mobile app");
+    expect(onboarding()).toContain("== Offdex ==");
+    expect(onboarding()).toContain("[1] offdex start");
+    expect(onboarding()).toContain("-> Get started");
     expect(onboarding()).toContain("offdex start");
     expect(onboarding()).toContain("Scan the QR");
     expect(onboarding()).toContain("offdex status");
@@ -159,6 +162,10 @@ describe("bridge cli copy", () => {
   });
 
   test("usage exposes the five public commands and project links", () => {
+    expect(usage()).toContain("== Offdex help ==");
+    expect(usage()).toContain("Commands");
+    expect(usage()).toContain("offdex start [options]");
+    expect(usage()).toContain("Start options");
     expect(usage()).toContain("offdex");
     expect(usage()).toContain("offdex help");
     expect(usage()).toContain("offdex start");
@@ -183,7 +190,7 @@ describe("bridge cli copy", () => {
           relayConnected: true,
         },
       })
-    ).toContain("Clients: 2 live");
+    ).toContain("Clients  2 live");
     expect(
       formatBridgeStatus({
         baseUrl: "http://127.0.0.1:42420",
@@ -195,10 +202,11 @@ describe("bridge cli copy", () => {
           relayConnected: false,
         },
       })
-    ).toContain("Codex: demo mode");
+    ).toContain("Codex    demo mode");
   });
 
   test("offline status gives the next command", () => {
+    expect(formatOfflineStatus()).toContain("! Offdex is not running");
     expect(formatOfflineStatus()).toContain("Offdex is not running");
     expect(formatOfflineStatus()).toContain("offdex start");
   });

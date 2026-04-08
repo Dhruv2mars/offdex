@@ -34,6 +34,8 @@ test("npm wrapper help works inside a workspace checkout without a native runtim
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Offdex help/);
+  assert.match(result.stdout, /== Offdex help ==/);
+  assert.match(result.stdout, /Commands/);
   assert.match(result.stdout, /offdex start/);
   assert.match(result.stdout, /https:\/\/offdexapp\.vercel\.app/);
   assert.match(result.stdout, /https:\/\/github\.com\/Dhruv2mars\/offdex\/issues/);
@@ -57,6 +59,8 @@ test("npm wrapper shows onboarding for bare offdex without downloading runtime",
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Codex mobile app/);
+  assert.match(result.stdout, /== Offdex ==/);
+  assert.match(result.stdout, /\[1\] offdex start/);
   assert.match(result.stdout, /offdex start/);
   assert.match(result.stdout, /Scan the QR/);
   assert.doesNotMatch(result.stdout, /Usage:/);
@@ -90,6 +94,7 @@ test("npm wrapper help works in an installed package without downloading runtime
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Offdex help/);
+  assert.match(result.stdout, /== Offdex help ==/);
   assert.match(result.stdout, /offdex start/);
   assert.match(result.stdout, /https:\/\/offdexapp\.vercel\.app/);
   assert.doesNotMatch(result.stderr, /setting up native runtime/);
@@ -121,6 +126,7 @@ test("npm wrapper status does not download runtime before Offdex is running", ()
   );
 
   assert.equal(result.status, 1);
+  assert.match(result.stdout, /! Offdex is not running/);
   assert.match(result.stdout, /Offdex is not running/);
   assert.match(result.stdout, /offdex start/);
   assert.doesNotMatch(result.stderr, /setting up native runtime/);
@@ -153,6 +159,7 @@ test("npm wrapper stop does not download runtime before Offdex is running", () =
   );
 
   assert.equal(result.status, 0);
+  assert.match(result.stdout, /! Offdex is not running/);
   assert.match(result.stdout, /Offdex is not running/);
   assert.doesNotMatch(result.stderr, /setting up native runtime/);
   assert.doesNotMatch(result.stderr, /download/);

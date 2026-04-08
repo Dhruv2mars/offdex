@@ -9,6 +9,8 @@ import {
   createDaemonLaunchPlan,
   formatBridgeStatus,
   formatOfflineStatus,
+  formatStaleStatus,
+  formatStoppedStatus,
   onboarding,
   parseArgs,
   usage,
@@ -228,14 +230,13 @@ async function printStatusAndExit(options: CliOptions): Promise<never> {
 async function stopBridgeAndExit(options: CliOptions): Promise<never> {
   const state = readRunState();
   if (!state) {
-    console.log("Offdex is not running");
-    console.log("Start it with: offdex start");
+    console.log(formatOfflineStatus());
     process.exit(0);
   }
 
   if (!processIsRunning(state.pid)) {
     removeRunState();
-    console.log("Offdex was not running. Removed stale local state.");
+    console.log(formatStaleStatus());
     process.exit(0);
   }
 
@@ -246,7 +247,7 @@ async function stopBridgeAndExit(options: CliOptions): Promise<never> {
 
   process.kill(state.pid, "SIGTERM");
   removeRunState();
-  console.log(`Stopped Offdex on ${localBridgeUrl(options, state)}`);
+  console.log(formatStoppedStatus(localBridgeUrl(options, state)));
   process.exit(0);
 }
 
