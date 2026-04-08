@@ -7,7 +7,7 @@ export const revalidate = 3600;
 function cleanReleaseBody(body: string) {
   if (!body) return "No release notes provided.";
 
-  return body
+  let cleaned = body
     // Remove "Full Changelog" section completely
     .replace(/\*\*Full Changelog\*\*:.*$/is, "")
     // Remove "What's Changed" heading as it is redundant
@@ -23,23 +23,81 @@ function cleanReleaseBody(body: string) {
     .replace(/\s*in https:\/\/github\.com\/[^\s]+/g, "")
     // Remove markdown links but keep their text label
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
-    // Clean up empty bullets or trailing spaces
-    .replace(/(\* |- )\s*$/gm, "")
-    .replace(/ +/g, " ") // Collapse multiple spaces
-    .replace(/\n\s*\n\s*\n/g, "\n\n") // Max 2 newlines
     .trim();
+
+  // Extract list items to categorize them
+  const lines = cleaned.split('\n');
+  const introLines: string[] = [];
+  const listItems: string[] = [];
+
+  for (const line of lines) {
+    if (/^[\*\-]\s+/.test(line.trim())) {
+      listItems.push(line.trim().replace(/^[\*\-]\s+/, ''));
+    } else if (line.trim() !== '' && !/^#+\s/.test(line.trim())) {
+      introLines.push(line.trim());
+    }
+  }
+
+  // Categories
+  const categories = {
+    feat: { title: "### ✨ Features", items: [] as string[] },
+    fix: { title: "### 🐛 Bug Fixes", items: [] as string[] },
+    perf: { title: "### ⚡️ Performance", items: [] as string[] },
+    polish: { title: "### 💅 Polish", items: [] as string[] },
+    chore: { title: "### 🛠 Under the Hood", items: [] as string[] },
+    other: { title: "### 📝 Other Updates", items: [] as string[] }
+  };
+
+  for (const item of listItems) {
+    // Match conventional commit prefix (e.g. "feat(ui): message" or "feat: message")
+    const match = item.match(/^([a-zA-Z]+)(?:\([^)]+\))?!?:(.*)$/);
+    if (match) {
+      const type = match[1].toLowerCase();
+      const scopeMatch = item.match(/^[a-zA-Z]+\(([^)]+)\)!?:/);
+      const scope = scopeMatch ? scopeMatch[1] : "";
+      const desc = match[2].trim();
+      const capitalizedDesc = desc.charAt(0).toUpperCase() + desc.slice(1);
+      
+      let formattedItem = "* ";
+      if (scope) {
+        formattedItem += `**${scope}**: `;
+      }
+      formattedItem += capitalizedDesc;
+
+      if (['feat', 'feature'].includes(type)) categories.feat.items.push(formattedItem);
+      else if (['fix', 'bug'].includes(type)) categories.fix.items.push(formattedItem);
+      else if (['perf', 'performance'].includes(type)) categories.perf.items.push(formattedItem);
+      else if (['style', 'ui', 'design'].includes(type)) categories.polish.items.push(formattedItem);
+      else if (['refactor', 'chore', 'ci', 'test', 'docs', 'build'].includes(type)) categories.chore.items.push(formattedItem);
+      else categories.other.items.push(`* ${item}`);
+    } else {
+      categories.other.items.push(`* ${item}`);
+    }
+  }
+
+  let result = introLines.join('\n\n');
+  if (result) result += '\n\n';
+
+  for (const key of ['feat', 'fix', 'perf', 'polish', 'chore', 'other'] as const) {
+    const cat = categories[key];
+    if (cat.items.length > 0) {
+      result += `${cat.title}\n${cat.items.join('\n')}\n\n`;
+    }
+  }
+
+  return result.trim() || "No release notes provided.";
 }
 
 const markdownStyles = [
   "font-sans text-[15px] leading-[1.65] text-muted-foreground break-words",
   // Headings
   "[&_h1]:text-[20px] [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:tracking-[-0.8px] [&_h1]:mb-4 [&_h1]:mt-8 first:[&_h1]:mt-0",
-  "[&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:tracking-[-0.6px] [&_h2]:mb-4 [&_h2]:mt-10 [&_h2]:border-t [&_h2]:border-[#ebebeb] [&_h2]:pt-6 first:[&_h2]:mt-0 first:[&_h2]:border-t-0 first:[&_h2]:pt-0",
-  "[&_h3]:text-[16px] [&_h3]:font-medium [&_h3]:text-foreground [&_h3]:mb-3 [&_h3]:mt-8 [&_h3]:border-t [&_h3]:border-[#ebebeb] [&_h3]:pt-5 first:[&_h3]:mt-0 first:[&_h3]:border-t-0 first:[&_h3]:pt-0",
+  "[&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:tracking-[-0.6px] [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:border-t [&_h2]:border-[#ebebeb] [&_h2]:pt-4 first:[&_h2]:mt-0 first:[&_h2]:border-t-0 first:[&_h2]:pt-0",
+  "[&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:tracking-[-0.32px] [&_h3]:text-foreground [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:border-t [&_h3]:border-[#ebebeb] [&_h3]:pt-4 first:[&_h3]:mt-0 first:[&_h3]:border-t-0 first:[&_h3]:pt-0",
   // Paragraphs
-  "[&_p]:mb-4 last:[&_p]:mb-0",
+  "[&_p]:mb-3 last:[&_p]:mb-0",
   // Lists
-  "[&_ul]:list-none [&_ul]:mb-6 [&_ul]:space-y-2",
+  "[&_ul]:list-none [&_ul]:mb-4 [&_ul]:space-y-1.5",
   "[&_li]:relative [&_li]:pl-4 before:[&_li]:absolute before:[&_li]:left-0 before:[&_li]:top-[0.6em] before:[&_li]:h-[4px] before:[&_li]:w-[4px] before:[&_li]:rounded-full before:[&_li]:bg-[#cccccc]",
   // Code & Pre
   "[&_code]:rounded-[4px] [&_code]:bg-[#fafafa] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-foreground [&_code]:border [&_code]:border-[#ebebeb]",
@@ -129,7 +187,7 @@ export default async function ChangelogPage() {
                         isLatest ? "ring-1 ring-[#0a72ef]/10" : ""
                       }`}
                     >
-                      <div className="p-6 md:p-8">
+                      <div className="p-5 md:p-6">
                         <div className={markdownStyles}>
                           <ReactMarkdown>
                             {cleanReleaseBody(release.body)}
