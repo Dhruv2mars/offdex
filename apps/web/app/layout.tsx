@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { siteTagline } from "./site-content";
 
-const sans = Instrument_Sans({
+const sans = Geist({
   variable: "--font-body-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const mono = IBM_Plex_Mono({
+const mono = Geist_Mono({
   variable: "--font-body-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -38,7 +36,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${sans.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="grain min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }
