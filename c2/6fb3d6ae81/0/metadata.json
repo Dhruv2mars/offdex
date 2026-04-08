@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "c26fb3d6ae81",
+  "session_id": "019d6b78-7559-7c91-aadb-0ba8bbb780ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T10:37:38.695687Z",
+  "branch": "fix/remove-legacy-app-route",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "7e1de0ca8cfd",
+  "token_usage": {
+    "input_tokens": 464609475,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 448396288,
+    "output_tokens": 1424239,
+    "api_call_count": 3513
+  },
+  "session_metrics": {
+    "turn_count": 19
+  }
+}

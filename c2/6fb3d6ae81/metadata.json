@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "c26fb3d6ae81",
+  "strategy": "manual-commit",
+  "branch": "fix/remove-legacy-app-route",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/c2/6fb3d6ae81/0/metadata.json",
+      "transcript": "/c2/6fb3d6ae81/0/full.jsonl",
+      "content_hash": "/c2/6fb3d6ae81/0/content_hash.txt",
+      "prompt": "/c2/6fb3d6ae81/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 464609475,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 448396288,
+    "output_tokens": 1424239,
+    "api_call_count": 3513
+  }
+}
