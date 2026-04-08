@@ -60,4 +60,21 @@ describe("mobile DESIGN.md system", () => {
     expect(readPngSize("assets/android-icon-monochrome.png")).toEqual({ width: 432, height: 432 });
     expect(readPngSize("assets/favicon.png")).toEqual({ width: 48, height: 48 });
   });
+
+  test("uses the rebuilt app structure instead of the first-pass tab copy", () => {
+    const tabs = readMobileFile("app/(tabs)/_layout.tsx");
+    const runScreen = readMobileFile("app/(tabs)/index.tsx");
+    const trustScreen = readMobileFile("app/(tabs)/machines.tsx");
+    const controlScreen = readMobileFile("app/(tabs)/settings.tsx");
+
+    expect(tabs).toContain('title: "Run"');
+    expect(tabs).toContain('title: "Trust"');
+    expect(tabs).toContain('title: "Control"');
+    expect(tabs).not.toContain('title: "Chats"');
+    expect(runScreen).toContain("Command deck");
+    expect(runScreen).toContain("Resume active thread");
+    expect(trustScreen).toContain("Trust center");
+    expect(trustScreen).toContain("Pair a new machine");
+    expect(controlScreen).toContain("Control room");
+  });
 });

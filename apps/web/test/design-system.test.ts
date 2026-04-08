@@ -42,4 +42,17 @@ describe("web DESIGN.md system", () => {
     expect(readAppFile("architecture/page.tsx")).toContain("shadow-card");
     expect(readAppFile("webui/web-app-client.tsx")).toContain("shadow-card");
   });
+
+  test("uses the rebuilt product structure instead of the first-pass hero/sidebar", () => {
+    const home = readAppFile("page.tsx");
+    const webui = readAppFile("webui/web-app-client.tsx");
+    const architecture = readAppFile("architecture/page.tsx");
+
+    expect(home).toContain("Start from the bridge.");
+    expect(home).toContain("Command map");
+    expect(home).not.toContain("Mobile and web for the same Codex session");
+    expect(webui).toContain("Session cockpit");
+    expect(webui).toContain("Machine trust");
+    expect(architecture).toContain("Signal path");
+  });
 });
