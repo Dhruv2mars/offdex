@@ -3,21 +3,42 @@
   "checkpoint_id": "7620324afa7a",
   "strategy": "manual-commit",
   "branch": "feat/mobile-chat-shell",
-  "checkpoints_count": 1,
-  "files_touched": null,
+  "checkpoints_count": 2,
+  "files_touched": [
+    "apps/mobile/app/(tabs)/_layout.tsx",
+    "apps/mobile/app/(tabs)/index.tsx",
+    "apps/mobile/app/(tabs)/machines.tsx",
+    "apps/mobile/app/(tabs)/settings.tsx",
+    "apps/mobile/app/_layout.tsx",
+    "apps/mobile/app/chat/[id].tsx",
+    "apps/mobile/app/index.tsx",
+    "apps/mobile/app/pair.tsx",
+    "apps/mobile/components/chat/composer.tsx",
+    "apps/mobile/components/layout/mobile-chat-shell.tsx",
+    "apps/mobile/lib/icons.ts",
+    "apps/mobile/src/app-config.ts",
+    "apps/mobile/test/app-config.test.ts",
+    "apps/mobile/test/design-system.test.ts"
+  ],
   "sessions": [
     {
       "metadata": "/76/20324afa7a/0/metadata.json",
       "transcript": "/76/20324afa7a/0/full.jsonl",
       "content_hash": "/76/20324afa7a/0/content_hash.txt",
       "prompt": "/76/20324afa7a/0/prompt.txt"
+    },
+    {
+      "metadata": "/76/20324afa7a/1/metadata.json",
+      "transcript": "/76/20324afa7a/1/full.jsonl",
+      "content_hash": "/76/20324afa7a/1/content_hash.txt",
+      "prompt": "/76/20324afa7a/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 470339208,
+    "input_tokens": 492682031,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 454053504,
-    "output_tokens": 1436561,
-    "api_call_count": 3546
+    "cache_read_tokens": 475755904,
+    "output_tokens": 1485301,
+    "api_call_count": 3712
   }
 }

@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "7620324afa7a",
+  "session_id": "019d6cbc-c6bb-7a51-9e65-9ebfdba6cc6f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T13:27:17.959146Z",
+  "branch": "feat/mobile-chat-shell",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/app/(tabs)/_layout.tsx",
+    "apps/mobile/app/(tabs)/index.tsx",
+    "apps/mobile/app/(tabs)/machines.tsx",
+    "apps/mobile/app/(tabs)/settings.tsx",
+    "apps/mobile/app/_layout.tsx",
+    "apps/mobile/app/chat/[id].tsx",
+    "apps/mobile/app/index.tsx",
+    "apps/mobile/app/pair.tsx",
+    "apps/mobile/components/chat/composer.tsx",
+    "apps/mobile/components/layout/mobile-chat-shell.tsx",
+    "apps/mobile/lib/icons.ts",
+    "apps/mobile/src/app-config.ts",
+    "apps/mobile/test/app-config.test.ts",
+    "apps/mobile/test/design-system.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "fcb3a2781af6",
+  "checkpoint_transcript_start": 1972,
+  "transcript_lines_at_start": 1972,
+  "token_usage": {
+    "input_tokens": 22342823,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21702400,
+    "output_tokens": 48740,
+    "api_call_count": 166
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T13:27:06.981122Z",
+    "agent_lines": 513,
+    "human_added": 23,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 538,
+    "agent_percentage": 95.35315985130111
+  }
+}
