@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "5901ac859906",
+  "strategy": "manual-commit",
+  "branch": "feat/final-connectivity-refactor",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/App.tsx",
+    "apps/mobile/src/bridge-client.ts",
+    "apps/mobile/src/bridge-workspace-controller.ts",
+    "apps/mobile/src/session-readiness.ts",
+    "apps/mobile/test/bridge-client.test.ts",
+    "apps/mobile/test/bridge-workspace-controller.test.ts",
+    "apps/mobile/test/session-readiness.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/59/01ac859906/0/metadata.json",
+      "transcript": "/59/01ac859906/0/full.jsonl",
+      "content_hash": "/59/01ac859906/0/content_hash.txt",
+      "prompt": "/59/01ac859906/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 442811460,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 426990592,
+    "output_tokens": 1399182,
+    "api_call_count": 3350
+  }
+}
