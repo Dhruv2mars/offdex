@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   androidApkDownloadUrl,
   architecturePrinciples,
+  bridgeStartCommand,
+  cliInstallCommand,
   githubReleasesUrl,
   siteTagline,
 } from "../app/site-content";
@@ -20,5 +22,10 @@ describe("web site content", () => {
       "https://github.com/Dhruv2mars/offdex/releases/latest/download/offdex-android.apk"
     );
     expect(githubReleasesUrl).toBe("https://github.com/Dhruv2mars/offdex/releases");
+  });
+
+  test("publishes the current CLI onboarding commands", () => {
+    expect(cliInstallCommand).toBe("npm install -g @dhruv2mars/offdex");
+    expect(bridgeStartCommand).toBe("offdex bridge");
   });
 });

@@ -60,7 +60,7 @@ Then scan the QR once in Offdex. The phone claims a trusted device session, sees
 
 ### Web
 
-The web app is live at [web-dhruv2mars.vercel.app](https://web-dhruv2mars.vercel.app).
+The web app is live at [offdexapp.vercel.app](https://offdexapp.vercel.app).
 
 ### Android APK
 
@@ -70,7 +70,7 @@ Public Android downloads are meant to ship through GitHub Releases.
 - Releases page: `https://github.com/Dhruv2mars/offdex/releases`
 - Create a release tag: `bun run release:tag`
 
-The release workflow builds a signed Android APK from the Expo app and uploads:
+Version tag releases build a signed Android APK from the Expo app and upload:
 
 - `offdex-android.apk`
 - `offdex-android.sha256`
