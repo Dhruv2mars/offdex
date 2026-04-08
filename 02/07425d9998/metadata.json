@@ -4,20 +4,44 @@
   "strategy": "manual-commit",
   "branch": "feat/design-md-frontend-refactor",
   "checkpoints_count": 1,
-  "files_touched": null,
+  "files_touched": [
+    "apps/mobile/app/(tabs)/_layout.tsx",
+    "apps/mobile/app/(tabs)/index.tsx",
+    "apps/mobile/app/(tabs)/machines.tsx",
+    "apps/mobile/app/(tabs)/settings.tsx",
+    "apps/mobile/app/_layout.tsx",
+    "apps/mobile/app/chat/[id].tsx",
+    "apps/mobile/app/pair.tsx",
+    "apps/mobile/assets/android-icon-background.png",
+    "apps/mobile/assets/android-icon-foreground.png",
+    "apps/mobile/assets/android-icon-monochrome.png",
+    "apps/mobile/assets/favicon.png",
+    "apps/mobile/assets/icon.png",
+    "apps/mobile/assets/offdex-mark.svg",
+    "apps/mobile/assets/splash-icon.png",
+    "apps/web/app/architecture/page.tsx",
+    "apps/web/app/page.tsx",
+    "apps/web/app/webui/web-app-client.tsx"
+  ],
   "sessions": [
     {
       "metadata": "/02/07425d9998/0/metadata.json",
       "transcript": "/02/07425d9998/0/full.jsonl",
       "content_hash": "/02/07425d9998/0/content_hash.txt",
       "prompt": "/02/07425d9998/0/prompt.txt"
+    },
+    {
+      "metadata": "/02/07425d9998/1/metadata.json",
+      "transcript": "/02/07425d9998/1/full.jsonl",
+      "content_hash": "/02/07425d9998/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 470339208,
+    "input_tokens": 481476837,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 454053504,
-    "output_tokens": 1436561,
-    "api_call_count": 3546
+    "cache_read_tokens": 464935552,
+    "output_tokens": 1475700,
+    "api_call_count": 3663
   }
 }
