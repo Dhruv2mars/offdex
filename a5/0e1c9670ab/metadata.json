@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "a50e1c9670ab",
+  "strategy": "manual-commit",
+  "branch": "fix/web-prod-react-markdown",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/package.json",
+    "bun.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a5/0e1c9670ab/0/metadata.json",
+      "transcript": "/a5/0e1c9670ab/0/full.jsonl",
+      "content_hash": "/a5/0e1c9670ab/0/content_hash.txt",
+      "prompt": "/a5/0e1c9670ab/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1990740,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1860096,
+    "output_tokens": 4308,
+    "api_call_count": 18
+  }
+}

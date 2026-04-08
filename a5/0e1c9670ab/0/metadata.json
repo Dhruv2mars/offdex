@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "a50e1c9670ab",
+  "session_id": "019d6e4c-3e05-7f71-8117-dd5bc9d39d2f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T22:32:37.646709Z",
+  "branch": "fix/web-prod-react-markdown",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/package.json",
+    "bun.lock"
+  ],
+  "agent": "Codex",
+  "turn_id": "5cddb7ee7c9d",
+  "checkpoint_transcript_start": 1085,
+  "transcript_lines_at_start": 1085,
+  "token_usage": {
+    "input_tokens": 1990740,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1860096,
+    "output_tokens": 4308,
+    "api_call_count": 18
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T22:32:35.918407Z",
+    "agent_lines": 2,
+    "human_added": 80,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 82,
+    "agent_percentage": 2.4390243902439024
+  }
+}
