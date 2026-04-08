@@ -28,7 +28,8 @@ Common usage:
 offdex
 offdex help
 offdex start --host 0.0.0.0 --port 42420
-offdex start --control-plane-url https://control.offdex.app
 offdex status
 offdex stop
 ```
+
+Remote pairing is enabled by default through the managed Offdex relay. Use `OFFDEX_CONTROL_PLANE_URL` only to override it for development.

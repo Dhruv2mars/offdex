@@ -1,6 +1,8 @@
-# Offdex Relay
+# Offdex Legacy Relay
 
-Stateful websocket relay for trusted Offdex remote access.
+Stateful websocket relay used for local development and migration tests.
+
+Production remote access now uses `packages/control-plane-worker`, which runs on Cloudflare Workers + Durable Objects. Users should not set up this relay themselves.
 
 ## What It Does
 
@@ -28,7 +30,6 @@ docker run --rm -p 42421:42421 offdex-relay
 
 ## Production Notes
 
-- put the relay behind HTTPS so the public URL is `https://relay.your-domain.com`
-- set `OFFDEX_RELAY_URL=https://relay.your-domain.com` when starting the bridge
-- once the bridge restarts, the pairing QR and pairing link will embed the public relay URL
-- the phone only needs to pair once, then it keeps reconnecting until the user disconnects
+- do not expose this package as the default user-facing remote path
+- use the Cloudflare control-plane worker for production remote pairing
+- keep this package available for compatibility and local transport tests

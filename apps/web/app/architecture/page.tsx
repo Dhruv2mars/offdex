@@ -15,7 +15,7 @@ const layers = [
   {
     name: "Managed remote path",
     detail:
-      "Pair once with QR, trust the phone as a device, then reconnect through direct-first transport with encrypted relay fallback when the network gets in the way.",
+      "Pair once with QR, trust the client as a device, then use the local bridge when nearby or the encrypted Cloudflare relay when away.",
   },
   {
     name: "Web and product shell",
