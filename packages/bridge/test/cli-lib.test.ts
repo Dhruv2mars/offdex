@@ -2,15 +2,17 @@ import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_HOST,
   DEFAULT_PORT,
+  onboarding,
   parseArgs,
   parseBridgeMode,
   parsePort,
+  usage,
 } from "../src/cli-lib";
 
 describe("bridge cli parser", () => {
-  test("uses defaults for the bridge command", () => {
+  test("shows onboarding when no command is provided", () => {
     expect(parseArgs([])).toEqual({
-      command: "bridge",
+      command: "onboarding",
       host: DEFAULT_HOST,
       port: DEFAULT_PORT,
       bridgeMode: "codex",
@@ -18,10 +20,26 @@ describe("bridge cli parser", () => {
     });
   });
 
-  test("parses explicit bridge options", () => {
+  test("uses defaults for the start command", () => {
+    expect(parseArgs(["start"])).toEqual({
+      command: "start",
+      host: DEFAULT_HOST,
+      port: DEFAULT_PORT,
+      bridgeMode: "codex",
+      controlPlaneUrl: undefined,
+      deprecatedBridgeAlias: false,
+    });
+  });
+
+  test("keeps bridge as a deprecated start alias", () => {
+    expect(parseArgs(["bridge"]).command).toBe("start");
+    expect(parseArgs(["bridge"]).deprecatedBridgeAlias).toBe(true);
+  });
+
+  test("parses explicit start options", () => {
     expect(
       parseArgs([
-        "bridge",
+        "start",
         "--host",
         "127.0.0.1",
         "--port",
@@ -32,29 +50,43 @@ describe("bridge cli parser", () => {
         "https://control.offdex.app",
       ])
     ).toEqual({
-      command: "bridge",
+      command: "start",
       host: "127.0.0.1",
       port: 5555,
       bridgeMode: "demo",
       controlPlaneUrl: "https://control.offdex.app",
+      deprecatedBridgeAlias: false,
     });
   });
 
   test("falls back to environment values", () => {
     expect(
-      parseArgs([], {
+      parseArgs(["start"], {
         OFFDEX_BRIDGE_HOST: "0.0.0.0",
         OFFDEX_BRIDGE_PORT: "4444",
         OFFDEX_BRIDGE_MODE: "demo",
         OFFDEX_CONTROL_PLANE_URL: "https://control.example.com",
       } as NodeJS.ProcessEnv)
     ).toEqual({
-      command: "bridge",
+      command: "start",
       host: "0.0.0.0",
       port: 4444,
       bridgeMode: "demo",
       controlPlaneUrl: "https://control.example.com",
+      deprecatedBridgeAlias: false,
     });
+  });
+
+  test("parses status and stop commands", () => {
+    expect(parseArgs(["status"])).toEqual({
+      command: "status",
+      host: DEFAULT_HOST,
+      port: DEFAULT_PORT,
+      bridgeMode: "codex",
+      controlPlaneUrl: undefined,
+    });
+    expect(parseArgs(["stop", "--port", "5555"]).command).toBe("stop");
+    expect(parseArgs(["stop", "--port", "5555"]).port).toBe(5555);
   });
 
   test("switches to help mode", () => {
@@ -69,8 +101,23 @@ describe("bridge cli parser", () => {
 
   test("rejects invalid input clearly", () => {
     expect(() => parseArgs(["wat"])).toThrow("unknown_command:wat");
-    expect(() => parseArgs(["bridge", "--wat"])).toThrow("unknown_option:--wat");
-    expect(() => parseArgs(["bridge", "--port"])).toThrow("missing_value:--port");
+    expect(() => parseArgs(["start", "--wat"])).toThrow("unknown_option:--wat");
+    expect(() => parseArgs(["start", "--port"])).toThrow("missing_value:--port");
+  });
+});
+
+describe("bridge cli copy", () => {
+  test("onboarding is not the help screen", () => {
+    expect(onboarding()).toContain("Run offdex start");
+    expect(onboarding()).toContain("Scan the QR");
+    expect(onboarding()).not.toContain("Usage:");
+  });
+
+  test("usage points users at start instead of bridge", () => {
+    expect(usage()).toContain("offdex start");
+    expect(usage()).toContain("offdex status");
+    expect(usage()).toContain("offdex stop");
+    expect(usage()).not.toContain("offdex bridge [options]");
   });
 });
 

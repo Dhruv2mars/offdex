@@ -26,6 +26,6 @@ describe("web site content", () => {
 
   test("publishes the current CLI onboarding commands", () => {
     expect(cliInstallCommand).toBe("npm install -g @dhruv2mars/offdex");
-    expect(bridgeStartCommand).toBe("offdex bridge");
+    expect(bridgeStartCommand).toBe("offdex start");
   });
 });
