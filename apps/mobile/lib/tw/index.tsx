@@ -88,12 +88,15 @@ export type ScrollViewProps = RNScrollViewProps & {
   contentContainerClassName?: string;
 };
 
-export const ScrollView = (props: ScrollViewProps) => {
-  return renderCssElement(RNScrollView, props, {
+export const ScrollView = forwardRef<
+  React.ElementRef<typeof RNScrollView>,
+  ScrollViewProps
+>((props, ref) => {
+  return renderCssElement(RNScrollView, { ...props, ref }, {
     className: "style",
     contentContainerClassName: "contentContainerStyle",
   });
-};
+});
 ScrollView.displayName = "CSS(ScrollView)";
 
 // TextInput
