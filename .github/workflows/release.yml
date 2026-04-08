@@ -240,6 +240,7 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           bun build --compile --target="${{ matrix.target }}" packages/bridge/src/cli.ts --outfile "dist/offdex-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}"
+          gzip -9 -c "dist/offdex-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}" > "dist/offdex-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}.gz"
       - shell: bash
         run: |
           set -euo pipefail

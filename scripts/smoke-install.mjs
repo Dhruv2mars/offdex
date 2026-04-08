@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import {
   copyFileSync,
   existsSync,
@@ -65,7 +66,11 @@ run(
 );
 
 copyFileSync(builtBinary, assetPath);
-writeFileSync(join(releaseDir, checksumName), `${sha256(assetPath)} *${assetName}\n`);
+writeFileSync(`${assetPath}.gz`, gzipSync(readFileSync(assetPath)));
+writeFileSync(
+  join(releaseDir, checksumName),
+  `${sha256(assetPath)} *${assetName}\n${sha256(`${assetPath}.gz`)} *${assetName}.gz\n`
+);
 
 const packed = run(npmCommand, ["pack", ".", "--pack-destination", packDir], { cwd: npmPackageRoot, capture: true });
 const tarball = lastNonEmptyLine(packed.stdout);
@@ -149,6 +154,7 @@ try {
     cwd: repoRoot,
     env: tarballEnv,
     stdio: ["ignore", "pipe", "pipe"],
+    detached: process.platform !== "win32",
     shell: process.platform === "win32" && /\.cmd$/i.test(globalLauncher),
   });
 
@@ -175,7 +181,7 @@ try {
   }
 } finally {
   if (bridgeProcess) {
-    bridgeProcess.kill("SIGTERM");
+    await stopProcess(bridgeProcess);
   }
   await new Promise((resolvePromise, rejectPromise) =>
     server.close((error) => (error ? rejectPromise(error) : resolvePromise()))
@@ -254,6 +260,40 @@ function runAsyncCapture(command, args, options = {}) {
       }
       rejectPromise(new Error(`${command} ${args.join(" ")} failed with code ${code ?? 1}\n${stderr}`));
     });
+  });
+}
+
+function stopProcess(child) {
+  return new Promise((resolvePromise) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolvePromise();
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      if (process.platform !== "win32" && child.pid) {
+        try {
+          process.kill(-child.pid, "SIGKILL");
+          return;
+        } catch {
+          // Fall through to the direct child kill.
+        }
+      }
+      child.kill("SIGKILL");
+    }, 2000);
+    child.once("exit", () => {
+      clearTimeout(timeout);
+      resolvePromise();
+    });
+    if (process.platform !== "win32" && child.pid) {
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch {
+        child.kill("SIGTERM");
+      }
+      return;
+    }
+    child.kill("SIGTERM");
   });
 }
 

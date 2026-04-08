@@ -45,7 +45,7 @@ test("npm wrapper help works in an installed package without downloading runtime
   });
   writeFileSync(
     join(packageRoot, "package.json"),
-    JSON.stringify({ name: "@dhruv2mars/offdex", version: "0.0.4", type: "module" })
+    JSON.stringify({ name: "@dhruv2mars/offdex", version: "0.0.5", type: "module" })
   );
 
   const result = spawnSync(

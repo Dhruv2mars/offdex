@@ -21,6 +21,7 @@ test("npm package keeps the publish contract", () => {
 test("release workflow publishes npm and platform binaries", () => {
   assert.match(releaseWorkflow, /gh release upload --clobber/);
   assert.match(releaseWorkflow, /offdex-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
+  assert.match(releaseWorkflow, /\.gz"/);
   assert.match(releaseWorkflow, /npm publish --(?:provenance --)?access public/);
   assert.match(releaseWorkflow, /bun-linux-x64-baseline/);
   assert.match(releaseWorkflow, /bun-linux-arm64/);
