@@ -16,9 +16,9 @@ export default function Home() {
             <span className="font-semibold tracking-[-0.32px]">Offdex</span>
           </Link>
           <nav className="flex items-center gap-6 text-[14px] font-medium">
-            <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Changelog</Link>
-            <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Documentation</Link>
-            <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Download</Link>
+            <Link href="/changelog" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Changelog</Link>
+            <Link href="/docs" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Documentation</Link>
+            <Link href="/download" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Download</Link>
             <a
               href="https://github.com/Dhruv2mars/offdex"
               target="_blank"
@@ -270,7 +270,7 @@ export default function Home() {
             <span className="text-[14px] font-medium text-foreground">Offdex. Codex for mobile.</span>
           </div>
           <div className="flex gap-8 text-[14px] font-medium text-muted-foreground">
-            <a href={githubReleasesUrl} className="transition-colors hover:text-foreground">GitHub</a>
+            <a href={githubReleasesUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">GitHub</a>
           </div>
         </div>
       </footer>
