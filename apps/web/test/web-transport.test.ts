@@ -27,7 +27,7 @@ describe("web transport", () => {
   test("extracts pairing links from terminal web urls", () => {
     expect(
       extractPairingUri(
-        "https://offdexapp.vercel.app/app?bridge=http%3A%2F%2F192.168.1.8%3A42420&pair=offdex%3A%2F%2Fpair%3Fbridge%3Dhttp%253A%252F%252F192.168.1.8%253A42420%26name%3Dstudio-macbook%26control%3Dhttps%253A%252F%252Fcontrol.offdex.dev%26machine%3Dmachine-1%26claim%3Dclaim-1%26owner%3Ddhruv%2540example.com%26v%3D3"
+        "https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F192.168.1.8%3A42420&pair=offdex%3A%2F%2Fpair%3Fbridge%3Dhttp%253A%252F%252F192.168.1.8%253A42420%26name%3Dstudio-macbook%26control%3Dhttps%253A%252F%252Fcontrol.offdex.dev%26machine%3Dmachine-1%26claim%3Dclaim-1%26owner%3Ddhruv%2540example.com%26v%3D3"
       )
     ).toBe(
       "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&control=https%3A%2F%2Fcontrol.offdex.dev&machine=machine-1&claim=claim-1&owner=dhruv%40example.com&v=3"

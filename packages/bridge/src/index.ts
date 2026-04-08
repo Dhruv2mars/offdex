@@ -186,7 +186,7 @@ function terminalBold(text: string) {
 
 export function createBridgeWebUiUrl(
   bridgeUrl: string,
-  webAppUrl = process.env.OFFDEX_WEB_UI_URL ?? "https://offdexapp.vercel.app/app",
+  webAppUrl = process.env.OFFDEX_WEB_UI_URL ?? "https://offdexapp.vercel.app/webui",
   pairingUri?: string
 ) {
   const url = new URL(webAppUrl);
