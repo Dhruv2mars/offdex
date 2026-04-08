@@ -115,8 +115,8 @@ export default function DocsPage() {
                 id={section.id}
                 className="mb-16 last:mb-0 md:mb-24 scroll-mt-32"
               >
-                <div className="mb-6 flex flex-wrap items-center gap-3">
-                  <span className={`flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider shadow-border ${section.bg} ${section.accent}`}>
+                <div className="mb-6 flex flex-col gap-2">
+                  <span className={`font-mono text-[11px] font-bold uppercase tracking-wider ${section.accent}`}>
                     Step {section.step}
                   </span>
                   <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">

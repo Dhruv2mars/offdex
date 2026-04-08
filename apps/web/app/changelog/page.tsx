@@ -170,12 +170,12 @@ export default async function ChangelogPage() {
                         {release.title}
                       </h2>
                       {release.isPrerelease ? (
-                        <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#de1d8d] shadow-border">
+                        <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#de1d8d]">
                           Prerelease
                         </span>
                       ) : null}
                       {isLatest ? (
-                        <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] shadow-border">
+                        <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef]">
                           Latest
                         </span>
                       ) : null}

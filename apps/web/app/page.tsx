@@ -113,7 +113,7 @@ export default function Home() {
           {/* Step 1: Install */}
           <div className="relative group">
             <div className="mb-6 flex items-center gap-4">
-              <span className="flex h-[28px] items-center rounded-full bg-[#ebf5ff] px-3 font-mono text-[12px] font-semibold text-[#0a72ef]">01</span>
+              <span className="font-mono text-[12px] font-bold text-[#0a72ef]">01</span>
               <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Install Offdex CLI</h3>
               <div className="hidden h-[1px] flex-1 border-t border-dashed border-[#ebebeb] md:block" />
             </div>
@@ -139,7 +139,7 @@ export default function Home() {
           {/* Step 2: Start */}
           <div className="relative group">
             <div className="mb-6 flex items-center gap-4">
-              <span className="flex h-[28px] items-center rounded-full bg-[#fff0f7] px-3 font-mono text-[12px] font-semibold text-[#de1d8d]">02</span>
+              <span className="font-mono text-[12px] font-bold text-[#de1d8d]">02</span>
               <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Start Relay</h3>
               <div className="hidden h-[1px] flex-1 border-t border-dashed border-[#ebebeb] md:block" />
             </div>
@@ -155,7 +155,7 @@ export default function Home() {
           {/* Step 3: Pair */}
           <div className="relative group">
             <div className="mb-6 flex items-center gap-4">
-              <span className="flex h-[28px] items-center rounded-full bg-[#ffefe5] px-3 font-mono text-[12px] font-semibold text-[#ff5b4f]">03</span>
+              <span className="font-mono text-[12px] font-bold text-[#ff5b4f]">03</span>
               <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Pair Client</h3>
             </div>
             <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
@@ -180,7 +180,7 @@ export default function Home() {
       {/* Feature Grid (Architecture) */}
       <section className="mx-auto w-full max-w-[1200px] border-t border-[#ebebeb] px-6 py-24 md:px-8 md:py-32">
         <div className="mb-16">
-          <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground shadow-border">
+          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Architecture
           </span>
           <h2 className="mt-8 max-w-2xl text-[32px] font-semibold leading-[1.15] tracking-[-1.28px] md:text-[40px] md:tracking-[-2.4px]">

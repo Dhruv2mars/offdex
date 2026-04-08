@@ -18,26 +18,25 @@ export function PackageManagerTerminal() {
   };
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      {/* Segmented Control */}
-      <div className="flex items-center gap-1 rounded-[8px] bg-[#fafafa] p-1 shadow-border w-fit">
-        {(["npm", "bun", "pnpm"] as const).map((mgr) => (
-          <button
-            key={mgr}
-            onClick={() => setManager(mgr)}
-            className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-all ${
-              manager === mgr
-                ? "bg-background text-foreground shadow-border"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {mgr}
-          </button>
-        ))}
-      </div>
-
-      {/* Terminal */}
-      <TerminalBlock command={getCommand()} />
-    </div>
+    <TerminalBlock 
+      command={getCommand()} 
+      headerContent={
+        <div className="flex items-center gap-3">
+          {(["npm", "bun", "pnpm"] as const).map((mgr) => (
+            <button
+              key={mgr}
+              onClick={() => setManager(mgr)}
+              className={`text-[12px] font-mono uppercase tracking-wider transition-colors focus-ring rounded-sm ${
+                manager === mgr
+                  ? "font-bold text-foreground"
+                  : "font-medium text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {mgr}
+            </button>
+          ))}
+        </div>
+      }
+    />
   );
 }

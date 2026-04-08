@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 
-export function TerminalBlock({ command }: { command: string }) {
+export function TerminalBlock({ command, headerContent }: { command: string; headerContent?: ReactNode }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -14,14 +14,17 @@ export function TerminalBlock({ command }: { command: string }) {
   return (
     <div className="group overflow-hidden rounded-[12px] bg-background shadow-card transition-shadow hover:shadow-card-hover">
       <div className="relative flex h-12 items-center justify-between border-b border-[#ebebeb] bg-[#fafafa] px-5">
-        <div className="flex gap-2">
-          <div className="h-3 w-3 rounded-full bg-[#ff5f56]" />
-          <div className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
-          <div className="h-3 w-3 rounded-full bg-[#27c93f]" />
+        <div className="flex items-center gap-6">
+          <div className="flex gap-2">
+            <div className="h-3 w-3 rounded-full bg-[#ff5f56]" />
+            <div className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
+            <div className="h-3 w-3 rounded-full bg-[#27c93f]" />
+          </div>
+          {headerContent}
         </div>
         <button
           onClick={handleCopy}
-          className="absolute right-3 opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-ring rounded-full px-[12px] py-[4px] bg-background shadow-border"
+          className="absolute right-5 opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-ring"
         >
           {copied ? (
             <>

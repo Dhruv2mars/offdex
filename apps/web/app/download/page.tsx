@@ -27,8 +27,8 @@ export default function DownloadPage() {
           {/* Row 1: CLI */}
           <div className="flex flex-col gap-6 border-b border-[#ebebeb] py-16 md:flex-row md:gap-12">
             <div className="w-full shrink-0 md:w-[220px]">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] bg-[#ebf5ff] shadow-border">
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   Host
                 </span>
                 <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Offdex CLI</h2>
@@ -57,8 +57,8 @@ export default function DownloadPage() {
           {/* Row 2: Mobile Apps */}
           <div className="flex flex-col gap-6 border-b border-[#ebebeb] py-16 md:flex-row md:gap-12">
             <div className="w-full shrink-0 md:w-[220px]">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-[#fafafa] shadow-border">
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   Client
                 </span>
                 <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Mobile Apps</h2>
