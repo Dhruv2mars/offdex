@@ -69,9 +69,9 @@ export default function Home() {
               </div>
             </div>
             <div className="p-5 md:p-6 font-mono text-[14px] leading-[1.8] h-[340px] md:h-[460px]">
-              <p className="text-muted-foreground flex items-center gap-[6px]">
+              <p className="text-foreground flex items-center gap-[1ch]">
                 <span>$</span>
-                <span className="inline-flex h-[1.4em] overflow-hidden text-foreground">
+                <span className="inline-flex h-[1.4em] overflow-hidden">
                   <span className="animate-pkg-scroll flex flex-col">
                     <span className="flex h-[1.4em] items-center">npm</span>
                     <span className="flex h-[1.4em] items-center">bun</span>
@@ -81,14 +81,14 @@ export default function Home() {
                 </span>
                 <span>install -g @dhruv2mars/offdex</span>
               </p>
-              <p className="mt-3 text-muted-foreground">$ offdex start</p>
-              <p className="mt-3 text-foreground">Bridge started on port 42420</p>
+              <p className="mt-4 text-foreground">$ offdex start</p>
+              <p className="mt-4 text-foreground">Bridge started on port 42420</p>
               <p className="text-[#0a72ef]">Waiting for client connection...</p>
               <p className="mt-4 text-[#27c93f]">✓ Client connected: Mobile App (iOS)</p>
               <p className="text-muted-foreground">Synchronizing local context tree...</p>
               <p className="text-muted-foreground">Establishing encrypted relay fallback tunnel...</p>
               <p className="text-[#27c93f]">✓ Tunnel active</p>
-              <p className="text-foreground mt-4">Processing context snapshot...</p>
+              <p className="mt-4 text-muted-foreground">Processing context snapshot...</p>
               <div className="mt-4 flex items-center gap-2 text-muted-foreground">
                 <span className="inline-block h-[16px] w-[10px] animate-blink bg-foreground" />
               </div>
@@ -146,7 +146,7 @@ export default function Home() {
             </p>
             <div className="flex h-[64px] items-center rounded-[8px] bg-[#fafafa] px-4 font-mono text-[13px] text-foreground shadow-border transition-colors hover:bg-[#f5f5f5]">
               <span className="select-none text-[#0a72ef]">$ </span>
-              <span className="ml-2 flex items-center gap-[6px]">
+              <span className="ml-2 flex items-center gap-[1ch]">
                 <span className="inline-flex h-[1.4em] overflow-hidden text-[#0a72ef]">
                   <span className="animate-pkg-scroll flex flex-col">
                     <span className="flex h-[1.4em] items-center">npm</span>
