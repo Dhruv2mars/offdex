@@ -55,3 +55,9 @@ more things to do:
 - when a user starts. it should show the qr in square ratio, its currently not square. 
 - it should be minimal with only relevant info. not too much info. 
 - even if user do ctrl+C the bridge should keep on. this way, even if the terminal is turned off, it will be still working.
+
+---
+
+is the new cli version released? do it. 
+
+also, make our dev workflow such that, if we have changed or updated the cli, then the builds and test should be for cli only, why does android have to go through all of that even if it has no changes.
