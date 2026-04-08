@@ -46,7 +46,7 @@ describe("web DESIGN.md system", () => {
     const webui = readAppFile("webui/web-app-client.tsx");
 
     expect(home).toContain("The Codex");
-    expect(home).toContain("Install Bridge");
+    expect(home).toContain("Install Offdex CLI");
     expect(home).toContain("Put authority in the bridge.");
     expect(home).not.toContain("href=\"#architecture\"");
     expect(webui).toContain("What do you want Codex to do?");

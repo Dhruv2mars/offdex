@@ -10,9 +10,9 @@ import { TerminalBlock } from "../../components/terminal-block";
 
 const docsSections = [
   {
-    id: "install-bridge",
+    id: "install-cli",
     step: "01",
-    title: "Install the bridge",
+    title: "Install the Offdex CLI",
     body:
       "Install the Offdex CLI globally. The npm package downloads the matching native bridge runtime for the machine that actually owns Codex.",
     command: cliInstallCommand,
@@ -77,7 +77,7 @@ export default function DocsPage() {
             Documentation
           </h1>
           <p className="mt-6 text-[18px] leading-[1.6] text-muted-foreground">
-            Learn how to install the bridge, start your local network tunnel, and securely pair your disposable clients.
+            Learn how to install the Offdex CLI, start your local network tunnel, and securely pair your disposable clients.
           </p>
         </div>
       </section>

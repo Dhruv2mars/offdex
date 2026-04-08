@@ -114,11 +114,11 @@ export default function Home() {
           <div className="relative group">
             <div className="mb-6 flex items-center gap-4">
               <span className="flex h-[28px] items-center rounded-full bg-[#ebf5ff] px-3 font-mono text-[12px] font-semibold text-[#0a72ef]">01</span>
-              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Install Bridge</h3>
+              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Install Offdex CLI</h3>
               <div className="hidden h-[1px] flex-1 border-t border-dashed border-[#ebebeb] md:block" />
             </div>
             <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
-              Get the CLI. The native bridge runs directly on your Mac, owning Codex authentication and executing commands securely.
+              Get the Offdex CLI. The native bridge runs directly on your Mac, owning Codex authentication and executing commands securely.
             </p>
             <div className="flex h-[64px] items-center rounded-[8px] bg-[#fafafa] px-4 font-mono text-[13px] text-foreground shadow-border transition-colors hover:bg-[#f5f5f5]">
               <span className="select-none text-[#0a72ef]">$ </span>

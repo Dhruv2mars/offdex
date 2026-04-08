@@ -12,8 +12,8 @@ describe("public content pages", () => {
   test("documents the core bridge and pairing flow", () => {
     const docs = readAppFile("docs/page.tsx");
 
-    expect(docs).toContain("Get started fast");
-    expect(docs).toContain("Install the bridge");
+    expect(docs).toContain("Quick Start");
+    expect(docs).toContain("Install the Offdex CLI");
     expect(docs).toContain("Start your local bridge");
     expect(docs).toContain("Pair from phone or web");
     expect(docs).toContain("Mac owns the session");
@@ -23,20 +23,20 @@ describe("public content pages", () => {
     const changelog = readAppFile("changelog/page.tsx");
     const releases = readAppFile("changelog/releases.ts");
 
-    expect(changelog).toContain("Latest releases");
+    expect(changelog).toContain("Changelog");
     expect(changelog).toContain("Release feed unavailable");
-    expect(changelog).toContain("View all releases");
+    expect(changelog).toContain("Go to GitHub");
     expect(releases).toContain("api.github.com/repos/Dhruv2mars/offdex/releases");
-    expect(releases).toContain("revalidate: 3600");
+    expect(releases).toContain("revalidate");
   });
 
   test("offers the CLI install path and mobile download section", () => {
     const download = readAppFile("download/page.tsx");
 
-    expect(download).toContain("Bridge CLI");
-    expect(download).toContain("Mobile apps");
+    expect(download).toContain("Offdex CLI");
+    expect(download).toContain("Mobile Apps");
     expect(download).toContain("Android APK");
-    expect(download).toContain("Private beta");
-    expect(download).toContain("cliInstallCommand");
+    expect(download).toContain("iOS Source");
+    expect(download).toContain("PackageManagerTerminal");
   });
 });

@@ -1,47 +1,47 @@
 import {
   androidApkDownloadUrl,
-  cliInstallCommand,
   githubRepoUrl,
   githubReleasesUrl,
 } from "../site-content";
-import { TerminalBlock } from "../../components/terminal-block";
+import { PackageManagerTerminal } from "../../components/package-manager-terminal";
 
 export default function DownloadPage() {
   return (
     <main className="flex-1 pb-32">
-      {/* Modest Utilitarian Header */}
-      <section className="mx-auto w-full max-w-[900px] px-6 pt-24 pb-12 md:px-8 md:pt-32">
-        <h1 className="text-[32px] font-semibold tracking-[-1.2px] text-foreground md:text-[40px] md:tracking-[-1.6px]">
-          Download Offdex
-        </h1>
-        <p className="mt-4 text-[16px] leading-[1.6] text-muted-foreground">
-          Get the bridge for your host machine, and the client apps to connect.
-        </p>
+      {/* Header aligned exactly with Changelog and Docs */}
+      <section className="mx-auto w-full max-w-[1000px] px-6 pt-24 pb-16 md:px-8 md:pt-32">
+        <div className="max-w-[600px]">
+          <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
+            Download Offdex
+          </h1>
+          <p className="mt-6 text-[18px] leading-[1.6] text-muted-foreground">
+            Get the Offdex CLI for your host machine, and the client apps to connect.
+          </p>
+        </div>
       </section>
 
       {/* Settings-Pane Style Rows */}
-      <section className="mx-auto w-full max-w-[900px] px-6 md:px-8">
+      <section className="mx-auto w-full max-w-[1000px] px-6 md:px-8">
         <div className="border-t border-[#ebebeb]">
           
           {/* Row 1: CLI */}
-          <div className="flex flex-col gap-6 border-b border-[#ebebeb] py-12 md:flex-row md:gap-12">
+          <div className="flex flex-col gap-6 border-b border-[#ebebeb] py-16 md:flex-row md:gap-12">
             <div className="w-full shrink-0 md:w-[220px]">
-              <div className="flex items-center gap-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-foreground">
-                  <polyline points="4 17 10 11 4 5" />
-                  <line x1="12" y1="19" x2="20" y2="19" />
-                </svg>
-                <h2 className="text-[18px] font-semibold tracking-[-0.64px] text-foreground">Bridge CLI</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] bg-[#ebf5ff] shadow-border">
+                  Host
+                </span>
+                <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Offdex CLI</h2>
               </div>
-              <p className="mt-2 text-[14px] text-muted-foreground">macOS, Linux, Windows</p>
+              <p className="mt-4 text-[14px] text-muted-foreground">macOS, Linux, Windows</p>
             </div>
             
             <div className="min-w-0 flex-1">
-              <p className="mb-6 text-[15px] leading-[1.6] text-muted-foreground">
+              <p className="mb-6 text-[16px] leading-[1.6] text-muted-foreground">
                 The global npm package is the primary entrypoint. It automatically fetches the matching native runtime for your machine from GitHub Releases.
               </p>
               <div className="mb-6">
-                <TerminalBlock command={cliInstallCommand} />
+                <PackageManagerTerminal />
               </div>
               <a
                 href={githubReleasesUrl}
@@ -55,20 +55,19 @@ export default function DownloadPage() {
           </div>
 
           {/* Row 2: Mobile Apps */}
-          <div className="flex flex-col gap-6 border-b border-[#ebebeb] py-12 md:flex-row md:gap-12">
+          <div className="flex flex-col gap-6 border-b border-[#ebebeb] py-16 md:flex-row md:gap-12">
             <div className="w-full shrink-0 md:w-[220px]">
-              <div className="flex items-center gap-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-foreground">
-                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                  <line x1="12" y1="18" x2="12.01" y2="18" />
-                </svg>
-                <h2 className="text-[18px] font-semibold tracking-[-0.64px] text-foreground">Mobile Clients</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-[#fafafa] shadow-border">
+                  Client
+                </span>
+                <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Mobile Apps</h2>
               </div>
-              <p className="mt-2 text-[14px] text-muted-foreground">Android, iOS</p>
+              <p className="mt-4 text-[14px] text-muted-foreground">Android, iOS</p>
             </div>
             
             <div className="min-w-0 flex-1">
-              <p className="mb-6 text-[15px] leading-[1.6] text-muted-foreground">
+              <p className="mb-6 text-[16px] leading-[1.6] text-muted-foreground">
                 Download the signed Android APK directly to your device, or build the iOS app from source. A public iOS TestFlight is coming soon.
               </p>
               <div className="flex flex-wrap items-center gap-4">
