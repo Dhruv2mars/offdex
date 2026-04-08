@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "1cdf6660775f",
+  "strategy": "manual-commit",
+  "branch": "feat/design-md-frontend-refactor",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/1c/df6660775f/0/metadata.json",
+      "transcript": "/1c/df6660775f/0/full.jsonl",
+      "content_hash": "/1c/df6660775f/0/content_hash.txt",
+      "prompt": "/1c/df6660775f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 470339208,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 454053504,
+    "output_tokens": 1436561,
+    "api_call_count": 3546
+  }
+}
