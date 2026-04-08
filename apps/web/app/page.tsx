@@ -16,6 +16,9 @@ export default function Home() {
             <span className="font-semibold tracking-[-0.32px]">Offdex</span>
           </Link>
           <nav className="flex items-center gap-6 text-[14px] font-medium">
+            <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Changelog</Link>
+            <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Documentation</Link>
+            <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md">Download</Link>
             <a
               href="https://github.com/Dhruv2mars/offdex"
               target="_blank"
@@ -260,7 +263,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#ebebeb] bg-[#fafafa] py-16">
+      <footer className="border-t border-[#ebebeb] bg-[#fafafa] py-8">
         <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center justify-between gap-6 px-6 md:flex-row md:px-8">
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="Offdex Logo" className="h-6 w-6 rounded-md grayscale" />
@@ -268,8 +271,6 @@ export default function Home() {
           </div>
           <div className="flex gap-8 text-[14px] font-medium text-muted-foreground">
             <a href={githubReleasesUrl} className="transition-colors hover:text-foreground">GitHub</a>
-            <a href={androidApkDownloadUrl} className="transition-colors hover:text-foreground">Android</a>
-            <Link href={webAppUrl} className="transition-colors hover:text-foreground">Web App</Link>
           </div>
         </div>
       </footer>
