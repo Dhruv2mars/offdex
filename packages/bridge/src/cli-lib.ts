@@ -37,6 +37,39 @@ export type BridgeHealthView = {
   relayUrl?: string | null;
 };
 
+export type DaemonLaunchPlan = {
+  command: string;
+  args: string[];
+};
+
+export function createDaemonLaunchPlan(input: {
+  argv: string[];
+  execPath: string;
+}): DaemonLaunchPlan {
+  const entry = input.argv[1] ?? "";
+  const runsThroughScript = /\.(?:[cm]?[jt]s|tsx|jsx)$/.test(entry);
+  const runsFromBunFs = entry.startsWith("/$bunfs/");
+
+  if (runsThroughScript) {
+    return {
+      command: input.execPath,
+      args: [entry, ...input.argv.slice(2)],
+    };
+  }
+
+  if (runsFromBunFs) {
+    return {
+      command: input.execPath,
+      args: input.argv.slice(2),
+    };
+  }
+
+  return {
+    command: input.argv[0] || input.execPath,
+    args: input.argv.slice(1),
+  };
+}
+
 export function usage() {
   return [
     "Offdex help",
