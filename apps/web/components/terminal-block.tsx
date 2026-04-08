@@ -12,16 +12,16 @@ export function TerminalBlock({ command }: { command: string }) {
   };
 
   return (
-    <div className="group mt-8 overflow-hidden rounded-[12px] bg-background shadow-border transition-shadow hover:shadow-card">
-      <div className="relative flex h-10 items-center justify-between border-b border-[#ebebeb] bg-[#fafafa] px-4">
+    <div className="group overflow-hidden rounded-[12px] bg-background shadow-card transition-shadow hover:shadow-card-hover">
+      <div className="relative flex h-12 items-center justify-between border-b border-[#ebebeb] bg-[#fafafa] px-5">
         <div className="flex gap-2">
-          <div className="h-[10px] w-[10px] rounded-full bg-[#ff5f56]" />
-          <div className="h-[10px] w-[10px] rounded-full bg-[#ffbd2e]" />
-          <div className="h-[10px] w-[10px] rounded-full bg-[#27c93f]" />
+          <div className="h-3 w-3 rounded-full bg-[#ff5f56]" />
+          <div className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
+          <div className="h-3 w-3 rounded-full bg-[#27c93f]" />
         </div>
         <button
           onClick={handleCopy}
-          className="absolute right-2 opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground focus-ring rounded-md px-2 py-1 bg-[#ebebeb]/50 hover:bg-[#ebebeb]"
+          className="absolute right-3 opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-ring rounded-full px-[12px] py-[4px] bg-background shadow-border"
         >
           {copied ? (
             <>
@@ -36,8 +36,8 @@ export function TerminalBlock({ command }: { command: string }) {
           )}
         </button>
       </div>
-      <div className="p-5 font-mono text-[13px] leading-[1.8] text-foreground overflow-x-auto">
-        <span className="text-muted-foreground mr-3">$</span>
+      <div className="p-5 md:p-6 font-mono text-[14px] leading-[1.8] text-foreground overflow-x-auto">
+        <span className="text-muted-foreground mr-3 select-none">$</span>
         {command}
       </div>
     </div>

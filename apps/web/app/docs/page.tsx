@@ -70,12 +70,25 @@ const docsSections = [
 export default function DocsPage() {
   return (
     <main className="flex-1 pb-32">
-      <div className="mx-auto w-full max-w-[1100px] px-6 py-16 md:px-8 md:py-24">
-        <div className="grid gap-12 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-20">
+      {/* Header aligned exactly with Changelog */}
+      <section className="mx-auto w-full max-w-[1000px] px-6 pt-24 pb-16 md:px-8 md:pt-32">
+        <div className="max-w-[600px]">
+          <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
+            Documentation
+          </h1>
+          <p className="mt-6 text-[18px] leading-[1.6] text-muted-foreground">
+            Learn how to install the bridge, start your local network tunnel, and securely pair your disposable clients.
+          </p>
+        </div>
+      </section>
+
+      {/* Grid aligned exactly with Changelog */}
+      <section className="mx-auto w-full max-w-[1000px] px-6 md:px-8">
+        <div className="grid gap-12 md:grid-cols-[180px_1fr] md:gap-12">
           
           {/* Sidebar Navigation */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-24">
+          <aside className="hidden pt-[6px] md:block">
+            <div className="sticky top-24 pr-8">
               <h3 className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 Quick Start
               </h3>
@@ -84,7 +97,7 @@ export default function DocsPage() {
                   <a
                     key={section.id}
                     href={`#${section.id}`}
-                    className="group flex items-center gap-3 pl-4 text-[14px] text-muted-foreground transition-colors hover:text-foreground"
+                    className="group flex items-center gap-3 pl-4 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <span className="opacity-0 transition-opacity group-hover:opacity-100">&rarr;</span>
                     <span className="-ml-3 transition-transform group-hover:translate-x-2">{section.title}</span>
@@ -95,50 +108,42 @@ export default function DocsPage() {
           </aside>
 
           {/* Main Content */}
-          <div className="min-w-0">
-            <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
-              Documentation
-            </h1>
-            <p className="mt-6 max-w-2xl text-[18px] leading-[1.6] text-muted-foreground">
-              Learn how to install the bridge, start your local network tunnel, and securely pair your disposable clients.
-            </p>
+          <div className="min-w-0 md:pl-0">
+            {docsSections.map((section) => (
+              <section
+                key={section.id}
+                id={section.id}
+                className="mb-16 last:mb-0 md:mb-24 scroll-mt-32"
+              >
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                  <span className={`flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider shadow-border ${section.bg} ${section.accent}`}>
+                    Step {section.step}
+                  </span>
+                  <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">
+                    {section.title}
+                  </h2>
+                </div>
+                
+                <p className="max-w-2xl text-[16px] leading-[1.6] text-muted-foreground">
+                  {section.body}
+                </p>
 
-            <div className="mt-16 md:mt-24">
-              {docsSections.map((section) => (
-                <section
-                  key={section.id}
-                  id={section.id}
-                  className="mt-20 scroll-mt-32 first:mt-0"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className={`flex h-[28px] items-center rounded-full px-3 font-mono text-[12px] font-semibold ${section.bg} ${section.accent}`}>
-                      {section.step}
-                    </span>
-                    <h2 className="text-[28px] font-semibold tracking-[-1.12px] text-foreground md:text-[32px] md:tracking-[-1.28px]">
-                      {section.title}
-                    </h2>
-                  </div>
-                  
-                  <p className="mt-6 max-w-2xl text-[16px] leading-[1.6] text-muted-foreground md:text-[18px]">
-                    {section.body}
-                  </p>
-
+                <div className="mt-8">
                   <TerminalBlock command={section.command} />
+                </div>
 
-                  <ul className="mt-8 space-y-3">
-                    {section.points.map((point) => (
-                      <li key={point} className="flex items-start gap-3 text-[15px] leading-[1.6] text-muted-foreground">
-                        <svg className="mt-[4px] shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        <span>{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
+                <ul className="mt-8 space-y-1.5">
+                  {section.points.map((point) => (
+                    <li key={point} className="relative pl-4 text-[15px] leading-[1.6] text-muted-foreground before:absolute before:left-0 before:top-[0.6em] before:h-[4px] before:w-[4px] before:rounded-full before:bg-[#cccccc]">
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 }
