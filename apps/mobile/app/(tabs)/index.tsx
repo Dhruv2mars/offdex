@@ -62,7 +62,7 @@ export default function ThreadListScreen() {
   const showThreads = threads.length > 0 || connectionState !== "idle";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
       {/* Header */}
       <ScreenHeader
         title="Chats"
@@ -74,7 +74,7 @@ export default function ThreadListScreen() {
               variant="secondary"
               onPress={handleNewThread}
             >
-              <Plus size={20} color="#fafafa" strokeWidth={2} />
+              <Plus size={20} color="#171717" strokeWidth={2} />
             </Button>
           </View>
         }
@@ -88,14 +88,14 @@ export default function ThreadListScreen() {
         <FlashList
           data={threads}
           keyExtractor={(thread) => thread.id}
-          style={{ flex: 1, backgroundColor: "#09090b" }}
-          contentContainerStyle={{ paddingBottom: 16, backgroundColor: "#09090b" }}
+          style={{ flex: 1, backgroundColor: "#ffffff" }}
+          contentContainerStyle={{ paddingBottom: 16, backgroundColor: "#ffffff" }}
           refreshControl={
             <RefreshControl
               refreshing={isBusy}
               onRefresh={handleRefresh}
-              tintColor="#fafafa"
-              colors={["#fafafa"]}
+              tintColor="#171717"
+              colors={["#171717"]}
             />
           }
           ListHeaderComponent={
@@ -125,7 +125,7 @@ export default function ThreadListScreen() {
           ListEmptyComponent={
             isConnected ? (
               <View className="px-4 py-8">
-                <View className="rounded-xl bg-card border border-border p-4">
+                <View className="rounded-lg bg-card p-4 shadow-card">
                   <Text className="text-sm text-muted-foreground text-center">
                     No threads yet. Start a new conversation to get going.
                   </Text>
@@ -139,14 +139,14 @@ export default function ThreadListScreen() {
           data={[]}
           keyExtractor={(_, index) => `empty-${index}`}
           renderItem={null}
-          style={{ flex: 1, backgroundColor: "#09090b" }}
-          contentContainerStyle={{ flexGrow: 1, backgroundColor: "#09090b" }}
+          style={{ flex: 1, backgroundColor: "#ffffff" }}
+          contentContainerStyle={{ flexGrow: 1, backgroundColor: "#ffffff" }}
           refreshControl={
             <RefreshControl
               refreshing={isBusy}
               onRefresh={handleRefresh}
-              tintColor="#fafafa"
-              colors={["#fafafa"]}
+              tintColor="#171717"
+              colors={["#171717"]}
             />
           }
           ListEmptyComponent={

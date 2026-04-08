@@ -90,14 +90,14 @@ export default function PairScreen() {
   // Permission denied
   if (permission && !permission.granted) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <Pressable
             onPress={handleClose}
-            className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80"
+            className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80 shadow-border"
           >
-            <X size={20} color="#fafafa" />
+            <X size={20} color="#171717" />
           </Pressable>
           <Text className="text-base font-semibold text-foreground">
             Scan QR Code
@@ -107,8 +107,8 @@ export default function PairScreen() {
 
         {/* Permission Request */}
         <View className="flex-1 items-center justify-center px-8">
-          <View className="w-20 h-20 rounded-full bg-muted items-center justify-center mb-6">
-            <Camera size={36} color="#71717a" />
+          <View className="w-20 h-20 rounded-lg bg-card items-center justify-center mb-6 shadow-card">
+            <Camera size={36} color="#4d4d4d" />
           </View>
           <Text className="text-xl font-semibold text-foreground text-center mb-2">
             Camera Access Required
@@ -117,7 +117,7 @@ export default function PairScreen() {
             We need access to your camera to scan the pairing QR code from your Mac.
           </Text>
           <Button variant="primary" onPress={requestPermission}>
-            <Camera size={18} color="#09090b" />
+            <Camera size={18} color="#ffffff" />
             <Text className="text-sm font-semibold text-primary-foreground ml-2">
               Grant Camera Access
             </Text>
@@ -148,7 +148,7 @@ export default function PairScreen() {
             onPress={handleClose}
             className="w-10 h-10 items-center justify-center rounded-full bg-black/50 active:bg-black/70"
           >
-            <X size={20} color="#fafafa" />
+            <X size={20} color="#ffffff" />
           </Pressable>
           <Text className="text-base font-semibold text-white">
             Scan QR Code
@@ -158,9 +158,9 @@ export default function PairScreen() {
             className="w-10 h-10 items-center justify-center rounded-full bg-black/50 active:bg-black/70"
           >
             {torch ? (
-              <Flashlight size={20} color="#fafafa" />
+              <Flashlight size={20} color="#ffffff" />
             ) : (
-              <FlashlightOff size={20} color="#fafafa" />
+              <FlashlightOff size={20} color="#ffffff" />
             )}
           </Pressable>
         </View>
@@ -177,7 +177,7 @@ export default function PairScreen() {
             {/* Connecting Overlay */}
             {isConnecting && (
               <View className="absolute inset-0 items-center justify-center bg-black/60 rounded-xl">
-                <RefreshCw size={32} color="#fafafa" className="animate-spin" />
+                <RefreshCw size={32} color="#ffffff" className="animate-spin" />
                 <Text className="text-sm text-white mt-3">Connecting...</Text>
               </View>
             )}

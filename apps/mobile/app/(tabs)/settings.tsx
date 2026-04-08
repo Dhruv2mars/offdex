@@ -68,7 +68,7 @@ function SettingsRow({
       >
         <Icon
           size={18}
-          color={variant === "destructive" ? "#ef4444" : "#a1a1aa"}
+          color={variant === "destructive" ? "#ff5b4f" : "#4d4d4d"}
         />
       </View>
       <View className="flex-1">
@@ -91,7 +91,7 @@ function SettingsRow({
       )}
       {trailing}
       {onPress && !trailing && (
-        <ChevronRight size={16} color="#71717a" />
+        <ChevronRight size={16} color="#666666" />
       )}
     </View>
   );
@@ -224,12 +224,12 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
       <ScreenHeader title="Settings" />
 
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#09090b" }}
-        contentContainerStyle={{ backgroundColor: "#09090b", paddingBottom: 24 }}
+        style={{ flex: 1, backgroundColor: "#ffffff" }}
+        contentContainerStyle={{ backgroundColor: "#ffffff", paddingBottom: 24 }}
       >
         <View className="pt-4">
             <SettingsSection title="Codex Runtime">

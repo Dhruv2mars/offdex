@@ -9,18 +9,18 @@ type BadgeVariant = "default" | "secondary" | "success" | "warning" | "destructi
 
 const variantStyles: Record<BadgeVariant, string> = {
   default: "bg-primary",
-  secondary: "bg-secondary",
-  success: "bg-success",
-  warning: "bg-warning",
+  secondary: "bg-muted shadow-border",
+  success: "bg-accent",
+  warning: "bg-[#fdf2f8]",
   destructive: "bg-destructive",
-  outline: "bg-transparent border border-border",
+  outline: "bg-transparent shadow-border",
 };
 
 const variantTextStyles: Record<BadgeVariant, string> = {
   default: "text-primary-foreground",
-  secondary: "text-secondary-foreground",
-  success: "text-success-foreground",
-  warning: "text-warning-foreground",
+  secondary: "text-muted-foreground",
+  success: "text-accent-foreground",
+  warning: "text-preview",
   destructive: "text-destructive-foreground",
   outline: "text-foreground",
 };
@@ -73,13 +73,13 @@ export function Badge({
 type StatusType = "running" | "idle" | "completed" | "failed" | "connected" | "disconnected" | "reconnecting";
 
 const statusConfig: Record<StatusType, { bg: string; text: string; dot?: string }> = {
-  running: { bg: "bg-success/15", text: "text-success", dot: "bg-success" },
+  running: { bg: "bg-accent", text: "text-accent-foreground", dot: "bg-develop" },
   idle: { bg: "bg-muted", text: "text-muted-foreground" },
-  completed: { bg: "bg-info/15", text: "text-info" },
-  failed: { bg: "bg-destructive/15", text: "text-destructive" },
-  connected: { bg: "bg-success/15", text: "text-success", dot: "bg-success" },
+  completed: { bg: "bg-accent", text: "text-accent-foreground" },
+  failed: { bg: "bg-[#fff1f0]", text: "text-destructive" },
+  connected: { bg: "bg-accent", text: "text-accent-foreground", dot: "bg-develop" },
   disconnected: { bg: "bg-muted", text: "text-muted-foreground" },
-  reconnecting: { bg: "bg-warning/15", text: "text-warning", dot: "bg-warning" },
+  reconnecting: { bg: "bg-[#fdf2f8]", text: "text-preview", dot: "bg-preview" },
 };
 
 type StatusBadgeProps =

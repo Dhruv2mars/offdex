@@ -19,14 +19,13 @@ export const Input = forwardRef<RNTextInput, InputProps>(
       <TextInput
         ref={ref}
         className={cn(
-          "h-11 rounded-xl bg-input px-4",
+          "h-11 rounded-md bg-input px-4",
           "text-sm text-foreground",
-          "border",
-          isFocused ? "border-ring" : "border-border",
-          error && "border-destructive",
+          isFocused ? "shadow-card" : "shadow-border",
+          error && "shadow-border",
           className
         )}
-        placeholderTextColor="#71717a"
+        placeholderTextColor="#666666"
         onFocus={(e) => {
           setIsFocused(true);
           onFocus?.(e);
@@ -61,14 +60,13 @@ export const Textarea = forwardRef<RNTextInput, TextareaProps>(
         multiline
         textAlignVertical="top"
         className={cn(
-          "min-h-[100px] rounded-xl bg-input px-4 py-3",
+          "min-h-[100px] rounded-md bg-input px-4 py-3",
           "text-sm text-foreground leading-relaxed",
-          "border",
-          isFocused ? "border-ring" : "border-border",
-          error && "border-destructive",
+          isFocused ? "shadow-card" : "shadow-border",
+          error && "shadow-border",
           className
         )}
-        placeholderTextColor="#71717a"
+        placeholderTextColor="#666666"
         onFocus={(e) => {
           setIsFocused(true);
           onFocus?.(e);

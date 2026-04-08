@@ -92,15 +92,15 @@ export default function ChatScreen() {
   const RuntimeIcon = runtimeTarget === "cli" ? Terminal : Monitor;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
       {/* Custom Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+      <View className="flex-row items-center justify-between px-4 py-3 shadow-border">
         {/* Back Button */}
         <Pressable
           onPress={handleBack}
           className="flex-row items-center -ml-2 py-1 pl-1 pr-3 rounded-lg active:bg-muted"
         >
-          <ChevronLeft size={24} color="#fafafa" />
+          <ChevronLeft size={24} color="#171717" />
           <Text className="text-base font-medium text-foreground ml-1">
             Chats
           </Text>
@@ -116,7 +116,7 @@ export default function ChatScreen() {
           </Text>
           {thread?.projectLabel && (
             <View className="flex-row items-center gap-1.5 mt-0.5">
-              <Folder size={10} color="#71717a" />
+              <Folder size={10} color="#666666" />
               <Text className="text-xs text-muted-foreground" numberOfLines={1}>
                 {thread.projectLabel}
               </Text>
@@ -126,8 +126,8 @@ export default function ChatScreen() {
 
         {/* Runtime Target Badge */}
         <View className="flex-row items-center gap-2">
-          <View className="flex-row items-center gap-1.5 px-2 py-1 rounded-md bg-secondary">
-            <RuntimeIcon size={12} color="#a1a1aa" />
+          <View className="flex-row items-center gap-1.5 px-2 py-1 rounded-md bg-secondary shadow-border">
+            <RuntimeIcon size={12} color="#4d4d4d" />
             <Text className="text-xs text-muted-foreground capitalize">
               {runtimeTarget}
             </Text>
@@ -145,14 +145,14 @@ export default function ChatScreen() {
           ref={listRef}
           data={messages}
           keyExtractor={(message) => message.id}
-          style={{ flex: 1, backgroundColor: "#09090b" }}
-          contentContainerStyle={{ paddingVertical: 16, backgroundColor: "#09090b" }}
+          style={{ flex: 1, backgroundColor: "#ffffff" }}
+          contentContainerStyle={{ paddingVertical: 16, backgroundColor: "#ffffff" }}
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center px-8 py-16">
               {isNewThread ? (
                 <>
-                  <View className="w-16 h-16 rounded-full bg-card border border-border items-center justify-center mb-4">
-                    <RuntimeIcon size={28} color="#71717a" />
+                  <View className="w-16 h-16 rounded-lg bg-card items-center justify-center mb-4 shadow-card">
+                    <RuntimeIcon size={28} color="#4d4d4d" />
                   </View>
                   <Text className="text-lg font-semibold text-foreground text-center mb-2">
                     Start a new conversation

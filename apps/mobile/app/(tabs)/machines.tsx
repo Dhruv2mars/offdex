@@ -58,11 +58,11 @@ function MachineItem({ machine, isActive, isConnecting, onPress }: MachineItemPr
         {/* Machine Icon */}
         <View
           className={cn(
-            "w-10 h-10 rounded-lg items-center justify-center",
-            machine.online ? "bg-success/10" : "bg-muted"
+            "w-10 h-10 rounded-lg items-center justify-center shadow-border",
+            machine.online ? "bg-accent" : "bg-muted"
           )}
         >
-          <Laptop size={20} color={machine.online ? "#22c55e" : "#71717a"} />
+          <Laptop size={20} color={machine.online ? "#0a72ef" : "#666666"} />
         </View>
 
         {/* Machine Info */}
@@ -73,13 +73,13 @@ function MachineItem({ machine, isActive, isConnecting, onPress }: MachineItemPr
             </Text>
             {isActive && (
               <View className="w-4 h-4 rounded-full bg-primary items-center justify-center">
-                <Check size={10} color="#09090b" strokeWidth={3} />
+                <Check size={10} color="#ffffff" strokeWidth={3} />
               </View>
             )}
           </View>
           <View className="flex-row items-center gap-2 mt-0.5">
             <View className="flex-row items-center gap-1">
-              <RuntimeIcon size={10} color="#71717a" />
+              <RuntimeIcon size={10} color="#666666" />
               <Text className="text-xs text-muted-foreground capitalize">
                 {machine.runtimeTarget}
               </Text>
@@ -99,7 +99,7 @@ function MachineItem({ machine, isActive, isConnecting, onPress }: MachineItemPr
           />
           {machine.remoteCapability && (
             <View className="flex-row items-center gap-1">
-              <Globe size={10} color="#71717a" />
+              <Globe size={10} color="#666666" />
               <Text className="text-[10px] text-muted-foreground">Remote</Text>
             </View>
           )}
@@ -165,11 +165,11 @@ function CurrentConnectionCard() {
       <View className="flex-row items-center gap-3">
         <View
           className={cn(
-            "w-12 h-12 rounded-xl items-center justify-center",
-            isConnected ? "bg-success/10" : "bg-muted"
+            "w-12 h-12 rounded-lg items-center justify-center shadow-border",
+            isConnected ? "bg-accent" : "bg-muted"
           )}
         >
-          <Laptop size={24} color={isConnected ? "#22c55e" : "#71717a"} />
+          <Laptop size={24} color={isConnected ? "#0a72ef" : "#666666"} />
         </View>
         <View className="flex-1">
           <Text className="text-base font-semibold text-foreground">
@@ -177,14 +177,14 @@ function CurrentConnectionCard() {
           </Text>
           <View className="flex-row items-center gap-2 mt-0.5">
             <View className="flex-row items-center gap-1">
-              <RuntimeIcon size={12} color="#71717a" />
+              <RuntimeIcon size={12} color="#666666" />
               <Text className="text-xs text-muted-foreground capitalize">{runtimeTarget}</Text>
             </View>
             {isConnected && connectionTransport && (
               <>
                 <Text className="text-xs text-muted-foreground">·</Text>
                 <View className="flex-row items-center gap-1">
-                  <TransportIcon size={12} color="#71717a" />
+                  <TransportIcon size={12} color="#666666" />
                   <Text className="text-xs text-muted-foreground capitalize">
                     {connectionTransport}
                   </Text>
@@ -223,7 +223,7 @@ function CurrentConnectionCard() {
             className="flex-1"
             onPress={handleDisconnect}
           >
-            <WifiOff size={14} color="#fafafa" />
+            <WifiOff size={14} color="#171717" />
             <Text className="text-sm font-medium text-secondary-foreground ml-2">
               Disconnect
             </Text>
@@ -238,7 +238,7 @@ function CurrentConnectionCard() {
           >
             <RefreshCw
               size={14}
-              color="#09090b"
+              color="#ffffff"
               className={cn(isConnecting && "animate-spin")}
             />
             <Text className="text-sm font-medium text-primary-foreground ml-2">
@@ -308,12 +308,12 @@ export default function MachinesScreen() {
   const activeMachineId = managedSession?.machineId;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
       <ScreenHeader
         title="Machines"
         rightAction={
           <Button size="icon" variant="secondary" onPress={handleScanQR}>
-            <QrCode size={20} color="#fafafa" />
+            <QrCode size={20} color="#171717" />
           </Button>
         }
       />
@@ -321,14 +321,14 @@ export default function MachinesScreen() {
       <FlashList
         data={machines}
         keyExtractor={(machine) => machine.machineId}
-        style={{ flex: 1, backgroundColor: "#09090b" }}
-        contentContainerStyle={{ backgroundColor: "#09090b", paddingBottom: 24 }}
+        style={{ flex: 1, backgroundColor: "#ffffff" }}
+        contentContainerStyle={{ backgroundColor: "#ffffff", paddingBottom: 24 }}
         refreshControl={
           <RefreshControl
             refreshing={isBusy}
             onRefresh={handleRefresh}
-            tintColor="#fafafa"
-            colors={["#fafafa"]}
+            tintColor="#171717"
+            colors={["#171717"]}
           />
         }
         ListHeaderComponent={
@@ -344,7 +344,7 @@ export default function MachinesScreen() {
                 >
                   <RefreshCw
                     size={12}
-                    color="#71717a"
+                    color="#666666"
                     className={cn(isBusy && "animate-spin")}
                   />
                   <Text className="text-xs text-muted-foreground">Refresh</Text>
@@ -370,7 +370,7 @@ export default function MachinesScreen() {
           <View className="px-4 py-6">
             <Card className="bg-muted/30">
               <View className="flex-row items-start gap-3">
-                <QrCode size={20} color="#71717a" className="mt-0.5" />
+                <QrCode size={20} color="#666666" className="mt-0.5" />
                 <View className="flex-1">
                   <Text className="text-sm font-medium text-foreground mb-1">
                     Connect via QR Code

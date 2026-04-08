@@ -2,165 +2,147 @@
 @import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   OFFDEX DESIGN SYSTEM
-   Contemporary shadcn-style neutral dark theme
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 }
 
 :root {
-  /* ─────────────────────────────────────────────────────────────────────────
-     Core Colors - Neutral Dark Palette
-     ───────────────────────────────────────────────────────────────────────── */
-  
-  /* Backgrounds */
-  --background: #09090b;
-  --background-subtle: #0c0c0e;
-  --card: #0f0f11;
-  --card-hover: #141416;
-  --popover: #18181b;
-  
-  /* Foregrounds */
-  --foreground: #fafafa;
-  --foreground-muted: #a1a1aa;
-  --foreground-subtle: #71717a;
-  
-  /* Primary - Clean white for primary actions */
-  --primary: #fafafa;
-  --primary-foreground: #09090b;
-  
-  /* Secondary - Subtle gray for secondary elements */
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  
-  /* Muted - For disabled/inactive states */
-  --muted: #27272a;
-  --muted-foreground: #71717a;
-  
-  /* Accent - Subtle highlight */
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-  
-  /* Semantic Colors */
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --success: #22c55e;
-  --success-foreground: #fafafa;
-  --warning: #f59e0b;
-  --warning-foreground: #09090b;
-  --info: #3b82f6;
-  --info-foreground: #fafafa;
-  
-  /* Borders & Inputs */
-  --border: #27272a;
-  --border-subtle: #1f1f23;
-  --input: #27272a;
-  --ring: #3f3f46;
-  
-  /* Status Indicators */
-  --status-running: #22c55e;
-  --status-idle: #71717a;
-  --status-failed: #ef4444;
-  --status-connected: #22c55e;
-  --status-disconnected: #71717a;
-  --status-reconnecting: #f59e0b;
-  
-  /* ─────────────────────────────────────────────────────────────────────────
-     Spacing & Sizing
-     ───────────────────────────────────────────────────────────────────────── */
-  
+  --background: #ffffff;
+  --background-subtle: #fafafa;
+  --card: #ffffff;
+  --card-hover: #fafafa;
+  --popover: #ffffff;
+
+  --foreground: #171717;
+  --foreground-muted: #4d4d4d;
+  --foreground-subtle: #666666;
+
+  --primary: #171717;
+  --primary-foreground: #ffffff;
+
+  --secondary: #ffffff;
+  --secondary-foreground: #171717;
+
+  --muted: #fafafa;
+  --muted-foreground: #4d4d4d;
+
+  --accent: #ebf5ff;
+  --accent-foreground: #0068d6;
+
+  --destructive: #ff5b4f;
+  --destructive-foreground: #ffffff;
+  --success: #0a72ef;
+  --success-foreground: #ffffff;
+  --warning: #de1d8d;
+  --warning-foreground: #ffffff;
+  --info: #0a72ef;
+  --info-foreground: #ffffff;
+
+  --develop: #0a72ef;
+  --preview: #de1d8d;
+  --ship: #ff5b4f;
+
+  --border: #ebebeb;
+  --border-subtle: #fafafa;
+  --input: #ffffff;
+  --ring: hsla(212, 100%, 48%, 1);
+
+  --status-running: #0a72ef;
+  --status-idle: #808080;
+  --status-failed: #ff5b4f;
+  --status-connected: #0a72ef;
+  --status-disconnected: #808080;
+  --status-reconnecting: #de1d8d;
+
+  --shadow-border: rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+  --shadow-card: rgba(0, 0, 0, 0.08) 0px 0px 0px 1px,
+    rgba(0, 0, 0, 0.04) 0px 2px 2px,
+    rgba(0, 0, 0, 0.04) 0px 8px 8px -8px,
+    #fafafa 0px 0px 0px 1px inset;
+
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-2xl: 8px;
   --radius-full: 9999px;
-}
 
-/* Platform-specific fonts */
-@media ios {
-  :root {
-    --font-sans: -apple-system, system-ui;
-    --font-mono: ui-monospace, "SF Mono";
-  }
+  --font-sans: "Geist_400Regular";
+  --font-mono: "GeistMono_400Regular";
 }
-
-@media android {
-  :root {
-    --font-sans: "Roboto", system-ui, sans-serif;
-    --font-mono: monospace;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CUSTOM THEME EXTENSIONS
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer theme {
   @theme {
-    /* Colors mapped to Tailwind */
     --color-background: var(--background);
     --color-background-subtle: var(--background-subtle);
     --color-card: var(--card);
     --color-card-hover: var(--card-hover);
     --color-popover: var(--popover);
-    
+
     --color-foreground: var(--foreground);
     --color-foreground-muted: var(--foreground-muted);
     --color-foreground-subtle: var(--foreground-subtle);
-    
+
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
-    
+
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
-    
+
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
-    
+
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
-    
+
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
-    
+
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
-    
+
     --color-warning: var(--warning);
     --color-warning-foreground: var(--warning-foreground);
-    
+
     --color-info: var(--info);
     --color-info-foreground: var(--info-foreground);
-    
+
+    --color-develop: var(--develop);
+    --color-preview: var(--preview);
+    --color-ship: var(--ship);
+
     --color-border: var(--border);
     --color-border-subtle: var(--border-subtle);
     --color-input: var(--input);
     --color-ring: var(--ring);
-    
-    /* Status colors */
+
     --color-status-running: var(--status-running);
     --color-status-idle: var(--status-idle);
     --color-status-failed: var(--status-failed);
     --color-status-connected: var(--status-connected);
     --color-status-disconnected: var(--status-disconnected);
     --color-status-reconnecting: var(--status-reconnecting);
-    
-    /* Border radius */
+
     --radius-sm: var(--radius-sm);
     --radius-md: var(--radius-md);
     --radius-lg: var(--radius-lg);
     --radius-xl: var(--radius-xl);
     --radius-2xl: var(--radius-2xl);
     --radius-full: var(--radius-full);
-    
-    /* Font families */
+
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  .shadow-border {
+    box-shadow: var(--shadow-border);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
   }
 }

@@ -3,6 +3,16 @@ import { Stack } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Platform, Linking, AppState } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
+import {
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  useFonts,
+} from "@expo-google-fonts/geist";
+import {
+  GeistMono_400Regular,
+  GeistMono_500Medium,
+} from "@expo-google-fonts/geist-mono";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useWorkspaceStore } from "../lib/store";
 import LaunchIntentModule from "../modules/launch-intent";
@@ -12,6 +22,13 @@ import { initializeWorkspaceFromLaunch } from "../src/initial-pairing";
 import { feedbackError, feedbackSuccess } from "../src/feedback";
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
+  });
   const initialize = useWorkspaceStore((s) => s.initialize);
   const connectFromPairingUri = useWorkspaceStore((s) => s.connectFromPairingUri);
   const launchUrlGate = useRef(createLaunchUrlGate());
@@ -90,15 +107,20 @@ export default function RootLayout() {
   // Set Android navigation bar color
   useEffect(() => {
     if (Platform.OS !== "android") return;
-    void NavigationBar.setButtonStyleAsync("light").catch(() => {});
+    void NavigationBar.setButtonStyleAsync("dark").catch(() => {});
+    void NavigationBar.setBackgroundColorAsync("#ffffff").catch(() => {});
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#09090b" },
+          contentStyle: { backgroundColor: "#ffffff" },
           animation: "fade",
         }}
       >
