@@ -17,12 +17,6 @@ export default function Home() {
           </Link>
           <nav className="flex items-center gap-6 text-[14px] font-medium">
             <a
-              href="#architecture"
-              className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md"
-            >
-              Architecture
-            </a>
-            <a
               href="https://github.com/Dhruv2mars/offdex"
               target="_blank"
               rel="noopener noreferrer"
@@ -137,10 +131,7 @@ export default function Home() {
       </section>
 
       {/* The Workflow Pipeline */}
-      <section
-        id="architecture"
-        className="mx-auto w-full max-w-[1200px] border-t border-[#ebebeb] px-6 py-24 md:px-8 md:py-32"
-      >
+      <section className="mx-auto w-full max-w-[1200px] border-t border-[#ebebeb] px-6 py-24 md:px-8 md:py-32">
         <div className="grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
           
           {/* Step 1: Install */}

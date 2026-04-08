@@ -41,15 +41,14 @@ describe("web DESIGN.md system", () => {
     expect(readAppFile("webui/web-app-client.tsx")).toContain("shadow-card");
   });
 
-  test("keeps the current landing page structure and in-page architecture navigation", () => {
+  test("keeps the current landing page structure without restoring the removed architecture route", () => {
     const home = readAppFile("page.tsx");
     const webui = readAppFile("webui/web-app-client.tsx");
 
     expect(home).toContain("The Codex");
     expect(home).toContain("Install Bridge");
     expect(home).toContain("Put authority in the bridge.");
-    expect(home).toContain("href=\"#architecture\"");
-    expect(home).toContain("id=\"architecture\"");
+    expect(home).not.toContain("href=\"#architecture\"");
     expect(webui).toContain("What do you want Codex to do?");
   });
 
