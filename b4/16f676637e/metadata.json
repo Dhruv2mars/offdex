@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "b416f676637e",
+  "strategy": "manual-commit",
+  "branch": "release/v0.0.11",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/mobile/app.json",
+    "apps/mobile/package.json",
+    "apps/mobile/src/app-config.ts",
+    "packages/npm/package.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b4/16f676637e/0/metadata.json",
+      "transcript": "/b4/16f676637e/0/full.jsonl",
+      "content_hash": "/b4/16f676637e/0/content_hash.txt",
+      "prompt": "/b4/16f676637e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 4234579,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4069376,
+    "output_tokens": 8380,
+    "api_call_count": 34
+  }
+}
