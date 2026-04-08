@@ -25,7 +25,6 @@ describe("web DESIGN.md system", () => {
     const files = [
       readAppFile("globals.css"),
       readAppFile("page.tsx"),
-      readAppFile("architecture/page.tsx"),
       readAppFile("webui/page.tsx"),
       readAppFile("webui/web-app-client.tsx"),
     ].join("\n");
@@ -39,20 +38,19 @@ describe("web DESIGN.md system", () => {
 
   test("applies the card shadow-border system across public web surfaces", () => {
     expect(readAppFile("page.tsx")).toContain("shadow-card");
-    expect(readAppFile("architecture/page.tsx")).toContain("shadow-card");
     expect(readAppFile("webui/web-app-client.tsx")).toContain("shadow-card");
   });
 
-  test("uses the rebuilt product structure instead of the first-pass hero/sidebar", () => {
+  test("keeps the current landing page structure and in-page architecture navigation", () => {
     const home = readAppFile("page.tsx");
     const webui = readAppFile("webui/web-app-client.tsx");
-    const architecture = readAppFile("architecture/page.tsx");
 
-    expect(home).toContain("Start from the bridge.");
-    expect(home).toContain("Command map");
-    expect(home).not.toContain("Mobile and web for the same Codex session");
+    expect(home).toContain("The Codex");
+    expect(home).toContain("Install Bridge");
+    expect(home).toContain("Put authority in the bridge.");
+    expect(home).toContain("href=\"#architecture\"");
+    expect(home).toContain("id=\"architecture\"");
     expect(webui).toContain("What do you want Codex to do?");
-    expect(architecture).toContain("Signal path");
   });
 
   test("uses a ChatGPT-style web UI sidebar shell", () => {
