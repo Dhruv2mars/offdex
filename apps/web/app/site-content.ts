@@ -7,6 +7,8 @@ export const androidApkDownloadUrl =
 
 export const cliInstallCommand = "npm install -g @dhruv2mars/offdex";
 
+export const bridgeStartCommand = "offdex bridge";
+
 export const architecturePrinciples = [
   "Prefer live truth over fake optimism.",
   "Prefer direct UI over settings sprawl.",

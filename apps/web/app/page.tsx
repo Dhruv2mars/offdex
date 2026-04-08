@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { androidApkDownloadUrl, cliInstallCommand, githubReleasesUrl } from "./site-content";
+import {
+  androidApkDownloadUrl,
+  bridgeStartCommand,
+  cliInstallCommand,
+  githubReleasesUrl,
+} from "./site-content";
 import { InstallCommand } from "./install-command";
 
 const features = [
@@ -19,7 +24,7 @@ const features = [
 
 const steps = [
   { step: "01", label: "Install bridge", description: "npm install -g @dhruv2mars/offdex" },
-  { step: "02", label: "Scan QR code", description: "Run codex --qr on your Mac" },
+  { step: "02", label: "Scan QR code", description: `Run ${bridgeStartCommand} on your Mac` },
   { step: "03", label: "Start coding", description: "Same threads, anywhere" },
 ] as const;
 
