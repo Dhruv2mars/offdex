@@ -1,5 +1,6 @@
 import { githubReleasesUrl } from "../site-content";
 import { fetchGitHubReleases, formatReleaseDate } from "./releases";
+import ReactMarkdown from "react-markdown";
 
 export const revalidate = 3600;
 
@@ -17,16 +18,6 @@ export default async function ChangelogPage() {
         <p className="mx-auto mt-6 max-w-[600px] text-[18px] leading-[1.6] text-muted-foreground">
           Offdex release notes ship directly from GitHub. Every new tag lands here automatically, ensuring you stay aligned with the latest binaries.
         </p>
-        <div className="mt-8">
-          <a
-            href={githubReleasesUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex rounded-[6px] bg-background px-6 py-[12px] text-[15px] font-medium text-foreground shadow-border transition-colors hover:bg-[#fafafa] focus-ring"
-          >
-            View on GitHub
-          </a>
-        </div>
       </section>
 
       {/* Timeline */}
@@ -72,8 +63,12 @@ export default async function ChangelogPage() {
 
                   <div className={`mt-6 overflow-hidden rounded-[16px] bg-background shadow-card ${isLatest ? "ring-1 ring-[#0a72ef]/10" : ""}`}>
                     <div className="p-6 md:p-8">
-                      <div className="font-sans text-[15px] leading-[1.7] text-muted-foreground whitespace-pre-wrap break-words">
-                        {release.body || "No release notes provided."}
+                      <div className="font-sans text-[15px] leading-[1.7] text-[#4d4d4d] [&_h1]:text-[20px] [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-6 [&_h3]:mb-3 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1.5 [&_li]:text-[#4d4d4d] [&_a]:text-[#0a72ef] hover:[&_a]:underline [&_code]:rounded-[4px] [&_code]:bg-[#fafafa] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-foreground [&_code]:border [&_code]:border-[#ebebeb] [&_pre]:bg-[#fafafa] [&_pre]:p-4 [&_pre]:rounded-[8px] [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-[#ebebeb] [&_pre]:mb-4 [&_pre_code]:border-none [&_pre_code]:bg-transparent [&_pre_code]:p-0">
+                        <ReactMarkdown>
+                          {release.body
+                            ? release.body.replace(/\*\*Full Changelog\*\*: https:\/\/github\.com\/.*$/i, "").trim()
+                            : "No release notes provided."}
+                        </ReactMarkdown>
                       </div>
                       
                       <div className="mt-8 flex flex-wrap gap-3">
