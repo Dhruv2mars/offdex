@@ -1,0 +1,18 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "5978e536f027",
+  "strategy": "manual-commit",
+  "branch": "feat/expressive-offdex-cli",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/npm/bin/install.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/59/78e536f027/0/metadata.json",
+      "transcript": "/59/78e536f027/0/full.jsonl",
+      "content_hash": "/59/78e536f027/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
