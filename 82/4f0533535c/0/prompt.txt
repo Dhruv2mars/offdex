@@ -1,0 +1,5 @@
+i have updated the landing page, but its not updated yet on vercel in prod. can you check and fix that
+
+---
+
+bro, it was intentional to remove /architecture. why did you bring that back. fix that. you just needed to make sure that our localhost version was on prod. thats it.

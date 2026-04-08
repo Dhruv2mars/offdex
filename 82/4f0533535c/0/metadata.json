@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "824f0533535c",
+  "session_id": "019d6e4c-3e05-7f71-8117-dd5bc9d39d2f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T18:23:08.073362Z",
+  "branch": "fix/remove-architecture-nav",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/app/page.tsx",
+    "apps/web/test/design-system.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "75a82e4faeef",
+  "checkpoint_transcript_start": 219,
+  "transcript_lines_at_start": 219,
+  "token_usage": {
+    "input_tokens": 2261480,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2041984,
+    "output_tokens": 6833,
+    "api_call_count": 27
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T18:23:07.715351Z",
+    "agent_lines": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 3,
+    "agent_percentage": 100
+  }
+}
