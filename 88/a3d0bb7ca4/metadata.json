@@ -5,7 +5,12 @@
   "branch": "fix/cli-release-0.0.7",
   "checkpoints_count": 2,
   "files_touched": [
-    "bun.lock"
+    ".github/workflows/release.yml",
+    "apps/mobile/app.json",
+    "apps/mobile/package.json",
+    "bun.lock",
+    "packages/npm/package.json",
+    "packages/npm/test/release-contract.test.js"
   ],
   "sessions": [
     {
@@ -13,13 +18,19 @@
       "transcript": "/88/a3d0bb7ca4/0/full.jsonl",
       "content_hash": "/88/a3d0bb7ca4/0/content_hash.txt",
       "prompt": "/88/a3d0bb7ca4/0/prompt.txt"
+    },
+    {
+      "metadata": "/88/a3d0bb7ca4/1/metadata.json",
+      "transcript": "/88/a3d0bb7ca4/1/full.jsonl",
+      "content_hash": "/88/a3d0bb7ca4/1/content_hash.txt",
+      "prompt": "/88/a3d0bb7ca4/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 370193084,
+    "input_tokens": 371014202,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 355632768,
-    "output_tokens": 1244152,
-    "api_call_count": 2873
+    "cache_read_tokens": 356399104,
+    "output_tokens": 1257052,
+    "api_call_count": 2900
   }
 }

@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "88a3d0bb7ca4",
+  "session_id": "019d6ba9-7a9f-76b0-8ada-4a4e4e47534e",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T07:34:50.148229Z",
+  "branch": "fix/cli-release-0.0.7",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/release.yml",
+    "apps/mobile/app.json",
+    "apps/mobile/package.json",
+    "bun.lock",
+    "packages/npm/package.json",
+    "packages/npm/test/release-contract.test.js"
+  ],
+  "agent": "Codex",
+  "turn_id": "06ec3c8c1e7c",
+  "token_usage": {
+    "input_tokens": 821118,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 766336,
+    "output_tokens": 12900,
+    "api_call_count": 27
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T07:34:50.045819Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 9,
+    "human_removed": 0,
+    "total_committed": 2,
+    "agent_percentage": 0
+  }
+}
