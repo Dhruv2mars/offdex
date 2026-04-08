@@ -5,6 +5,7 @@ import http from "node:http";
 import https from "node:https";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 
 const REPO = "Dhruv2mars/offdex";
 const SUPPORTED_TARGETS = new Map([
@@ -56,6 +57,10 @@ export function assetNameFor(platform = process.platform, arch = process.arch) {
 
 export function checksumsAssetNameFor(platform = process.platform, arch = process.arch) {
   return `checksums-${platform}-${arch}.txt`;
+}
+
+export function compressedAssetNameFor(platform = process.platform, arch = process.arch) {
+  return `${assetNameFor(platform, arch)}.gz`;
 }
 
 export function resolveInstallRoot(env = process.env, home = homedir()) {
@@ -281,6 +286,7 @@ export async function installRuntime({
   const installBin = resolveInstalledBin(env, platform, home);
   const installMeta = resolveInstallMetaPath(env, home);
   const asset = assetNameFor(platform, arch);
+  const compressedAsset = compressedAssetNameFor(platform, arch);
   const checksumsAsset = checksumsAssetNameFor(platform, arch);
   const baseUrl = env.OFFDEX_RELEASE_BASE_URL
     || `https://github.com/${REPO}/releases/download/v${version}`;
@@ -293,21 +299,42 @@ export async function installRuntime({
   } catch {
     throw new Error(`failed_download:${checksumsAsset}`);
   }
-  const expectedChecksum = parseChecksumForAsset(checksumsText, asset);
+  const expectedCompressedChecksum = parseChecksumForAsset(checksumsText, compressedAsset);
+  const expectedChecksum = expectedCompressedChecksum || parseChecksumForAsset(checksumsText, asset);
   if (!expectedChecksum) {
     throw new Error(`missing_checksum:${asset}`);
   }
 
   const tempPath = `${installBin}.download`;
   try {
-    try {
-      await downloadFn(`${baseUrl}/${asset}`, tempPath, 0, { onProgress });
-    } catch {
-      throw new Error(`failed_download:${asset}`);
-    }
-    const actualChecksum = createHash("sha256").update(readFileSync(tempPath)).digest("hex");
-    if (actualChecksum !== expectedChecksum) {
-      throw new Error(`checksum_mismatch:${asset}`);
+    if (expectedCompressedChecksum) {
+      const compressedPath = `${tempPath}.gz`;
+      try {
+        await downloadFn(`${baseUrl}/${compressedAsset}`, compressedPath, 0, { onProgress });
+      } catch {
+        throw new Error(`failed_download:${compressedAsset}`);
+      }
+      try {
+        const actualCompressedChecksum = createHash("sha256")
+          .update(readFileSync(compressedPath))
+          .digest("hex");
+        if (actualCompressedChecksum !== expectedCompressedChecksum) {
+          throw new Error(`checksum_mismatch:${compressedAsset}`);
+        }
+        await writeFile(tempPath, gunzipSync(readFileSync(compressedPath)));
+      } finally {
+        await rm(compressedPath, { force: true });
+      }
+    } else {
+      try {
+        await downloadFn(`${baseUrl}/${asset}`, tempPath, 0, { onProgress });
+      } catch {
+        throw new Error(`failed_download:${asset}`);
+      }
+      const actualChecksum = createHash("sha256").update(readFileSync(tempPath)).digest("hex");
+      if (actualChecksum !== expectedChecksum) {
+        throw new Error(`checksum_mismatch:${asset}`);
+      }
     }
     if (platform !== "win32") {
       await chmod(tempPath, 0o755);

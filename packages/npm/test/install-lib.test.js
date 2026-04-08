@@ -1,8 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 
 import {
   assertSupportedPlatform,
+  compressedAssetNameFor,
+  installRuntime,
   isSupportedPlatform,
   isWorkspaceCheckout,
   shouldSkipPackageInstall,
@@ -10,7 +14,7 @@ import {
   supportedPlatformList,
   targetForPlatform,
 } from "../bin/install-lib.js";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -43,6 +47,11 @@ test("npm installer exposes the compile target for supported platforms", () => {
   assert.equal(targetForPlatform("linux", "arm64"), "bun-linux-arm64");
   assert.equal(targetForPlatform("linux", "x64"), "bun-linux-x64-baseline");
   assert.equal(targetForPlatform("win32", "x64"), "bun-windows-x64-baseline");
+});
+
+test("npm installer knows the compressed release asset name", () => {
+  assert.equal(compressedAssetNameFor("darwin", "arm64"), "offdex-darwin-arm64.gz");
+  assert.equal(compressedAssetNameFor("win32", "x64"), "offdex-win32-x64.exe.gz");
 });
 
 test("npm installer skips native runtime download inside the monorepo workspace", () => {
@@ -89,4 +98,35 @@ test("npm installer progress reports at useful percentage steps", () => {
     shouldReportProgress({ receivedBytes: 100, totalBytes: 100, lastPercent: 90 }),
     true
   );
+});
+
+test("npm installer prefers compressed runtime assets when the release publishes them", async () => {
+  const home = mkdtempSync(join(tmpdir(), "offdex-runtime-home-"));
+  const payload = Buffer.from("native runtime");
+  const compressedPayload = gzipSync(payload);
+  const compressedChecksum = createHash("sha256").update(compressedPayload).digest("hex");
+  const requestedUrls = [];
+
+  const result = await installRuntime({
+    version: "0.0.5",
+    platform: "darwin",
+    arch: "arm64",
+    home,
+    env: { OFFDEX_RELEASE_BASE_URL: "https://example.test/offdex" },
+    requestTextFn: async (url) => {
+      requestedUrls.push(url);
+      return `${compressedChecksum} *offdex-darwin-arm64.gz\n`;
+    },
+    downloadFn: async (url, outputPath) => {
+      requestedUrls.push(url);
+      writeFileSync(outputPath, compressedPayload);
+    },
+  });
+
+  assert.equal(readFileSync(result.installBin, "utf8"), "native runtime");
+  assert.equal(existsSync(join(home, ".offdex", "bin", "offdex")), true);
+  assert.deepEqual(requestedUrls, [
+    "https://example.test/offdex/checksums-darwin-arm64.txt",
+    "https://example.test/offdex/offdex-darwin-arm64.gz",
+  ]);
 });
