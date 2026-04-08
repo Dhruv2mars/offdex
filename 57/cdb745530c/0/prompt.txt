@@ -1,0 +1,17 @@
+wait for them. i was doing that. i will tell you when it will be finished so that you can continue
+
+---
+
+yup. i am done. you can now make sure that recent changes are on prod
+
+---
+
+i have made some changes again. make sure they are on prod. since they are not yet
+
+---
+
+ok, now you have to do something. fill in the documentation, changelog, and download pages. make sure that you follow the design and branding of the whole landing page. the brand identity should match the landing page. 
+
+- the changelog page should be automatic upon new releases on github. 
+- get inspired from mintify format for docs page. 
+- the download page will have the section that let the users download the CLI, Mobile apps.
