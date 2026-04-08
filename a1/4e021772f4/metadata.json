@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "a14e021772f4",
+  "strategy": "manual-commit",
+  "branch": "feat/final-connectivity-refactor",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/app/architecture/page.tsx",
+    "packages/relay/README.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a1/4e021772f4/0/metadata.json",
+      "transcript": "/a1/4e021772f4/0/full.jsonl",
+      "content_hash": "/a1/4e021772f4/0/content_hash.txt",
+      "prompt": "/a1/4e021772f4/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 443705143,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 427880320,
+    "output_tokens": 1399502,
+    "api_call_count": 3355
+  }
+}

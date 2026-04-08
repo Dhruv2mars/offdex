@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "a14e021772f4",
+  "session_id": "019d6b78-7559-7c91-aadb-0ba8bbb780ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T10:06:57.626257Z",
+  "branch": "feat/final-connectivity-refactor",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/app/architecture/page.tsx",
+    "packages/relay/README.md"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "c461510c7022",
+  "token_usage": {
+    "input_tokens": 443705143,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 427880320,
+    "output_tokens": 1399502,
+    "api_call_count": 3355
+  },
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T10:06:34.534137Z",
+    "agent_lines": 8,
+    "human_added": 53,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 61,
+    "agent_percentage": 13.114754098360656
+  }
+}
