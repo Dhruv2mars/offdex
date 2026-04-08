@@ -13,6 +13,6 @@ describe("site header sizing", () => {
     const header = readComponentFile("site-header.tsx");
 
     expect(header).toContain("text-[20px] leading-[20px]");
-    expect(header).toContain("h-[22px] w-[22px]");
+    expect(header).toContain("h-6 w-6");
   });
 });
