@@ -26,10 +26,10 @@ export function PackageManagerTerminal() {
             <button
               key={mgr}
               onClick={() => setManager(mgr)}
-              className={`text-[12px] font-mono uppercase tracking-wider transition-colors focus-ring rounded-sm ${
+              className={`text-[13px] font-mono transition-colors focus-ring rounded-sm ${
                 manager === mgr
-                  ? "font-bold text-foreground"
-                  : "font-medium text-muted-foreground hover:text-foreground"
+                  ? "font-semibold text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {mgr}
