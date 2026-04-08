@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { MessageSquare, Cpu, Settings } from "../../lib/icons";
+import { Terminal, Shield, Settings } from "../../lib/icons";
 import { View, Text } from "../../lib/tw";
 import { useWorkspaceStore } from "../../lib/store";
 
@@ -30,19 +30,19 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Chats",
+          title: "Run",
           tabBarIcon: ({ color, size }) => (
-            <MessageSquare size={size} color={color} strokeWidth={2} />
+            <Terminal size={size} color={color} strokeWidth={2} />
           ),
         }}
       />
       <Tabs.Screen
         name="machines"
         options={{
-          title: "Machines",
+          title: "Trust",
           tabBarIcon: ({ color, size }) => (
             <View className="relative">
-              <Cpu size={size} color={color} strokeWidth={2} />
+              <Shield size={size} color={color} strokeWidth={2} />
               {isConnected && (
                 <View className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-develop shadow-border" />
               )}
@@ -53,7 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: "Control",
           tabBarIcon: ({ color, size }) => (
             <Settings size={size} color={color} strokeWidth={2} />
           ),

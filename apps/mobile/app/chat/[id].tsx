@@ -5,7 +5,6 @@ import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ChevronLeft,
-  MoreHorizontal,
   Folder,
   Terminal,
   Monitor,
@@ -17,7 +16,7 @@ import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
 import { feedbackSelection } from "../../src/feedback";
 
-import { MessageBubble, WorkingIndicator, SystemMessage } from "../../components/chat/message-bubble";
+import { WorkingIndicator } from "../../components/chat/message-bubble";
 import { Composer } from "../../components/chat/composer";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -90,52 +89,86 @@ export default function ChatScreen() {
 
   // Get runtime target icon
   const RuntimeIcon = runtimeTarget === "cli" ? Terminal : Monitor;
+  const renderMessage = ({ item: message }: { item: OffdexMessage }) => {
+    const isUser = message.role === "user";
+    const label = isUser ? "You" : message.role === "assistant" ? "Codex" : "System";
+
+    return (
+      <View className="px-4">
+        <View
+          className={cn(
+            "rounded-lg px-4 py-4",
+            isUser ? "bg-foreground" : "bg-card shadow-card"
+          )}
+        >
+          <View className="flex-row items-center justify-between gap-3">
+            <Text
+              className={cn(
+                "font-mono text-[10px] uppercase",
+                isUser ? "text-background/60" : "text-muted-foreground"
+              )}
+            >
+              {label}
+            </Text>
+            <Text
+              className={cn(
+                "text-[10px]",
+                isUser ? "text-background/45" : "text-muted-foreground"
+              )}
+            >
+              {message.createdAt}
+            </Text>
+          </View>
+          <Text
+            className={cn(
+              "mt-3 text-sm leading-6",
+              isUser ? "text-background" : "text-foreground"
+            )}
+            selectable
+          >
+            {message.body}
+          </Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      {/* Custom Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 shadow-border">
-        {/* Back Button */}
-        <Pressable
-          onPress={handleBack}
-          className="flex-row items-center -ml-2 py-1 pl-1 pr-3 rounded-lg active:bg-muted"
-        >
-          <ChevronLeft size={24} color="#171717" />
-          <Text className="text-base font-medium text-foreground ml-1">
-            Chats
-          </Text>
-        </Pressable>
-
-        {/* Thread Info */}
-        <View className="flex-1 items-center mx-4">
-          <Text
-            className="text-sm font-semibold text-foreground"
-            numberOfLines={1}
+      <View className="px-4 pb-3 pt-2 shadow-border">
+        <View className="flex-row items-center justify-between">
+          <Pressable
+            onPress={handleBack}
+            className="h-10 w-10 items-center justify-center rounded-md bg-background shadow-border active:bg-muted"
           >
-            {isNewThread ? "New Chat" : (thread?.title ?? "Chat")}
-          </Text>
-          {thread?.projectLabel && (
-            <View className="flex-row items-center gap-1.5 mt-0.5">
-              <Folder size={10} color="#666666" />
-              <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                {thread.projectLabel}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Runtime Target Badge */}
-        <View className="flex-row items-center gap-2">
-          <View className="flex-row items-center gap-1.5 px-2 py-1 rounded-md bg-secondary shadow-border">
+            <ChevronLeft size={22} color="#171717" />
+          </Pressable>
+          <View className="flex-row items-center gap-1.5 rounded-md bg-card px-3 py-2 shadow-border">
             <RuntimeIcon size={12} color="#4d4d4d" />
-            <Text className="text-xs text-muted-foreground capitalize">
+            <Text className="text-xs capitalize text-muted-foreground">
               {runtimeTarget}
             </Text>
           </View>
         </View>
+
+        <View className="mt-4 rounded-lg bg-foreground p-5">
+          <Text className="font-mono text-xs uppercase text-background/60">
+            Run thread
+          </Text>
+          <Text className="mt-8 text-2xl font-semibold text-background" numberOfLines={2}>
+            {isNewThread ? "New Codex turn" : thread?.title ?? "Codex turn"}
+          </Text>
+          {thread?.projectLabel ? (
+            <View className="mt-3 flex-row items-center gap-2">
+              <Folder size={12} color="#ffffff" />
+              <Text className="text-xs text-background/60" numberOfLines={1}>
+                {thread.projectLabel}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
-      {/* Messages List */}
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -148,25 +181,23 @@ export default function ChatScreen() {
           style={{ flex: 1, backgroundColor: "#ffffff" }}
           contentContainerStyle={{ paddingVertical: 16, backgroundColor: "#ffffff" }}
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center px-8 py-16">
+            <View className="mx-4 rounded-lg bg-card p-6 shadow-card">
               {isNewThread ? (
                 <>
-                  <View className="w-16 h-16 rounded-lg bg-card items-center justify-center mb-4 shadow-card">
-                    <RuntimeIcon size={28} color="#4d4d4d" />
+                  <View className="mb-5 h-14 w-14 items-center justify-center rounded-lg bg-muted shadow-border">
+                    <RuntimeIcon size={24} color="#4d4d4d" />
                   </View>
-                  <Text className="text-lg font-semibold text-foreground text-center mb-2">
-                    Start a new conversation
+                  <Text className="text-xl font-semibold text-foreground">
+                    Start from a blank turn
                   </Text>
-                  <Text className="text-sm text-muted-foreground text-center leading-relaxed">
-                    Ask Codex to write code, fix bugs, explain concepts, or help with any coding task.
+                  <Text className="mt-2 text-sm leading-6 text-muted-foreground">
+                    The composer below sends the first instruction to the Mac bridge.
                   </Text>
                 </>
               ) : (
-                <>
-                  <Text className="text-sm text-muted-foreground text-center">
-                    No messages in this thread yet.
-                  </Text>
-                </>
+                <Text className="text-sm text-muted-foreground">
+                  No messages in this thread yet.
+                </Text>
               )}
             </View>
           }
@@ -175,9 +206,7 @@ export default function ChatScreen() {
               <WorkingIndicator duration={workingDuration} />
             ) : null
           }
-          renderItem={({ item: message }) => (
-            <MessageBubble message={message} isStreaming={false} />
-          )}
+          renderItem={renderMessage}
           ItemSeparatorComponent={() => <View className="h-2" />}
           onContentSizeChange={() => {
             if (messages.length > 0) {
@@ -186,7 +215,6 @@ export default function ChatScreen() {
           }}
         />
 
-        {/* Composer */}
         <Composer />
       </KeyboardAvoidingView>
     </SafeAreaView>

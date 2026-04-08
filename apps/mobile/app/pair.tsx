@@ -91,30 +91,41 @@ export default function PairScreen() {
   if (permission && !permission.granted) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
-        {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <Pressable
             onPress={handleClose}
-            className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80 shadow-border"
+            className="h-10 w-10 items-center justify-center rounded-md bg-background shadow-border active:bg-muted"
           >
             <X size={20} color="#171717" />
           </Pressable>
           <Text className="text-base font-semibold text-foreground">
-            Scan QR Code
+            Trust camera
           </Text>
           <View className="w-10" />
         </View>
 
-        {/* Permission Request */}
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="w-20 h-20 rounded-lg bg-card items-center justify-center mb-6 shadow-card">
+        <View className="flex-1 justify-center px-4">
+          <View className="rounded-lg bg-foreground p-5">
+            <Text className="font-mono text-xs uppercase text-background/60">
+              Pair a new machine
+            </Text>
+            <Text className="mt-8 text-3xl font-semibold text-background">
+              Camera access creates the trust link.
+            </Text>
+            <Text className="mt-3 text-sm leading-6 text-background/60">
+              Offdex only scans the QR payload printed by offdex start on your Mac.
+            </Text>
+          </View>
+
+          <View className="mt-4 rounded-lg bg-card p-5 shadow-card">
+            <View className="mb-6 h-16 w-16 items-center justify-center rounded-lg bg-muted shadow-border">
             <Camera size={36} color="#4d4d4d" />
           </View>
-          <Text className="text-xl font-semibold text-foreground text-center mb-2">
-            Camera Access Required
+          <Text className="text-xl font-semibold text-foreground">
+            Grant camera access
           </Text>
-          <Text className="text-sm text-muted-foreground text-center leading-relaxed mb-6">
-            We need access to your camera to scan the pairing QR code from your Mac.
+          <Text className="mb-6 mt-2 text-sm leading-6 text-muted-foreground">
+            Scan the pairing QR code and store this device as trusted.
           </Text>
           <Button variant="primary" onPress={requestPermission}>
             <Camera size={18} color="#ffffff" />
@@ -122,6 +133,7 @@ export default function PairScreen() {
               Grant Camera Access
             </Text>
           </Button>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -142,20 +154,24 @@ export default function PairScreen() {
 
       {/* Overlay */}
       <SafeAreaView style={{ flex: 1 }}>
-        {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <Pressable
             onPress={handleClose}
-            className="w-10 h-10 items-center justify-center rounded-full bg-black/50 active:bg-black/70"
+            className="h-10 w-10 items-center justify-center rounded-md bg-black/50 active:bg-black/70"
           >
             <X size={20} color="#ffffff" />
           </Pressable>
-          <Text className="text-base font-semibold text-white">
-            Scan QR Code
-          </Text>
+          <View className="items-center">
+            <Text className="text-base font-semibold text-white">
+              Trust this Mac
+            </Text>
+            <Text className="font-mono text-[10px] uppercase text-white/60">
+              QR pairing
+            </Text>
+          </View>
           <Pressable
             onPress={toggleTorch}
-            className="w-10 h-10 items-center justify-center rounded-full bg-black/50 active:bg-black/70"
+            className="h-10 w-10 items-center justify-center rounded-md bg-black/50 active:bg-black/70"
           >
             {torch ? (
               <Flashlight size={20} color="#ffffff" />
@@ -165,18 +181,13 @@ export default function PairScreen() {
           </Pressable>
         </View>
 
-        {/* Scanner Frame */}
         <View className="flex-1 items-center justify-center">
-          <View className="relative w-64 h-64">
-            {/* Corner Markers */}
-            <View className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg" />
-            <View className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg" />
-            <View className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg" />
-            <View className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg" />
+          <View className="relative h-72 w-72 rounded-lg border border-white/70 bg-black/10">
+            <View className="absolute left-5 right-5 top-1/2 h-px bg-white/60" />
+            <View className="absolute bottom-5 top-5 left-1/2 w-px bg-white/60" />
 
-            {/* Connecting Overlay */}
             {isConnecting && (
-              <View className="absolute inset-0 items-center justify-center bg-black/60 rounded-xl">
+              <View className="absolute inset-0 items-center justify-center rounded-lg bg-black/70">
                 <RefreshCw size={32} color="#ffffff" className="animate-spin" />
                 <Text className="text-sm text-white mt-3">Connecting...</Text>
               </View>
@@ -184,12 +195,14 @@ export default function PairScreen() {
           </View>
         </View>
 
-        {/* Instructions */}
         <View className="px-8 pb-8">
-          <View className="bg-black/60 rounded-2xl px-6 py-4">
-            <Text className="text-sm text-white text-center leading-relaxed">
-              Point your camera at the QR code displayed by{" "}
-              <Text className="font-mono bg-white/20 px-1 rounded">offdex start</Text>
+          <View className="rounded-lg bg-white px-5 py-4">
+            <Text className="font-mono text-[10px] uppercase text-muted-foreground">
+              Pairing source
+            </Text>
+            <Text className="mt-2 text-sm leading-6 text-foreground">
+              Point your camera at the QR code printed by{" "}
+              <Text className="font-mono">offdex start</Text>.
             </Text>
           </View>
         </View>

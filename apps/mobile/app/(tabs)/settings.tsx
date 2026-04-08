@@ -3,20 +3,19 @@ import { createPortal } from "react-dom";
 import { Alert, Linking, Platform, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  Terminal,
-  Monitor,
-  ExternalLink,
-  ChevronRight,
-  Trash2,
   Bug,
-  MessageCircle,
+  ExternalLink,
   FileText,
-  Shield,
   Laptop,
+  MessageCircle,
+  Monitor,
+  Shield,
+  Terminal,
+  Trash2,
   Zap,
 } from "../../lib/icons";
 
-import { View, Text, Pressable, ScrollView } from "../../lib/tw";
+import { Pressable, ScrollView, Text, View } from "../../lib/tw";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
 import {
@@ -27,153 +26,24 @@ import {
   offdexIssuesUrl,
   offdexRepositoryUrl,
 } from "../../src/app-config";
-import { feedbackSelection, feedbackSuccess, feedbackError, feedbackWarning } from "../../src/feedback";
-
-import { Card } from "../../components/ui/card";
+import { feedbackError, feedbackSelection, feedbackSuccess, feedbackWarning } from "../../src/feedback";
 import { Button } from "../../components/ui/button";
-import { ScreenHeader } from "../../components/layout/header";
-import { Separator } from "../../components/ui/separator";
-import { StatusBadge } from "../../components/ui/badge";
+import { Card } from "../../components/ui/card";
 
-// ════════════════════════════════════════════════════════════════════════════
-// Settings Row Component
-// ════════════════════════════════════════════════════════════════════════════
-
-interface SettingsRowProps {
-  icon: React.ElementType;
-  label: string;
-  description?: string;
-  value?: string;
-  onPress?: () => void;
-  trailing?: React.ReactNode;
-  variant?: "default" | "destructive";
-}
-
-function SettingsRow({
-  icon: Icon,
-  label,
-  description,
-  value,
-  onPress,
-  trailing,
-  variant = "default",
-}: SettingsRowProps) {
-  const content = (
-    <View className="flex-row items-center py-3">
-      <View
-        className={cn(
-          "w-9 h-9 rounded-lg items-center justify-center mr-3",
-          variant === "destructive" ? "bg-destructive/10" : "bg-muted"
-        )}
-      >
-        <Icon
-          size={18}
-          color={variant === "destructive" ? "#ff5b4f" : "#4d4d4d"}
-        />
-      </View>
-      <View className="flex-1">
-        <Text
-          className={cn(
-            "text-sm font-medium",
-            variant === "destructive" ? "text-destructive" : "text-foreground"
-          )}
-        >
-          {label}
-        </Text>
-        {description && (
-          <Text className="text-xs text-muted-foreground mt-0.5">
-            {description}
-          </Text>
-        )}
-      </View>
-      {value && (
-        <Text className="text-sm text-muted-foreground mr-2">{value}</Text>
-      )}
-      {trailing}
-      {onPress && !trailing && (
-        <ChevronRight size={16} color="#666666" />
-      )}
-    </View>
-  );
-
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} className="active:bg-muted rounded-lg -mx-2 px-2">
-        {content}
-      </Pressable>
-    );
-  }
-
-  return content;
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Settings Section Component
-// ════════════════════════════════════════════════════════════════════════════
-
-interface SettingsSectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function SettingsSection({ title, children }: SettingsSectionProps) {
-  return (
-    <View className="mb-6">
-      <Text className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-4">
-        {title}
-      </Text>
-      <Card className="mx-4">{children}</Card>
-    </View>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Settings Screen
-// ════════════════════════════════════════════════════════════════════════════
-
-function getConnectionStateLabel(
-  connectionState: "idle" | "connecting" | "live" | "degraded"
-) {
-  if (connectionState === "live") {
-    return "Live";
-  }
-
-  if (connectionState === "connecting") {
-    return "Connecting";
-  }
-
-  if (connectionState === "degraded") {
-    return "Recovering";
-  }
-
+function stateLabel(connectionState: "idle" | "connecting" | "live" | "degraded") {
+  if (connectionState === "live") return "Live";
+  if (connectionState === "connecting") return "Connecting";
+  if (connectionState === "degraded") return "Recovering";
   return "Offline";
-}
-
-function getConnectionStateVariant(
-  connectionState: "idle" | "connecting" | "live" | "degraded"
-): "success" | "warning" | "secondary" {
-  if (connectionState === "live") {
-    return "success";
-  }
-
-  if (connectionState === "connecting" || connectionState === "degraded") {
-    return "warning";
-  }
-
-  return "secondary";
 }
 
 export default function SettingsScreen() {
   const [clearDataConfirmVisible, setClearDataConfirmVisible] = useState(false);
-
-  // Store state
   const runtimeTarget = useWorkspaceStore((s) => s.runtimeTarget);
   const connectionState = useWorkspaceStore((s) => s.connectionState);
   const bridgeStatus = useWorkspaceStore((s) => s.bridgeStatus);
   const codexAccount = useWorkspaceStore((s) => s.codexAccount);
   const pairing = useWorkspaceStore((s) => s.snapshot.pairing);
-
-  // Actions
   const setRuntimeTarget = useWorkspaceStore((s) => s.setRuntimeTarget);
   const disconnect = useWorkspaceStore((s) => s.disconnect);
 
@@ -183,16 +53,18 @@ export default function SettingsScreen() {
     void feedbackSuccess();
   }, [disconnect]);
 
-  const handleRuntimeToggle = useCallback(async () => {
-    void feedbackSelection();
-    const newTarget = runtimeTarget === "cli" ? "desktop" : "cli";
-    try {
-      await setRuntimeTarget(newTarget);
-      void feedbackSuccess();
-    } catch {
-      void feedbackError();
-    }
-  }, [runtimeTarget, setRuntimeTarget]);
+  const handleRuntimeTarget = useCallback(
+    async (target: "cli" | "desktop") => {
+      void feedbackSelection();
+      try {
+        await setRuntimeTarget(target);
+        void feedbackSuccess();
+      } catch {
+        void feedbackError();
+      }
+    },
+    [setRuntimeTarget]
+  );
 
   const handleClearData = useCallback(() => {
     void feedbackWarning();
@@ -210,9 +82,7 @@ export default function SettingsScreen() {
         {
           text: "Clear",
           style: "destructive",
-          onPress: () => {
-            confirmClearData();
-          },
+          onPress: confirmClearData,
         },
       ]
     );
@@ -225,146 +95,132 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
-      <ScreenHeader title="Settings" />
-
       <ScrollView
         style={{ flex: 1, backgroundColor: "#ffffff" }}
-        contentContainerStyle={{ backgroundColor: "#ffffff", paddingBottom: 24 }}
+        contentContainerStyle={{ backgroundColor: "#ffffff", paddingBottom: 28 }}
       >
-        <View className="pt-4">
-            <SettingsSection title="Codex Runtime">
-              <SettingsRow
-                icon={Terminal}
-                label="CLI Mode"
-                description="Use Codex CLI in terminal"
-                trailing={
-                  <View
-                    className={cn(
-                      "w-5 h-5 rounded-full border-2 items-center justify-center",
-                      runtimeTarget === "cli"
-                        ? "border-primary bg-primary"
-                        : "border-muted-foreground"
-                    )}
-                  >
-                    {runtimeTarget === "cli" && (
-                      <View className="w-2 h-2 rounded-full bg-primary-foreground" />
-                    )}
-                  </View>
-                }
-                onPress={() => {
-                  if (runtimeTarget !== "cli") {
-                    void setRuntimeTarget("cli");
-                    void feedbackSelection();
-                  }
-                }}
-              />
-              <Separator />
-              <SettingsRow
-                icon={Monitor}
-                label="Desktop App Mode"
-                description="Use Codex desktop application"
-                trailing={
-                  <View
-                    className={cn(
-                      "w-5 h-5 rounded-full border-2 items-center justify-center",
-                      runtimeTarget === "desktop"
-                        ? "border-primary bg-primary"
-                        : "border-muted-foreground"
-                    )}
-                  >
-                    {runtimeTarget === "desktop" && (
-                      <View className="w-2 h-2 rounded-full bg-primary-foreground" />
-                    )}
-                  </View>
-                }
-                onPress={() => {
-                  if (runtimeTarget !== "desktop") {
-                    void setRuntimeTarget("desktop");
-                    void feedbackSelection();
-                  }
-                }}
-              />
-            </SettingsSection>
+        <View className="px-4 pb-4 pt-3">
+          <Text className="font-mono text-xs uppercase text-muted-foreground">
+            Control room
+          </Text>
+          <Text className="mt-2 text-4xl font-semibold text-foreground">
+            Control
+          </Text>
+        </View>
 
-            <SettingsSection title="Connection">
-              <SettingsRow
-                icon={Laptop}
-                label="Connected Mac"
-                value={pairing.macName || "Not connected"}
-              />
-              <Separator />
-              <SettingsRow
-                icon={Zap}
-                label="Bridge Status"
-                description={bridgeStatus}
-                trailing={
-                  <StatusBadge
-                    variant={getConnectionStateVariant(connectionState)}
-                    label={getConnectionStateLabel(connectionState)}
-                  />
-                }
-              />
-              <Separator />
-              <SettingsRow
-                icon={Shield}
-                label="Codex Account"
-                trailing={
-                  <StatusBadge
-                    variant={codexAccount?.isAuthenticated ? "success" : "warning"}
-                    label={codexAccount?.isAuthenticated ? "Signed in" : "Not signed in"}
-                  />
-                }
-              />
-            </SettingsSection>
+        <View className="mx-4 rounded-lg bg-foreground p-5">
+          <Text className="font-mono text-xs uppercase text-background/60">
+            Bridge authority
+          </Text>
+          <Text className="mt-8 text-2xl font-semibold text-background">
+            {pairing.macName || "No Mac paired"}
+          </Text>
+          <Text className="mt-3 text-sm leading-6 text-background/60">
+            {bridgeStatus}
+          </Text>
+        </View>
 
-            <SettingsSection title="Resources">
-              <SettingsRow
-                icon={FileText}
-                label="Documentation"
-                onPress={() => openLink(offdexDocsUrl)}
-              />
-              <Separator />
-              <SettingsRow
-                icon={ExternalLink}
-                label="GitHub"
-                onPress={() => openLink(offdexRepositoryUrl)}
-              />
-              <Separator />
-              <SettingsRow
-                icon={Bug}
-                label="Report an Issue"
-                onPress={() => openLink(offdexIssuesUrl)}
-              />
-              <Separator />
-              <SettingsRow
-                icon={MessageCircle}
-                label="Send Feedback"
-                onPress={() => openLink(offdexFeedbackUrl)}
-              />
-            </SettingsSection>
-
-            <SettingsSection title="Data">
-              <SettingsRow
-                icon={Trash2}
-                label="Clear All Data"
-                description="Disconnect and reset the app"
-                variant="destructive"
-                onPress={handleClearData}
-              />
-            </SettingsSection>
-
-            <View className="items-center py-8">
-              <Text className="text-sm font-semibold text-foreground mb-1">
-                Offdex
+        <View className="mx-4 mt-3 flex-row gap-2">
+          {([
+            ["State", stateLabel(connectionState), Zap],
+            ["Codex", codexAccount?.isAuthenticated ? "Signed in" : "Sign in", Shield],
+            ["Version", appVersion, Laptop],
+          ] as const).map(([label, value, Icon]) => (
+            <View className="flex-1 rounded-lg bg-card p-3 shadow-card" key={String(label)}>
+              <Icon size={16} color="#666666" />
+              <Text className="mt-3 font-mono text-[10px] uppercase text-muted-foreground">
+                {label}
               </Text>
-              <Text className="text-xs text-muted-foreground">
-                Version {appVersion} ({appBuildNumber})
-              </Text>
-              <Text className="text-xs text-muted-foreground mt-1">
-                Made with love for Codex
+              <Text className="mt-1 text-xs font-semibold text-foreground" numberOfLines={1}>
+                {value}
               </Text>
             </View>
+          ))}
         </View>
+
+        <View className="mx-4 mt-5 rounded-lg bg-card p-4 shadow-card">
+          <Text className="font-mono text-xs uppercase text-muted-foreground">
+            Runtime target
+          </Text>
+          <View className="mt-4 flex-row gap-3">
+            {([
+              ["cli", "CLI", "Codex in terminal", Terminal],
+              ["desktop", "Desktop", "Codex desktop app", Monitor],
+            ] as const).map(([target, label, detail, Icon]) => (
+              <Pressable
+                className={cn(
+                  "flex-1 rounded-lg p-4 active:bg-muted",
+                  runtimeTarget === target ? "bg-foreground" : "bg-background shadow-border"
+                )}
+                key={String(target)}
+                onPress={() => void handleRuntimeTarget(target as "cli" | "desktop")}
+              >
+                <Icon size={18} color={runtimeTarget === target ? "#ffffff" : "#171717"} />
+                <Text
+                  className={cn(
+                    "mt-4 text-base font-semibold",
+                    runtimeTarget === target ? "text-background" : "text-foreground"
+                  )}
+                >
+                  {label}
+                </Text>
+                <Text
+                  className={cn(
+                    "mt-1 text-xs leading-5",
+                    runtimeTarget === target ? "text-background/60" : "text-muted-foreground"
+                  )}
+                >
+                  {detail}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View className="mx-4 mt-5 rounded-lg bg-card p-4 shadow-card">
+          <Text className="font-mono text-xs uppercase text-muted-foreground">
+            Project links
+          </Text>
+          <View className="mt-4 gap-2">
+            {([
+              [FileText, "Documentation", offdexDocsUrl],
+              [ExternalLink, "GitHub", offdexRepositoryUrl],
+              [Bug, "Report an issue", offdexIssuesUrl],
+              [MessageCircle, "Send feedback", offdexFeedbackUrl],
+            ] as const).map(([Icon, label, url]) => (
+              <Pressable
+                className="flex-row items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-border active:bg-muted"
+                key={String(label)}
+                onPress={() => openLink(String(url))}
+              >
+                <Icon size={18} color="#666666" />
+                <Text className="flex-1 text-sm font-medium text-foreground">{label}</Text>
+                <Text className="text-lg text-muted-foreground">/</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View className="mx-4 mt-5 rounded-lg bg-card p-4 shadow-card">
+          <Pressable
+            className="flex-row items-center gap-3 rounded-lg bg-[#fff1f0] px-4 py-4 active:opacity-80"
+            onPress={handleClearData}
+          >
+            <Trash2 size={18} color="#ff5b4f" />
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-destructive">
+                Clear local trust
+              </Text>
+              <Text className="mt-1 text-xs text-[#b42318]">
+                Disconnect and require pairing again.
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
+        <Text className="mt-8 text-center text-xs text-muted-foreground">
+          Offdex {appVersion} ({appBuildNumber})
+        </Text>
       </ScrollView>
 
       {Platform.OS === "web" &&
@@ -377,8 +233,7 @@ export default function SettingsScreen() {
                 Clear All Data
               </Text>
               <Text className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                This will disconnect from your Mac and clear all local data. You&apos;ll need to
-                pair again.
+                This will disconnect from your Mac and clear all local data. You'll need to pair again.
               </Text>
               <View className="mt-5 flex-row gap-3">
                 <Button

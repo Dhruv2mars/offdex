@@ -1,34 +1,18 @@
 import Link from "next/link";
 import { architecturePrinciples } from "../site-content";
 
-const layers = [
-  {
-    name: "Phone shell",
-    detail:
-      "Expo SDK 55 for speed, adaptive layouts for phone and desktop widths, and native-feeling feedback where it improves confidence instead of adding noise.",
-  },
-  {
-    name: "Bridge and Codex runtime",
-    detail:
-      "The machine stays authoritative. Codex authentication, session state, and live thread truth remain on the user's Mac instead of being mirrored into a mystery backend.",
-  },
-  {
-    name: "Managed remote path",
-    detail:
-      "Pair once with QR, trust the client as a device, then use the local bridge when nearby or the encrypted Cloudflare relay when away.",
-  },
-  {
-    name: "Web and product shell",
-    detail:
-      "The public site, browser client, and phone app use one quiet surface so transport state stays readable.",
-  },
+const signalPath = [
+  ["Bridge", "The Mac owns Codex auth, session state, and live thread truth."],
+  ["Client", "Mobile and web send intent and render snapshots from the bridge."],
+  ["Trust", "QR pairing creates a device record before remote access is allowed."],
+  ["Relay", "Encrypted remote traffic only carries opaque bridge messages."],
 ] as const;
 
 export default function ArchitecturePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 bg-background/90 shadow-border backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Link
             href="/"
             className="focus-ring rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -44,54 +28,50 @@ export default function ArchitecturePage() {
         </div>
       </header>
 
-      <section className="mx-auto w-full max-w-5xl px-6 py-20 md:py-28">
-        <div>
-          <span className="font-mono text-xs font-medium uppercase text-muted-foreground">
-            Architecture
-          </span>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight tracking-[-2.4px] md:text-5xl">
-            Build trust into the transport, then let the interface stay calm.
+      <section className="mx-auto w-full max-w-6xl px-6 py-12 md:py-16">
+        <div className="rounded-lg bg-card p-6 shadow-card md:p-8">
+          <p className="font-mono text-xs font-medium uppercase text-muted-foreground">
+            Signal path
+          </p>
+          <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight tracking-[-2.4px] md:text-6xl">
+            Put authority in the bridge. Keep every client disposable.
           </h1>
-        </div>
-
-        <div className="mt-16 grid gap-4 md:grid-cols-2">
-          {layers.map((layer, index) => (
-            <article
-              className="rounded-lg bg-card p-6 shadow-card transition-shadow hover:shadow-card-hover"
-              key={layer.name}
-            >
-              <span className="font-mono text-xs font-medium text-muted-foreground">
-                0{index + 1}
-              </span>
-              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.96px]">{layer.name}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{layer.detail}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-16 rounded-lg bg-card p-8 shadow-card">
-          <span className="font-mono text-xs font-medium uppercase text-muted-foreground">
-            Product rules
-          </span>
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            {architecturePrinciples.map((rule) => (
-              <div
-                className="rounded-md bg-background px-4 py-3 text-sm text-muted-foreground shadow-border"
-                key={rule}
-              >
-                {rule}
-              </div>
+          <div className="mt-8 grid gap-3 md:grid-cols-4">
+            {signalPath.map(([title, body], index) => (
+              <article className="rounded-lg bg-background p-4 shadow-border" key={title}>
+                <span className="font-mono text-xs text-muted-foreground">0{index + 1}</span>
+                <h2 className="mt-10 text-2xl font-semibold tracking-[-0.96px]">{title}</h2>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{body}</p>
+              </article>
             ))}
           </div>
         </div>
-      </section>
 
-      <footer className="shadow-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-8">
-          <span className="text-xs text-muted-foreground">Offdex</span>
-          <span className="text-xs text-muted-foreground">Built for Codex</span>
+        <div className="mt-5 grid gap-5 md:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="rounded-lg bg-foreground p-5 text-background">
+            <p className="font-mono text-xs uppercase text-background/60">Rule</p>
+            <p className="mt-20 text-3xl font-semibold tracking-[-0.96px]">
+              Nothing runs on the phone that should remain on the Mac.
+            </p>
+          </aside>
+
+          <section className="rounded-lg bg-card p-5 shadow-card">
+            <p className="font-mono text-xs font-medium uppercase text-muted-foreground">
+              Product rules
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {architecturePrinciples.map((rule) => (
+                <div
+                  className="rounded-md bg-background px-4 py-3 text-sm leading-6 text-muted-foreground shadow-border"
+                  key={rule}
+                >
+                  {rule}
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
-      </footer>
+      </section>
     </main>
   );
 }
