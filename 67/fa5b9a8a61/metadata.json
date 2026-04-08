@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "67fa5b9a8a61",
+  "strategy": "manual-commit",
+  "branch": "feat/webui-revamp",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/app/globals.css",
+    "apps/web/app/layout.tsx",
+    "apps/web/package.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/67/fa5b9a8a61/0/metadata.json",
+      "transcript": "/67/fa5b9a8a61/0/full.jsonl",
+      "content_hash": "/67/fa5b9a8a61/0/content_hash.txt",
+      "prompt": "/67/fa5b9a8a61/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 403517398,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 388240256,
+    "output_tokens": 1308708,
+    "api_call_count": 3089
+  }
+}
