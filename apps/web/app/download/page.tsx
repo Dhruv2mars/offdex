@@ -1,143 +1,85 @@
-import Link from "next/link";
 import {
   androidApkDownloadUrl,
-  bridgeStartCommand,
   cliInstallCommand,
   githubRepoUrl,
-  githubReleasesUrl,
 } from "../site-content";
 import { TerminalBlock } from "../../components/terminal-block";
 
 export default function DownloadPage() {
   return (
     <main className="flex-1 pb-32">
-      {/* Header aligned exactly with Changelog and Docs */}
-      <section className="mx-auto w-full max-w-[1000px] px-6 pt-24 pb-16 md:px-8 md:pt-32">
-        <div className="max-w-[600px]">
-          <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
-            Download
-          </h1>
-          <p className="mt-6 text-[18px] leading-[1.6] text-muted-foreground">
-            Install the bridge CLI on your Mac, then get the mobile app to control Codex from anywhere.
-          </p>
-        </div>
-      </section>
+      <section className="mx-auto w-full max-w-[800px] px-6 pt-24 pb-16 md:px-8 md:pt-32">
+        <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
+          Download
+        </h1>
+        <p className="mt-5 text-[18px] leading-[1.6] text-muted-foreground">
+          Install the CLI on your host machine, then get the mobile app to connect.
+        </p>
 
-      {/* Grid aligned exactly with Changelog and Docs */}
-      <section className="mx-auto w-full max-w-[1000px] px-6 md:px-8">
-        <div className="grid gap-12 md:grid-cols-[180px_1fr] md:gap-12">
-          
-          {/* Sidebar Navigation */}
-          <aside className="hidden pt-[6px] md:block">
-            <div className="sticky top-24 pr-8">
-              <h3 className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Platforms
-              </h3>
-              <nav className="mt-6 flex flex-col gap-3 border-l border-[#ebebeb]">
-                <a href="#bridge-cli" className="group flex items-center gap-3 pl-4 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground">
-                  <span className="opacity-0 transition-opacity group-hover:opacity-100">&rarr;</span>
-                  <span className="-ml-3 transition-transform group-hover:translate-x-2">Bridge CLI</span>
-                </a>
-                <a href="#android-apk" className="group flex items-center gap-3 pl-4 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground">
-                  <span className="opacity-0 transition-opacity group-hover:opacity-100">&rarr;</span>
-                  <span className="-ml-3 transition-transform group-hover:translate-x-2">Android APK</span>
-                </a>
-                <a href="#ios-beta" className="group flex items-center gap-3 pl-4 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground">
-                  <span className="opacity-0 transition-opacity group-hover:opacity-100">&rarr;</span>
-                  <span className="-ml-3 transition-transform group-hover:translate-x-2">iOS Beta</span>
-                </a>
-              </nav>
+        <div className="mt-12 grid gap-6">
+          {/* Bridge CLI */}
+          <div className="flex flex-col gap-6 rounded-[12px] bg-background p-6 shadow-card md:p-8">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ebf5ff] shadow-border">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a72ef" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 17 10 11 4 5" />
+                  <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-[20px] font-semibold tracking-[-0.8px] text-foreground">Bridge CLI</h2>
+                <p className="text-[14px] text-muted-foreground">macOS, Windows, Linux</p>
+              </div>
             </div>
-          </aside>
+            <TerminalBlock command={cliInstallCommand} />
+          </div>
 
-          {/* Main Content */}
-          <div className="min-w-0 md:pl-0">
-            
-            {/* Bridge CLI */}
-            <section id="bridge-cli" className="mb-16 last:mb-0 md:mb-24 scroll-mt-32">
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] bg-[#ebf5ff] shadow-border">
-                  macOS / Linux / Windows
-                </span>
-                <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">
-                  Bridge CLI
-                </h2>
-              </div>
-              
-              <p className="max-w-2xl text-[16px] leading-[1.6] text-muted-foreground">
-                The global npm package is the public entrypoint. It downloads the matching native bridge runtime from GitHub Releases for your platform.
-              </p>
-
-              <div className="mt-8">
-                <TerminalBlock command={`${cliInstallCommand} && ${bridgeStartCommand}`} />
-              </div>
-              
-              <a
-                href={githubReleasesUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 inline-flex items-center gap-2 text-[14px] font-medium text-foreground transition-colors hover:text-muted-foreground focus-ring rounded-sm"
-              >
-                View GitHub Releases &rarr;
-              </a>
-            </section>
-
-            {/* Android APK */}
-            <section id="android-apk" className="mb-16 last:mb-0 md:mb-24 scroll-mt-32">
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#de1d8d] bg-[#fff0f7] shadow-border">
-                  Android
-                </span>
-                <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">
-                  Android APK
-                </h2>
-              </div>
-              
-              <p className="max-w-2xl text-[16px] leading-[1.6] text-muted-foreground">
-                Pull the latest signed Android build directly from GitHub Releases. Once installed, simply scan the QR code from the Bridge CLI to pair.
-              </p>
-
-              <a
-                href={androidApkDownloadUrl}
-                className="group/card mt-8 flex h-[120px] flex-col items-center justify-center rounded-[12px] bg-background shadow-border transition-shadow hover:shadow-card focus-ring"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#de1d8d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-3 transition-transform group-hover/card:-translate-y-1">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Android */}
+            <div className="flex flex-col rounded-[12px] bg-background p-6 shadow-card md:p-8">
+              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-[#fff0f7] shadow-border">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#de1d8d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                  <line x1="12" y1="18" x2="12.01" y2="18" />
                 </svg>
-                <span className="font-medium text-foreground">Download latest APK</span>
-              </a>
-            </section>
-
-            {/* iOS Beta */}
-            <section id="ios-beta" className="mb-16 last:mb-0 md:mb-24 scroll-mt-32">
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#ff5b4f] bg-[#ffefe5] shadow-border">
-                  iOS
-                </span>
-                <h2 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">
-                  iOS Beta
-                </h2>
               </div>
-              
-              <p className="max-w-2xl text-[16px] leading-[1.6] text-muted-foreground">
-                The native iOS app exists in the repo, but there is no public TestFlight link yet. You can build it locally from the source.
+              <h2 className="text-[20px] font-semibold tracking-[-0.8px] text-foreground">Android</h2>
+              <p className="mt-2 text-[15px] leading-[1.6] text-muted-foreground">
+                Download the latest signed APK directly to your device.
               </p>
+              <div className="mt-8 flex flex-1 flex-col justify-end">
+                <a
+                  href={androidApkDownloadUrl}
+                  className="flex w-full items-center justify-center rounded-[6px] bg-foreground px-4 py-[10px] text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
+                >
+                  Download APK
+                </a>
+              </div>
+            </div>
 
-              <a
-                href={`${githubRepoUrl}/tree/main/apps/mobile`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group/card mt-8 flex h-[120px] flex-col items-center justify-center rounded-[12px] bg-background shadow-border transition-shadow hover:shadow-card focus-ring"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff5b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-3 transition-transform group-hover/card:-translate-y-1">
-                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+            {/* iOS */}
+            <div className="flex flex-col rounded-[12px] bg-background p-6 shadow-card md:p-8">
+              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-[#ffefe5] shadow-border">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff5b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z" />
+                  <path d="M10 2c1 .5 2 2 2 5" />
                 </svg>
-                <span className="font-medium text-foreground">View iOS source</span>
-              </a>
-            </section>
-
+              </div>
+              <h2 className="text-[20px] font-semibold tracking-[-0.8px] text-foreground">iOS Beta</h2>
+              <p className="mt-2 text-[15px] leading-[1.6] text-muted-foreground">
+                Build locally from source. Public TestFlight coming soon.
+              </p>
+              <div className="mt-8 flex flex-1 flex-col justify-end">
+                <a
+                  href={`${githubRepoUrl}/tree/main/apps/mobile`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center rounded-[6px] bg-[#fafafa] px-4 py-[10px] text-[14px] font-medium text-foreground shadow-border transition-colors hover:bg-[#f5f5f5] focus-ring"
+                >
+                  View Source
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
