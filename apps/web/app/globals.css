@@ -117,9 +117,9 @@ a {
 }
 
 @keyframes pkg-scroll {
-  0%, 40% { transform: translateY(0); }
-  45%, 85% { transform: translateY(-1.4em); }
-  90%, 98% { transform: translateY(-2.8em); }
+  0%, 30% { transform: translateY(0); }
+  33.33%, 63.33% { transform: translateY(-1.4em); }
+  66.66%, 96.66% { transform: translateY(-2.8em); }
   100% { transform: translateY(-4.2em); }
 }
 
@@ -132,7 +132,7 @@ a {
 }
 
 .animate-pkg-scroll {
-  animation: pkg-scroll 4.5s cubic-bezier(0.87, 0, 0.13, 1) infinite;
+  animation: pkg-scroll 7.5s cubic-bezier(0.87, 0, 0.13, 1) infinite;
 }
 
 .animate-fade-in-delay {
