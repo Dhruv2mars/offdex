@@ -6,129 +6,110 @@ import {
   githubRepoUrl,
   githubReleasesUrl,
 } from "../site-content";
-
-const cliPlatforms = ["macOS arm64/x64", "Linux arm64/x64", "Windows x64"];
-
-const mobileCards = [
-  {
-    title: "Android",
-    status: "APK Available",
-    description: "Pull the latest signed Android build directly from GitHub Releases.",
-    href: androidApkDownloadUrl,
-    cta: "Download APK",
-    tone: "bg-[#ebf5ff] text-[#0a72ef]",
-  },
-  {
-    title: "iOS",
-    status: "Private Beta",
-    description: "The native iOS app exists in the repo, but there is no public TestFlight link yet.",
-    href: `${githubRepoUrl}/tree/main/apps/mobile`,
-    cta: "View Source",
-    tone: "bg-[#fff0f7] text-[#de1d8d]",
-  },
-];
+import { TerminalBlock } from "../../components/terminal-block";
 
 export default function DownloadPage() {
   return (
     <main className="flex-1 pb-32">
-      <div className="mx-auto w-full max-w-[1000px] px-6 pt-24 text-center md:px-8 md:pt-32">
-        <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
-          Download Offdex
-        </h1>
-        <p className="mx-auto mt-6 max-w-[600px] text-[18px] leading-[1.65] text-muted-foreground">
-          Install the local bridge CLI to authorize your machine, then pair your clients to securely access Codex from anywhere.
-        </p>
-      </div>
+      {/* Hero Section */}
+      <section className="relative mx-auto w-full max-w-[1200px] overflow-hidden px-6 pt-24 text-center md:px-8 md:pt-32">
+        <div className="animate-fade-in relative z-10 mx-auto max-w-[900px]">
+          <h1 className="text-[56px] font-semibold leading-[1.05] tracking-[-2.4px] md:text-[76px] md:tracking-[-2.88px] lg:text-[88px]">
+            Download <br className="hidden md:block" /> Offdex.
+          </h1>
+          <p className="mx-auto mt-6 max-w-[600px] text-[18px] leading-[1.6] text-muted-foreground md:text-[20px]">
+            Install the bridge CLI on your Mac, then get the mobile app to control Codex from anywhere.
+          </p>
+        </div>
+      </section>
 
-      <div className="mx-auto mt-16 w-full max-w-[1000px] px-6 md:mt-24 md:px-8">
-        
-        {/* CLI Terminal Hero Card */}
-        <section className="overflow-hidden rounded-[16px] bg-background shadow-card">
-          <div className="flex h-12 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-5">
-            <div className="flex gap-2">
-              <div className="h-[10px] w-[10px] rounded-full bg-[#ff5f56]" />
-              <div className="h-[10px] w-[10px] rounded-full bg-[#ffbd2e]" />
-              <div className="h-[10px] w-[10px] rounded-full bg-[#27c93f]" />
-            </div>
-          </div>
+      {/* The Download Pipeline */}
+      <section className="mx-auto w-full max-w-[1200px] mt-20 md:mt-32 px-6 md:px-8">
+        <div className="grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
           
-          <div className="flex flex-col gap-8 p-6 md:flex-row md:items-center md:justify-between md:p-12">
-            <div className="max-w-[400px]">
-              <div className="flex items-center gap-3">
-                <h2 className="text-[28px] font-semibold tracking-[-1.12px] text-foreground">Bridge CLI</h2>
-              </div>
-              <p className="mt-4 text-[16px] leading-[1.65] text-muted-foreground">
-                The global npm package is the public entrypoint. It downloads the native bridge runtime for your OS from GitHub.
-              </p>
-              
-              <div className="mt-8 flex flex-wrap gap-2">
-                {cliPlatforms.map((platform) => (
-                  <span
-                    key={platform}
-                    className="rounded-[6px] border border-[#ebebeb] bg-[#fafafa] px-3 py-1.5 font-mono text-[11px] font-medium text-muted-foreground"
-                  >
-                    {platform}
-                  </span>
-                ))}
-              </div>
+          {/* Bridge CLI */}
+          <div className="relative group">
+            <div className="mb-6 flex items-center gap-4">
+              <span className="flex h-[28px] items-center rounded-full bg-[#ebf5ff] px-3 font-mono text-[12px] font-semibold text-[#0a72ef]">01</span>
+              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Bridge CLI</h3>
+              <div className="hidden h-[1px] flex-1 border-t border-dashed border-[#ebebeb] md:block" />
             </div>
-
-            <div className="w-full shrink-0 md:w-[380px]">
-              <div className="rounded-[12px] bg-[#fafafa] p-4 shadow-border">
-                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Install Command</p>
-                <div className="mt-3 font-mono text-[13px] text-foreground">
-                  <span className="text-[#0a72ef]">$ </span>{cliInstallCommand}
+            <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
+              The global npm package is the public entrypoint. It downloads the matching native bridge runtime from GitHub Releases for your platform.
+            </p>
+            <div className="rounded-[12px] bg-background shadow-border overflow-hidden">
+              <div className="flex h-10 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-4">
+                <div className="flex gap-2">
+                  <div className="h-[10px] w-[10px] rounded-full bg-[#ff5f56]" />
+                  <div className="h-[10px] w-[10px] rounded-full bg-[#ffbd2e]" />
+                  <div className="h-[10px] w-[10px] rounded-full bg-[#27c93f]" />
                 </div>
               </div>
-              <div className="mt-3 rounded-[12px] bg-[#fafafa] p-4 shadow-border">
-                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Start Relay</p>
-                <div className="mt-3 font-mono text-[13px] text-foreground">
-                  <span className="text-[#de1d8d]">$ </span>{bridgeStartCommand}
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end">
-                <a
-                  href={githubReleasesUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-[8px] px-4 py-2 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-ring"
-                >
-                  View GitHub Releases &rarr;
-                </a>
+              <div className="p-4 font-mono text-[13px] leading-[1.8] text-foreground">
+                <span className="text-[#0a72ef]">$ </span>
+                {cliInstallCommand}
+                <br />
+                <span className="text-[#0a72ef]">$ </span>
+                {bridgeStartCommand}
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Mobile App Cards */}
-        <div className="mt-8 grid gap-6 md:grid-cols-2 md:gap-8">
-          {mobileCards.map((card) => (
             <a
-              key={card.title}
-              href={card.href}
+              href={githubReleasesUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="group block rounded-[16px] bg-background p-6 shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover md:p-8 focus-ring"
+              className="mt-6 inline-flex items-center gap-2 text-[14px] font-medium text-foreground transition-colors hover:text-muted-foreground"
             >
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">
-                  {card.title}
-                </h3>
-                <span className={`rounded-full px-3 py-[4px] font-mono text-[11px] font-bold uppercase tracking-[0.16em] ${card.tone}`}>
-                  {card.status}
-                </span>
-              </div>
-              <p className="mt-4 text-[16px] leading-[1.65] text-muted-foreground">
-                {card.description}
-              </p>
-              <div className="mt-8 flex items-center font-medium text-foreground">
-                <span className="group-hover:underline">{card.cta}</span>
-                <span className="ml-1 transition-transform group-hover:translate-x-1">&rarr;</span>
-              </div>
+              View GitHub Releases &rarr;
             </a>
-          ))}
+          </div>
+
+          {/* Android App */}
+          <div className="relative group">
+            <div className="mb-6 flex items-center gap-4">
+              <span className="flex h-[28px] items-center rounded-full bg-[#fff0f7] px-3 font-mono text-[12px] font-semibold text-[#de1d8d]">02</span>
+              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Android APK</h3>
+              <div className="hidden h-[1px] flex-1 border-t border-dashed border-[#ebebeb] md:block" />
+            </div>
+            <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
+              Pull the latest signed Android build directly from GitHub Releases. Once installed, simply scan the QR code from the Bridge CLI to pair.
+            </p>
+            <a
+              href={androidApkDownloadUrl}
+              className="group/card flex h-[120px] flex-col items-center justify-center rounded-[12px] bg-[#fafafa] shadow-border transition-all hover:-translate-y-1 hover:shadow-card focus-ring"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#de1d8d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span className="font-medium text-foreground">Download latest APK</span>
+            </a>
+          </div>
+
+          {/* iOS Beta */}
+          <div className="relative group">
+            <div className="mb-6 flex items-center gap-4">
+              <span className="flex h-[28px] items-center rounded-full bg-[#ffefe5] px-3 font-mono text-[12px] font-semibold text-[#ff5b4f]">03</span>
+              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">iOS Beta</h3>
+            </div>
+            <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
+              The native iOS app exists in the repo, but there is no public TestFlight link yet. You can build it locally from the source.
+            </p>
+            <a
+              href={`${githubRepoUrl}/tree/main/apps/mobile`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group/card flex h-[120px] flex-col items-center justify-center rounded-[12px] bg-[#fafafa] shadow-border transition-all hover:-translate-y-1 hover:shadow-card focus-ring"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff5b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+              </svg>
+              <span className="font-medium text-foreground">View iOS source</span>
+            </a>
+          </div>
+
         </div>
-      </div>
+      </section>
     </main>
   );
 }

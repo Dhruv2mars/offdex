@@ -72,27 +72,19 @@ export default async function ChangelogPage() {
 
                   <div className={`mt-6 overflow-hidden rounded-[16px] bg-background shadow-card ${isLatest ? "ring-1 ring-[#0a72ef]/10" : ""}`}>
                     <div className="p-6 md:p-8">
-                      <pre className="whitespace-pre-wrap font-sans text-[15px] leading-[1.75] text-[#4d4d4d]">
+                      <div className="font-sans text-[15px] leading-[1.7] text-muted-foreground whitespace-pre-wrap break-words">
                         {release.body || "No release notes provided."}
-                      </pre>
+                      </div>
                       
                       <div className="mt-8 flex flex-wrap gap-3">
                         <a
                           href={release.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-[8px] bg-[#fafafa] px-4 py-[10px] text-[13px] font-medium text-foreground shadow-border transition-colors hover:bg-white focus-ring"
+                          className="rounded-[8px] bg-foreground px-4 py-[10px] text-[13px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
                         >
-                          View release
+                          View on GitHub &rarr;
                         </a>
-                        {release.androidDownloadUrl ? (
-                          <a
-                            href={release.androidDownloadUrl}
-                            className="rounded-[8px] bg-foreground px-4 py-[10px] text-[13px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
-                          >
-                            Download APK
-                          </a>
-                        ) : null}
                       </div>
                     </div>
                   </div>

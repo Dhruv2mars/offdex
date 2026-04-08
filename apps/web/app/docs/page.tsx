@@ -6,6 +6,7 @@ import {
   githubReleasesUrl,
   webAppUrl,
 } from "../site-content";
+import { TerminalBlock } from "../../components/terminal-block";
 
 const docsSections = [
   {
@@ -90,15 +91,6 @@ export default function DocsPage() {
                   </a>
                 ))}
               </nav>
-
-              <h3 className="mt-12 font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">
-                Resources
-              </h3>
-              <nav className="mt-6 flex flex-col gap-3">
-                <a href={webAppUrl} className="text-[14px] text-muted-foreground transition-colors hover:text-foreground">Open WebUI</a>
-                <Link href="/download" className="text-[14px] text-muted-foreground transition-colors hover:text-foreground">Download Clients</Link>
-                <Link href="/changelog" className="text-[14px] text-muted-foreground transition-colors hover:text-foreground">Release Notes</Link>
-              </nav>
             </div>
           </aside>
 
@@ -131,19 +123,7 @@ export default function DocsPage() {
                     {section.body}
                   </p>
 
-                  <div className="mt-8 overflow-hidden rounded-[12px] bg-background shadow-border">
-                    <div className="flex h-10 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-4">
-                      <div className="flex gap-2">
-                        <div className="h-[10px] w-[10px] rounded-full bg-[#ff5f56]" />
-                        <div className="h-[10px] w-[10px] rounded-full bg-[#ffbd2e]" />
-                        <div className="h-[10px] w-[10px] rounded-full bg-[#27c93f]" />
-                      </div>
-                    </div>
-                    <div className="p-5 font-mono text-[13px] leading-[1.8] text-foreground">
-                      <span className="text-muted-foreground mr-3">$</span>
-                      {section.command}
-                    </div>
-                  </div>
+                  <TerminalBlock command={section.command} />
 
                   <ul className="mt-8 space-y-3">
                     {section.points.map((point) => (
