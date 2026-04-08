@@ -15,3 +15,9 @@ lets go one by one, sidebar for now. do you have any questions regarding this?
 ---
 
 run it locally. so that i can see and checkout. we will improve on it based on that
+
+---
+
+changes:
+- the threads are inside projects. its like nested. and they all are part of the threads section. see the image. 
+- no sign in on mac on top right. keep it clean.
