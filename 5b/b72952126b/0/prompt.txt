@@ -1,0 +1,9 @@
+ok, from the last message, a lot has been changed in the project. i would like you to look at the entire codebase, the commits that have happened. based on that, we can now move forward.
+
+---
+
+ok, we will wait for the build to finish, in meantime we will move forward to do more things. 
+
+now, we will take progress step by step. first, focusing on perfecting the CLI!
+
+run the cli workflow, from installing it to using it. see what parts are currently not working if any. and focus on what can be improved and made better. one thing that i noticed yesterday was, it was taking too much time to install 57mb runtime, basically, overall performance.
