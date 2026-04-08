@@ -413,16 +413,16 @@ export function startControlPlaneServer(options: ControlPlaneServerOptions = {})
             ticketId,
             machineId: machine.machineId,
             ownerId: machine.ownerId,
-            transportMode: machine.bridgeHints.length > 0 ? "direct" : "relay",
+            transportMode: machine.bridgeHints.length > 0 ? "local" : "relay",
             issuedAt: nowIso(),
             expiresAt,
-            direct:
+            local:
               machine.bridgeHints.length > 0
                 ? {
                     bridgeUrls: machine.bridgeHints,
-                    accessToken: createBridgeAccessToken(machine.machineSecret, ticketId, expiresAt),
                   }
                 : null,
+            direct: null,
             relay: {
               relayUrl: resolvedBaseUrl,
               roomId: machine.relayRoomId,

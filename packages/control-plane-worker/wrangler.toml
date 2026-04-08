@@ -1,0 +1,11 @@
+name = "offdex-control-plane"
+main = "src/index.ts"
+compatibility_date = "2026-04-08"
+
+[[durable_objects.bindings]]
+name = "OFFDEX_CONTROL_PLANE"
+class_name = "ControlPlaneRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ControlPlaneRoom"]

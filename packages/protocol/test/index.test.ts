@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   OFFDEX_NEW_THREAD_ID,
+  OFFDEX_TRANSPORT_MODES,
   createBridgeAccessToken,
   createRelayAuthToken,
   decodePairingUri,
@@ -14,6 +15,10 @@ import {
 } from "../src";
 
 describe("protocol demo snapshot", () => {
+  test("keeps the public transport model simple", () => {
+    expect(OFFDEX_TRANSPORT_MODES).toEqual(["local", "relay"]);
+  });
+
   test("publishes a shared new-thread sentinel", () => {
     expect(OFFDEX_NEW_THREAD_ID).toBe("offdex-new-thread");
   });

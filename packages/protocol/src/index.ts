@@ -4,7 +4,8 @@ import { decodeUTF8, encodeBase64, decodeBase64, encodeUTF8 } from "tweetnacl-ut
 export type RuntimeTarget = "cli" | "desktop";
 export type PairingState = "unpaired" | "paired" | "reconnecting";
 export type TurnState = "idle" | "running" | "completed" | "failed";
-export type OffdexTransportMode = "local" | "direct" | "relay";
+export const OFFDEX_TRANSPORT_MODES = ["local", "relay"] as const;
+export type OffdexTransportMode = (typeof OFFDEX_TRANSPORT_MODES)[number];
 export type OffdexDeviceId = string;
 export const OFFDEX_NEW_THREAD_ID = "offdex-new-thread";
 
@@ -102,7 +103,10 @@ export interface OffdexConnectionTicket {
   transportMode: OffdexTransportMode;
   issuedAt: string;
   expiresAt: string;
-  direct: {
+  local: {
+    bridgeUrls: string[];
+  } | null;
+  direct?: {
     bridgeUrls: string[];
     accessToken: string;
   } | null;
