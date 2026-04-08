@@ -1,275 +1,39 @@
 import { useCallback, useEffect } from "react";
 import { RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  Monitor,
-  Terminal,
-  QrCode,
-  Wifi,
-  WifiOff,
   Check,
-  ChevronRight,
-  RefreshCw,
-  Laptop,
   Globe,
+  Laptop,
+  Monitor,
+  QrCode,
+  RefreshCw,
+  Shield,
+  Terminal,
 } from "../../lib/icons";
 import type { OffdexMachineRecord } from "@offdex/protocol";
 
-import { View, Text, Pressable } from "../../lib/tw";
+import { Pressable, Text, View } from "../../lib/tw";
 import { cn, formatRelativeTime } from "../../lib/utils";
 import { useWorkspaceStore } from "../../lib/store";
-import { feedbackSelection, feedbackSuccess, feedbackError } from "../../src/feedback";
-
+import { feedbackError, feedbackSelection, feedbackSuccess } from "../../src/feedback";
 import { Button } from "../../components/ui/button";
-import { Card } from "../../components/ui/card";
-import { StatusBadge } from "../../components/ui/badge";
-import { ScreenHeader } from "../../components/layout/header";
-import { EmptyState, SectionHeader } from "../../components/layout/empty-state";
-import { Separator } from "../../components/ui/separator";
-
-// ════════════════════════════════════════════════════════════════════════════
-// Machine Item Component
-// ════════════════════════════════════════════════════════════════════════════
-
-interface MachineItemProps {
-  machine: OffdexMachineRecord;
-  isActive: boolean;
-  isConnecting: boolean;
-  onPress: () => void;
-}
-
-function MachineItem({ machine, isActive, isConnecting, onPress }: MachineItemProps) {
-  const RuntimeIcon = machine.runtimeTarget === "cli" ? Terminal : Monitor;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={isConnecting}
-      className={cn(
-        "mx-4 rounded-xl bg-card border px-4 py-3.5",
-        "active:bg-muted",
-        isActive ? "border-primary" : "border-border",
-        isConnecting && "opacity-50"
-      )}
-    >
-      <View className="flex-row items-center gap-3">
-        {/* Machine Icon */}
-        <View
-          className={cn(
-            "w-10 h-10 rounded-lg items-center justify-center",
-            machine.online ? "bg-success/10" : "bg-muted"
-          )}
-        >
-          <Laptop size={20} color={machine.online ? "#22c55e" : "#71717a"} />
-        </View>
-
-        {/* Machine Info */}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2">
-            <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
-              {machine.macName}
-            </Text>
-            {isActive && (
-              <View className="w-4 h-4 rounded-full bg-primary items-center justify-center">
-                <Check size={10} color="#09090b" strokeWidth={3} />
-              </View>
-            )}
-          </View>
-          <View className="flex-row items-center gap-2 mt-0.5">
-            <View className="flex-row items-center gap-1">
-              <RuntimeIcon size={10} color="#71717a" />
-              <Text className="text-xs text-muted-foreground capitalize">
-                {machine.runtimeTarget}
-              </Text>
-            </View>
-            <Text className="text-xs text-muted-foreground">·</Text>
-            <Text className="text-xs text-muted-foreground">
-              {formatRelativeTime(machine.lastSeenAt)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Status */}
-        <View className="items-end gap-1.5">
-          <StatusBadge
-            variant={machine.online ? "success" : "secondary"}
-            label={machine.online ? "Online" : "Offline"}
-          />
-          {machine.remoteCapability && (
-            <View className="flex-row items-center gap-1">
-              <Globe size={10} color="#71717a" />
-              <Text className="text-[10px] text-muted-foreground">Remote</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Current Connection Card
-// ════════════════════════════════════════════════════════════════════════════
-
-function CurrentConnectionCard() {
-  const isConnected = useWorkspaceStore((s) => s.isConnected);
-  const isConnecting = useWorkspaceStore((s) => s.isConnecting);
-  const connectionState = useWorkspaceStore((s) => s.connectionState);
-  const connectionTransport = useWorkspaceStore((s) => s.connectionTransport);
-  const pairing = useWorkspaceStore((s) => s.snapshot.pairing);
-  const codexAccount = useWorkspaceStore((s) => s.codexAccount);
-  const runtimeTarget = useWorkspaceStore((s) => s.runtimeTarget);
-  const disconnect = useWorkspaceStore((s) => s.disconnect);
-  const refresh = useWorkspaceStore((s) => s.refresh);
-
-  const handleDisconnect = useCallback(() => {
-    void feedbackSelection();
-    disconnect();
-  }, [disconnect]);
-
-  const handleReconnect = useCallback(async () => {
-    void feedbackSelection();
-    try {
-      await refresh();
-      void feedbackSuccess();
-    } catch {
-      void feedbackError();
-    }
-  }, [refresh]);
-
-  if (connectionState === "idle" && !pairing.macName) {
-    return null;
-  }
-
-  const RuntimeIcon = runtimeTarget === "cli" ? Terminal : Monitor;
-  const TransportIcon = connectionTransport === "local" ? Wifi : Globe;
-
-  return (
-    <Card className="mx-4">
-      {/* Header */}
-      <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Current Connection
-        </Text>
-        <View
-          className={cn(
-            "w-2 h-2 rounded-full",
-            isConnected ? "bg-success" : isConnecting ? "bg-warning" : "bg-muted-foreground"
-          )}
-        />
-      </View>
-
-      {/* Machine Info */}
-      <View className="flex-row items-center gap-3">
-        <View
-          className={cn(
-            "w-12 h-12 rounded-xl items-center justify-center",
-            isConnected ? "bg-success/10" : "bg-muted"
-          )}
-        >
-          <Laptop size={24} color={isConnected ? "#22c55e" : "#71717a"} />
-        </View>
-        <View className="flex-1">
-          <Text className="text-base font-semibold text-foreground">
-            {pairing.macName || "Unknown Mac"}
-          </Text>
-          <View className="flex-row items-center gap-2 mt-0.5">
-            <View className="flex-row items-center gap-1">
-              <RuntimeIcon size={12} color="#71717a" />
-              <Text className="text-xs text-muted-foreground capitalize">{runtimeTarget}</Text>
-            </View>
-            {isConnected && connectionTransport && (
-              <>
-                <Text className="text-xs text-muted-foreground">·</Text>
-                <View className="flex-row items-center gap-1">
-                  <TransportIcon size={12} color="#71717a" />
-                  <Text className="text-xs text-muted-foreground capitalize">
-                    {connectionTransport}
-                  </Text>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </View>
-
-      {/* Codex Account */}
-      {codexAccount && (
-        <View className="mt-3 pt-3 border-t border-border">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-xs text-muted-foreground">Codex Account</Text>
-            <Text
-              className={cn(
-                "text-xs font-medium",
-                codexAccount.isAuthenticated ? "text-success" : "text-warning"
-              )}
-            >
-              {codexAccount.isAuthenticated
-                ? codexAccount.email || "Signed in"
-                : "Not signed in"}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Actions */}
-      <View className="flex-row gap-2 mt-4">
-        {isConnected ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1"
-            onPress={handleDisconnect}
-          >
-            <WifiOff size={14} color="#fafafa" />
-            <Text className="text-sm font-medium text-secondary-foreground ml-2">
-              Disconnect
-            </Text>
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1"
-            onPress={handleReconnect}
-            disabled={isConnecting}
-          >
-            <RefreshCw
-              size={14}
-              color="#09090b"
-              className={cn(isConnecting && "animate-spin")}
-            />
-            <Text className="text-sm font-medium text-primary-foreground ml-2">
-              {isConnecting ? "Connecting..." : "Reconnect"}
-            </Text>
-          </Button>
-        )}
-      </View>
-    </Card>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Machines Screen
-// ════════════════════════════════════════════════════════════════════════════
 
 export default function MachinesScreen() {
   const router = useRouter();
-
-  // Store state
   const machines = useWorkspaceStore((s) => s.machines);
   const isBusy = useWorkspaceStore((s) => s.isBusy);
   const isConnecting = useWorkspaceStore((s) => s.isConnecting);
   const pairing = useWorkspaceStore((s) => s.snapshot.pairing);
   const managedSession = useWorkspaceStore((s) => s.managedSession);
-
-  // Actions
+  const connectionState = useWorkspaceStore((s) => s.connectionState);
+  const runtimeTarget = useWorkspaceStore((s) => s.runtimeTarget);
+  const connectionTransport = useWorkspaceStore((s) => s.connectionTransport);
   const refreshMachines = useWorkspaceStore((s) => s.refreshMachines);
   const connectMachine = useWorkspaceStore((s) => s.connectMachine);
 
-  // Refresh machines on mount
   useEffect(() => {
     void refreshMachines().catch(() => {
       void feedbackError();
@@ -284,6 +48,11 @@ export default function MachinesScreen() {
       void feedbackError();
     }
   }, [refreshMachines]);
+
+  const handleScanQR = useCallback(() => {
+    void feedbackSelection();
+    router.push("/pair");
+  }, [router]);
 
   const handleMachinePress = useCallback(
     async (machine: OffdexMachineRecord) => {
@@ -300,97 +69,187 @@ export default function MachinesScreen() {
     [connectMachine, router]
   );
 
-  const handleScanQR = useCallback(() => {
-    void feedbackSelection();
-    router.push("/pair");
-  }, [router]);
-
   const activeMachineId = managedSession?.machineId;
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#09090b" }} edges={["top"]}>
-      <ScreenHeader
-        title="Machines"
-        rightAction={
-          <Button size="icon" variant="secondary" onPress={handleScanQR}>
-            <QrCode size={20} color="#fafafa" />
-          </Button>
-        }
-      />
+  const renderMachine = ({ item: machine }: { item: OffdexMachineRecord }) => {
+    const RuntimeIcon = machine.runtimeTarget === "cli" ? Terminal : Monitor;
+    const isActive = machine.machineId === activeMachineId;
 
+    return (
+      <Pressable
+        onPress={() => handleMachinePress(machine)}
+        disabled={isConnecting || !machine.online}
+        className={cn(
+          "mx-4 rounded-lg p-4 active:bg-muted",
+          isActive ? "bg-foreground" : "bg-card shadow-card",
+          (!machine.online || isConnecting) && "opacity-60"
+        )}
+      >
+        <View className="flex-row items-start justify-between gap-4">
+          <View
+            className={cn(
+              "h-12 w-12 items-center justify-center rounded-lg",
+              isActive ? "bg-background" : "bg-muted shadow-border"
+            )}
+          >
+            <Laptop size={22} color={isActive ? "#171717" : machine.online ? "#0a72ef" : "#666666"} />
+          </View>
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
+              <Text
+                className={cn("text-base font-semibold", isActive ? "text-background" : "text-foreground")}
+                numberOfLines={1}
+              >
+                {machine.macName}
+              </Text>
+              {isActive ? (
+                <View className="h-5 w-5 items-center justify-center rounded-full bg-background">
+                  <Check size={12} color="#171717" strokeWidth={3} />
+                </View>
+              ) : null}
+            </View>
+            <View className="mt-2 flex-row items-center gap-2">
+              <RuntimeIcon size={12} color={isActive ? "#ffffff" : "#666666"} />
+              <Text className={cn("text-xs capitalize", isActive ? "text-background/60" : "text-muted-foreground")}>
+                {machine.runtimeTarget}
+              </Text>
+              <Text className={cn("text-xs", isActive ? "text-background/60" : "text-muted-foreground")}>
+                /
+              </Text>
+              <Text className={cn("text-xs", isActive ? "text-background/60" : "text-muted-foreground")}>
+                {formatRelativeTime(machine.lastSeenAt)}
+              </Text>
+            </View>
+          </View>
+          <View className="items-end gap-2">
+            <Text
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium",
+                isActive
+                  ? "bg-background text-foreground"
+                  : machine.online
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-muted text-muted-foreground"
+              )}
+            >
+              {machine.online ? "Online" : "Offline"}
+            </Text>
+            {machine.remoteCapability ? (
+              <View className="flex-row items-center gap-1">
+                <Globe size={10} color={isActive ? "#ffffff" : "#666666"} />
+                <Text className={cn("text-[10px]", isActive ? "text-background/60" : "text-muted-foreground")}>
+                  Remote
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
       <FlashList
         data={machines}
         keyExtractor={(machine) => machine.machineId}
-        style={{ flex: 1, backgroundColor: "#09090b" }}
-        contentContainerStyle={{ backgroundColor: "#09090b", paddingBottom: 24 }}
+        renderItem={renderMachine}
+        style={{ flex: 1, backgroundColor: "#ffffff" }}
+        contentContainerStyle={{ backgroundColor: "#ffffff", paddingBottom: 24 }}
         refreshControl={
           <RefreshControl
             refreshing={isBusy}
             onRefresh={handleRefresh}
-            tintColor="#fafafa"
-            colors={["#fafafa"]}
+            tintColor="#171717"
+            colors={["#171717"]}
           />
         }
         ListHeaderComponent={
-          <View>
-            <CurrentConnectionCard />
-            <Separator className="my-4" />
-            <SectionHeader
-              title="Available Machines"
-              action={
+          <View className="pb-4">
+            <View className="px-4 pb-4 pt-3">
+              <View className="flex-row items-center justify-between">
+                <View>
+                  <Text className="font-mono text-xs uppercase text-muted-foreground">
+                    Trust center
+                  </Text>
+                  <Text className="mt-2 text-4xl font-semibold text-foreground">
+                    Trust
+                  </Text>
+                </View>
+                <Button size="icon" variant="primary" onPress={handleScanQR}>
+                  <QrCode size={20} color="#ffffff" />
+                </Button>
+              </View>
+            </View>
+
+            <View className="mx-4 rounded-lg bg-foreground p-5">
+              <Text className="font-mono text-xs uppercase text-background/60">
+                Active machine
+              </Text>
+              <Text className="mt-8 text-2xl font-semibold text-background">
+                {pairing.macName || "Pair a new machine"}
+              </Text>
+              <View className="mt-4 flex-row gap-2">
+                {[
+                  ["State", connectionState],
+                  ["Runtime", runtimeTarget],
+                  ["Path", connectionTransport ?? "none"],
+                ].map(([label, value]) => (
+                  <View className="flex-1 rounded-md bg-background px-3 py-3" key={label}>
+                    <Text className="font-mono text-[10px] uppercase text-muted-foreground">
+                      {label}
+                    </Text>
+                    <Text className="mt-1 text-xs font-semibold capitalize text-foreground">
+                      {value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View className="mx-4 mt-3 rounded-lg bg-card p-4 shadow-card">
+              <View className="flex-row items-start gap-3">
+                <View className="h-10 w-10 items-center justify-center rounded-lg bg-muted shadow-border">
+                  <Shield size={18} color="#171717" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-foreground">
+                    Pair a new machine
+                  </Text>
+                  <Text className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Run offdex start on the Mac, scan the QR code, then this device can reconnect without rescanning.
+                  </Text>
+                </View>
                 <Pressable
                   onPress={handleRefresh}
-                  className="flex-row items-center gap-1.5 py-1 px-2 rounded-md active:bg-muted"
+                  className="h-9 w-9 items-center justify-center rounded-md bg-background shadow-border active:bg-muted"
                 >
-                  <RefreshCw
-                    size={12}
-                    color="#71717a"
-                    className={cn(isBusy && "animate-spin")}
-                  />
-                  <Text className="text-xs text-muted-foreground">Refresh</Text>
+                  <RefreshCw size={16} color="#171717" className={cn(isBusy && "animate-spin")} />
                 </Pressable>
-              }
-            />
+              </View>
+            </View>
+
+            {machines.length > 0 ? (
+              <Text className="px-4 pt-6 font-mono text-xs uppercase text-muted-foreground">
+                Known machines
+              </Text>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
-          <View className="px-4 py-8">
-            <EmptyState
-              icon={Laptop}
-              title="No machines found"
-              description="Sign in to your Codex account to see your available machines, or scan a QR code to trust this device."
-              action={{
-                label: "Scan QR Code",
-                onPress: handleScanQR,
-              }}
-            />
+          <View className="mx-4 mt-4 rounded-lg bg-card p-6 shadow-card">
+            <Laptop size={24} color="#666666" />
+            <Text className="mt-5 text-xl font-semibold text-foreground">
+              No trusted machines
+            </Text>
+            <Text className="mt-2 text-sm leading-6 text-muted-foreground">
+              Scan the QR code from your Mac to create the first trust record.
+            </Text>
+            <Button className="mt-5" onPress={handleScanQR}>
+              Scan QR
+            </Button>
           </View>
         }
-        ListFooterComponent={
-          <View className="px-4 py-6">
-            <Card className="bg-muted/30">
-              <View className="flex-row items-start gap-3">
-                <QrCode size={20} color="#71717a" className="mt-0.5" />
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground mb-1">
-                    Connect via QR Code
-                  </Text>
-                  <Text className="text-xs text-muted-foreground leading-relaxed">
-                    Run <Text className="font-mono bg-muted px-1 rounded">offdex start</Text> on your Mac to display a pairing QR code, then scan it with this app.
-                  </Text>
-                </View>
-              </View>
-            </Card>
-          </View>
-        }
-        renderItem={({ item: machine }) => (
-          <MachineItem
-            machine={machine}
-            isActive={machine.machineId === activeMachineId}
-            isConnecting={isConnecting}
-            onPress={() => handleMachinePress(machine)}
-          />
-        )}
         ItemSeparatorComponent={() => <View className="h-2" />}
       />
     </SafeAreaView>

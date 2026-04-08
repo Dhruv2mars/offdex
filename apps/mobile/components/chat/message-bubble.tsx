@@ -34,9 +34,9 @@ export const MessageBubble = memo(function MessageBubble({
       {/* Message Content */}
       <View
         className={cn(
-          "rounded-2xl px-4 py-3 max-w-[85%]",
-          isUser && "bg-secondary rounded-br-md",
-          isAssistant && "bg-card border border-border rounded-bl-md"
+          "rounded-lg px-4 py-3 max-w-[85%]",
+          isUser && "bg-primary rounded-br-sm",
+          isAssistant && "bg-card shadow-card rounded-bl-sm"
         )}
       >
         <Text
@@ -86,12 +86,12 @@ export function WorkingIndicator({ duration }: WorkingIndicatorProps) {
 
   return (
     <View className="px-4 py-3">
-      <View className="flex-row items-center gap-3 rounded-xl bg-card border border-border px-4 py-3">
+      <View className="flex-row items-center gap-3 rounded-lg bg-card px-4 py-3 shadow-card">
         {/* Animated dots */}
         <View className="flex-row items-center gap-1">
-          <View className="h-2 w-2 rounded-full bg-success animate-pulse" />
-          <View className="h-2 w-2 rounded-full bg-success animate-pulse" />
-          <View className="h-2 w-2 rounded-full bg-success animate-pulse" />
+          <View className="h-2 w-2 rounded-full bg-develop animate-pulse" />
+          <View className="h-2 w-2 rounded-full bg-develop animate-pulse" />
+          <View className="h-2 w-2 rounded-full bg-develop animate-pulse" />
         </View>
         
         <Text className="text-sm text-muted-foreground">
@@ -118,7 +118,7 @@ export interface SystemMessageProps {
 export function SystemMessage({ message }: SystemMessageProps) {
   return (
     <View className="px-4 py-2">
-      <View className="rounded-xl bg-muted/50 px-4 py-3">
+      <View className="rounded-lg bg-muted px-4 py-3 shadow-border">
         <Text className="text-xs text-muted-foreground text-center">
           {message}
         </Text>

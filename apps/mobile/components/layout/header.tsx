@@ -37,8 +37,8 @@ export function Header({
     <View
       className={cn(
         "px-4 pb-3 pt-2",
-        "border-b border-border",
         "bg-background",
+        "shadow-border",
         className
       )}
       {...props}
@@ -51,7 +51,7 @@ export function Header({
               onPress={handleBack}
               className="h-9 w-9 items-center justify-center rounded-full active:bg-secondary"
             >
-              <ChevronLeft size={24} color="#fafafa" strokeWidth={2} />
+              <ChevronLeft size={24} color="#171717" strokeWidth={2} />
             </Pressable>
           )}
           

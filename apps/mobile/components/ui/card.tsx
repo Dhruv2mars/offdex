@@ -13,10 +13,10 @@ export function Card({ className, variant = "default", ...props }: CardProps) {
   return (
     <View
       className={cn(
-        "rounded-2xl",
-        variant === "default" && "bg-card border border-border",
-        variant === "elevated" && "bg-card-hover border border-border",
-        variant === "outline" && "bg-transparent border border-border",
+        "rounded-lg",
+        variant === "default" && "bg-card shadow-card",
+        variant === "elevated" && "bg-card-hover shadow-card",
+        variant === "outline" && "bg-transparent shadow-border",
         className
       )}
       {...props}

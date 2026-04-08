@@ -19,10 +19,10 @@ type ButtonSize = "default" | "sm" | "lg" | "icon";
 const variantStyles: Record<ButtonVariant, string> = {
   default: "bg-primary",
   primary: "bg-primary",
-  secondary: "bg-secondary",
+  secondary: "bg-secondary shadow-border",
   ghost: "bg-transparent",
   destructive: "bg-destructive",
-  outline: "bg-transparent border border-border",
+  outline: "bg-transparent shadow-border",
 };
 
 const variantTextStyles: Record<ButtonVariant, string> = {
@@ -35,9 +35,9 @@ const variantTextStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  default: "h-11 px-5 rounded-full",
-  sm: "h-9 px-4 rounded-full",
-  lg: "h-12 px-6 rounded-full",
+  default: "h-11 px-5 rounded-md",
+  sm: "h-9 px-4 rounded-md",
+  lg: "h-12 px-6 rounded-md",
   icon: "h-10 w-10 rounded-full",
 };
 
@@ -104,7 +104,11 @@ export const Button = forwardRef<React.ElementRef<typeof Pressable>, ButtonProps
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === "default" ? "#09090b" : "#fafafa"}
+            color={
+              variant === "secondary" || variant === "outline" || variant === "ghost"
+                ? "#171717"
+                : "#ffffff"
+            }
           />
         ) : typeof children === "string" ? (
           <Text

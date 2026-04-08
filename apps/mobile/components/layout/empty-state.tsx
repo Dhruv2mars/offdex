@@ -33,12 +33,12 @@ export function EmptyState({
       )}
     >
       {Icon && (
-        <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <Icon size={28} color="#71717a" strokeWidth={1.5} />
+        <View className="mb-4 h-16 w-16 items-center justify-center rounded-lg bg-card shadow-card">
+          <Icon size={28} color="#4d4d4d" strokeWidth={1.5} />
         </View>
       )}
       
-      <Text className="text-center text-lg font-semibold text-foreground mb-2">
+      <Text className="text-center text-lg font-semibold text-foreground mb-2 tracking-[-0.32px]">
         {title}
       </Text>
       
@@ -74,7 +74,7 @@ export interface SectionHeaderProps {
 export function SectionHeader({ title, action, className }: SectionHeaderProps) {
   return (
     <View className={cn("flex-row items-center justify-between px-4 py-2", className)}>
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <Text className="text-xs font-medium uppercase text-muted-foreground font-mono">
         {title}
       </Text>
       {action}

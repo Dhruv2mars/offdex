@@ -271,184 +271,206 @@ export function WebAppClient() {
       : selectedThread;
 
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-5 px-5 pb-8 md:grid-cols-[340px_minmax(0,1fr)] md:px-8">
-      <aside className="rounded-[2rem] border border-white/10 bg-graphite/75 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl">
-        <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-4">
-          <div className="flex items-center justify-between">
+    <section className="mx-auto grid w-full max-w-7xl gap-5 px-5 py-6 md:grid-cols-[minmax(0,1fr)_280px] md:px-8">
+      <div className="grid gap-5">
+        <section className="rounded-lg bg-card p-5 shadow-card">
+          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_320px]">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Machine</p>
-              <h1 className="mt-2 text-xl font-semibold tracking-tight">
-                {health?.macName ?? snapshot?.pairing.macName ?? "Connect your Mac"}
+              <p className="font-mono text-xs font-medium uppercase text-muted-foreground">
+                Session cockpit
+              </p>
+              <h1 className="mt-3 max-w-2xl text-4xl font-semibold leading-tight tracking-[-2.4px] md:text-5xl">
+                {displayThread?.title ?? "No active thread"}
               </h1>
-            </div>
-            <span className="rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs text-brand">
-              {formatState(connectionState)}
-            </span>
-          </div>
-
-          <label className="mt-5 block text-xs font-medium text-muted-foreground" htmlFor="machine-link">
-            Machine link
-          </label>
-          <div className="mt-2 flex gap-2">
-            <input
-              id="machine-link"
-              value={bridgeUrl}
-              onChange={(event) => setBridgeUrl(event.target.value)}
-              className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/35 px-3 py-2.5 font-mono text-xs text-foreground outline-none transition focus:border-brand/60"
-              placeholder="Paste the QR link or local bridge address"
-            />
-            <button
-              className="rounded-2xl bg-brand px-4 text-sm font-semibold text-black transition hover:bg-brand-soft disabled:opacity-50"
-              disabled={connectionState === "connecting"}
-              onClick={() => void connectFromInput()}
-              type="button"
-            >
-              Connect
-            </button>
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-              <p className="text-muted-foreground">Runtime</p>
-              <p className="mt-1 font-semibold">{health?.bridgeMode ?? "cli"}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-              <p className="text-muted-foreground">Codex</p>
-              <p className="mt-1 font-semibold">{codexReady ? "Ready" : "Sign in"}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-              <p className="text-muted-foreground">Path</p>
-              <p className="mt-1 font-semibold">
-                {connectionTransport === "relay" ? "Remote" : connectionTransport === "local" ? "Local" : "None"}
+              <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">
+                {isLive
+                  ? "Live bridge connected. Turns and snapshots stay anchored to the Mac."
+                  : "Paste a pairing link or local bridge URL to take control from the browser."}
               </p>
             </div>
-          </div>
-        </div>
 
-        <div className="mt-4 flex items-center justify-between px-1">
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Threads</p>
-          <button
-            className="rounded-full border border-white/10 px-3 py-1 text-xs text-foreground transition hover:border-brand/50"
-            onClick={startNewThread}
-            type="button"
-          >
-            New
-          </button>
-        </div>
-
-        <div className="mt-3 space-y-2">
-          {threads.map((thread) => (
-            <button
-              className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                thread.id === selectedThreadId
-                  ? "border-brand/50 bg-brand/10"
-                  : "border-white/10 bg-white/[0.035] hover:border-white/20"
-              }`}
-              key={thread.id}
-              onClick={() => setSelectedThreadId(thread.id)}
-              type="button"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="truncate text-sm font-semibold">{thread.title}</p>
-                <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-muted-foreground">
-                  {thread.state}
-                </span>
-              </div>
-              <p className="mt-1 truncate text-xs text-muted-foreground">
-                {thread.projectLabel} · {thread.updatedAt}
-              </p>
-            </button>
-          ))}
-        </div>
-
-        {error ? (
-          <p className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-            {error}
-          </p>
-        ) : null}
-      </aside>
-
-      <section className="flex min-h-[720px] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[#f7f8f5] text-[#111412] shadow-2xl shadow-black/35">
-        <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-[#6c746f]">Live session</p>
-            <h2 className="mt-1 max-w-xl truncate text-xl font-semibold tracking-tight">
-              {displayThread?.title ?? "No thread selected"}
-            </h2>
-          </div>
-          <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-[#59615d]">
-            {isPending ? "Syncing" : displayThread?.runtimeTarget ?? "cli"}
-          </span>
-        </div>
-
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
-          {messages.length > 0 ? (
-            messages.map((message) => (
-              <article
-                className={`max-w-3xl rounded-[1.5rem] border px-5 py-4 ${
-                  message.role === "user"
-                    ? "ml-auto border-black/10 bg-[#111412] text-white"
-                    : "border-black/10 bg-white text-[#111412] shadow-sm"
-                }`}
-                key={message.id}
+            <div className="rounded-lg bg-background p-4 shadow-border">
+              <label className="block text-xs font-medium text-muted-foreground" htmlFor="machine-link">
+                Machine trust
+              </label>
+              <input
+                id="machine-link"
+                value={bridgeUrl}
+                onChange={(event) => setBridgeUrl(event.target.value)}
+                className="focus-ring mt-2 w-full rounded-md bg-card px-3 py-2.5 font-mono text-xs text-foreground shadow-border"
+                placeholder="Paste QR link or bridge address"
+              />
+              <button
+                className="focus-ring mt-3 w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition hover:bg-[#333333] disabled:opacity-50"
+                disabled={connectionState === "connecting"}
+                onClick={() => void connectFromInput()}
+                type="button"
               >
-                <div className="mb-2 flex items-center justify-between gap-4 text-xs">
-                  <span className={message.role === "user" ? "text-white/60" : "text-[#68716b]"}>
-                    {roleLabel(message.role)}
-                  </span>
-                  <span className={message.role === "user" ? "text-white/45" : "text-[#8a928d]"}>
-                    {message.createdAt}
-                  </span>
-                </div>
-                <p className="whitespace-pre-wrap text-sm leading-7">{message.body}</p>
-              </article>
-            ))
-          ) : (
-            <div className="grid h-full place-items-center">
-              <div className="max-w-md text-center">
-                <div className="mx-auto mb-5 h-14 w-14 rounded-2xl border border-black/10 bg-white shadow-sm" />
-                <h3 className="text-2xl font-semibold tracking-tight">Start from the browser.</h3>
-                <p className="mt-3 text-sm leading-6 text-[#68716b]">
-                  This is the web version of the mobile app. It talks to the same bridge,
-                  uses the same Codex session, and updates from the live snapshot stream.
-                </p>
-              </div>
+                {connectionState === "connecting" ? "Connecting" : "Connect bridge"}
+              </button>
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="border-t border-black/10 bg-white/80 p-4">
-          {!codexReady && isLive ? (
-            <p className="mb-3 rounded-2xl border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm text-amber-950">
-              Codex is reachable, but this Mac still needs to be signed in.
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            {[
+              ["State", formatState(connectionState)],
+              ["Runtime", health?.bridgeMode ?? "cli"],
+              ["Codex", codexReady ? "Ready" : "Sign in"],
+              [
+                "Path",
+                connectionTransport === "relay"
+                  ? "Remote"
+                  : connectionTransport === "local"
+                    ? "Local"
+                    : "None",
+              ],
+            ].map(([label, value]) => (
+              <div className="rounded-lg bg-background p-4 shadow-border" key={label}>
+                <p className="font-mono text-xs uppercase text-muted-foreground">{label}</p>
+                <p className="mt-2 text-lg font-semibold">{value}</p>
+              </div>
+            ))}
+          </div>
+          {error ? (
+            <p className="mt-4 rounded-lg bg-[#fff1f0] px-4 py-3 text-sm text-[#b42318] shadow-border">
+              {error}
             </p>
           ) : null}
-          <div className="flex gap-3 rounded-[1.5rem] border border-black/10 bg-white p-2 shadow-sm">
-            <textarea
-              className="min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-6 outline-none placeholder:text-[#8a928d]"
-              disabled={!isLive || !codexReady}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-                  event.preventDefault();
-                  void sendTurn();
-                }
-              }}
-              placeholder={isLive ? "Ask Codex to edit, explain, test, or plan..." : "Connect to your Mac first"}
-              value={draft}
-            />
-            <button
-              className="self-end rounded-2xl bg-[#111412] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#242a26] disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!draft.trim() || !isLive || !codexReady}
-              onClick={() => void sendTurn()}
-              type="button"
-            >
-              Send
-            </button>
-          </div>
-          <p className="mt-2 px-2 text-xs text-[#8a928d]">Press Cmd/Ctrl + Enter to send.</p>
+        </section>
+
+        <section className="grid min-h-[620px] gap-5 md:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="rounded-lg bg-card p-3 shadow-card">
+            <div className="flex items-center justify-between px-2 py-2">
+              <p className="font-mono text-xs font-medium uppercase text-muted-foreground">Turn stack</p>
+              <button
+                className="focus-ring rounded-md bg-background px-3 py-1.5 text-xs text-foreground shadow-border transition hover:bg-muted"
+                onClick={startNewThread}
+                type="button"
+              >
+                New
+              </button>
+            </div>
+            <div className="mt-2 space-y-2">
+              {threads.map((thread) => (
+                <button
+                  className={`focus-ring w-full rounded-lg px-4 py-3 text-left transition ${
+                    thread.id === selectedThreadId
+                      ? "bg-foreground text-background"
+                      : "bg-background text-foreground shadow-border hover:bg-muted"
+                  }`}
+                  key={thread.id}
+                  onClick={() => setSelectedThreadId(thread.id)}
+                  type="button"
+                >
+                  <p className="truncate text-sm font-semibold">{thread.title}</p>
+                  <p
+                    className={`mt-2 truncate text-xs ${
+                      thread.id === selectedThreadId ? "text-background/60" : "text-muted-foreground"
+                    }`}
+                  >
+                    {thread.projectLabel} · {thread.updatedAt}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <section className="flex flex-col overflow-hidden rounded-lg bg-card shadow-card">
+            <div className="flex items-center justify-between px-5 py-4 shadow-border">
+              <p className="font-mono text-xs font-medium uppercase text-muted-foreground">
+                Live transcript
+              </p>
+              <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground shadow-border">
+                {isPending ? "Syncing" : displayThread?.runtimeTarget ?? "cli"}
+              </span>
+            </div>
+
+            <div className="flex-1 space-y-4 overflow-y-auto bg-muted/40 px-5 py-5">
+              {messages.length > 0 ? (
+                messages.map((message) => (
+                  <article
+                    className={`rounded-lg px-5 py-4 ${
+                      message.role === "user"
+                        ? "ml-auto max-w-3xl bg-foreground text-background"
+                        : "max-w-3xl bg-background text-foreground shadow-card"
+                    }`}
+                    key={message.id}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-4 text-xs">
+                      <span className={message.role === "user" ? "text-background/60" : "text-muted-foreground"}>
+                        {roleLabel(message.role)}
+                      </span>
+                      <span className={message.role === "user" ? "text-background/45" : "text-muted-foreground"}>
+                        {message.createdAt}
+                      </span>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm leading-7">{message.body}</p>
+                  </article>
+                ))
+              ) : (
+                <div className="grid h-full place-items-center">
+                  <div className="max-w-md text-center">
+                    <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-lg bg-background text-lg font-semibold shadow-card">
+                      O
+                    </div>
+                    <h3 className="text-2xl font-semibold tracking-[-0.96px]">Start a fresh turn.</h3>
+                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                      Connect a trusted bridge, then send a turn into the same Codex session used by mobile.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-background p-4 shadow-border">
+              {!codexReady && isLive ? (
+                <p className="mb-3 rounded-lg bg-[#fff7ed] px-4 py-3 text-sm text-[#9a3412] shadow-border">
+                  Codex is reachable, but this Mac still needs to be signed in.
+                </p>
+              ) : null}
+              <div className="flex gap-3 rounded-lg bg-card p-2 shadow-card">
+                <textarea
+                  className="min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-6 outline-none placeholder:text-muted-foreground"
+                  disabled={!isLive || !codexReady}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                      event.preventDefault();
+                      void sendTurn();
+                    }
+                  }}
+                  placeholder={isLive ? "Ask Codex for the next change..." : "Connect to your Mac first"}
+                  value={draft}
+                />
+                <button
+                  className="focus-ring self-end rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background transition hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={!draft.trim() || !isLive || !codexReady}
+                  onClick={() => void sendTurn()}
+                  type="button"
+                >
+                  Send
+                </button>
+              </div>
+              <p className="mt-2 px-2 text-xs text-muted-foreground">Press Cmd/Ctrl + Enter to send.</p>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <aside className="grid content-start gap-3">
+        <div className="rounded-lg bg-foreground p-4 text-background">
+          <p className="font-mono text-xs uppercase text-background/60">Machine</p>
+          <p className="mt-12 text-2xl font-semibold tracking-[-0.96px]">
+            {health?.macName ?? snapshot?.pairing.macName ?? "No trusted Mac"}
+          </p>
         </div>
-      </section>
+        {["Bridge owns truth", "Client sends intent", "Snapshot streams back"].map((item, index) => (
+          <div className="rounded-lg bg-card p-4 shadow-card" key={item}>
+            <p className="font-mono text-xs text-muted-foreground">0{index + 1}</p>
+            <p className="mt-3 text-sm font-semibold">{item}</p>
+          </div>
+        ))}
+      </aside>
     </section>
   );
 }

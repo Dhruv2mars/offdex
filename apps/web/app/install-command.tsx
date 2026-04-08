@@ -20,9 +20,9 @@ export function InstallCommand({ command }: InstallCommandProps) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card/30 p-4 animate-fade-in-delay-3">
+    <div className="animate-fade-in-delay-3 rounded-lg bg-card p-4 shadow-card">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="font-mono text-xs font-medium uppercase text-muted-foreground">
           Install bridge CLI
         </span>
         <span
@@ -32,12 +32,12 @@ export function InstallCommand({ command }: InstallCommandProps) {
           {copied ? "Copied" : ""}
         </span>
       </div>
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3">
+      <div className="flex items-center gap-3 rounded-md bg-background px-4 py-3 shadow-border">
         <span className="select-none text-muted-foreground">$</span>
         <code className="flex-1 font-mono text-sm">{command}</code>
         <button
           aria-label="Copy install command"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="focus-ring rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
           onClick={handleCopy}
           type="button"
         >

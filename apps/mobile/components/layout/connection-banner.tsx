@@ -32,25 +32,26 @@ export function ConnectionBanner() {
       className={cn(
         "flex-row items-center justify-between gap-3",
         "mx-4 mb-3 px-4 py-3 rounded-xl",
-        isReconnecting ? "bg-warning/10" : "bg-muted"
+        "shadow-border",
+        isReconnecting ? "bg-[#fdf2f8]" : "bg-muted"
       )}
     >
       <View className="flex-row items-center gap-3 flex-1">
         {isReconnecting ? (
           <RefreshCw 
             size={18} 
-            color="#f59e0b" 
+            color="#de1d8d"
             strokeWidth={2}
             className={isBusy ? "animate-spin" : ""}
           />
         ) : (
-          <WifiOff size={18} color="#71717a" strokeWidth={2} />
+          <WifiOff size={18} color="#666666" strokeWidth={2} />
         )}
         <View className="flex-1">
           <Text
             className={cn(
               "text-sm font-medium",
-              isReconnecting ? "text-warning" : "text-muted-foreground"
+              isReconnecting ? "text-preview" : "text-muted-foreground"
             )}
             numberOfLines={1}
           >

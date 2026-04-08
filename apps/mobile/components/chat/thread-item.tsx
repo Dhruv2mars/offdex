@@ -40,9 +40,9 @@ export const ThreadItem = memo(function ThreadItem({
     <Pressable
       onPress={handlePress}
       className={cn(
-        "mx-4 rounded-xl p-4",
+        "mx-4 rounded-lg p-4",
         "active:bg-card-hover",
-        isActive ? "bg-card-hover border border-border" : "bg-transparent"
+        isActive ? "bg-card shadow-card" : "bg-transparent"
       )}
     >
       {/* Header Row */}
@@ -56,7 +56,7 @@ export const ThreadItem = memo(function ThreadItem({
         
         {thread.unreadCount > 0 && (
           <View className="min-w-[20px] h-5 items-center justify-center rounded-full bg-primary px-1.5">
-            <Text className="text-xs font-bold text-primary-foreground">
+            <Text className="text-xs font-semibold text-primary-foreground">
               {thread.unreadCount}
             </Text>
           </View>
@@ -87,7 +87,7 @@ export const ThreadItem = memo(function ThreadItem({
           {status === "running" && (
             <StatusBadge status="running" showDot />
           )}
-          <Text className="text-xs text-foreground-subtle uppercase">
+        <Text className="text-xs text-foreground-subtle uppercase font-mono">
             {thread.runtimeTarget === "cli" ? "CLI" : "Desktop"}
           </Text>
         </View>
@@ -116,9 +116,9 @@ export function NewThreadCard({ isActive, isAwaiting, onPress }: NewThreadCardPr
     <Pressable
       onPress={handlePress}
       className={cn(
-        "mx-4 rounded-xl p-4 border",
+        "mx-4 rounded-lg p-4",
         "active:bg-card-hover",
-        isActive ? "bg-card border-ring" : "bg-card border-border"
+        isActive ? "bg-card shadow-card" : "bg-card shadow-border"
       )}
     >
       <View className="flex-row items-center justify-between mb-1">

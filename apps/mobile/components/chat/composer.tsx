@@ -108,7 +108,7 @@ export function Composer({ className }: ComposerProps) {
   return (
     <View
       className={cn(
-        "border-t border-border bg-background px-4 py-3",
+        "bg-background px-4 py-3 shadow-border",
         className
       )}
     >
@@ -121,14 +121,14 @@ export function Composer({ className }: ComposerProps) {
             value={draft}
             onChangeText={setDraft}
             placeholder={getPlaceholder()}
-            placeholderTextColor="#71717a"
+            placeholderTextColor="#666666"
             multiline
             maxLength={10000}
             editable={isConnected && isAuthenticated && !isRunning}
             className={cn(
-              "min-h-[44px] max-h-[120px] rounded-2xl bg-input px-4 py-3",
+              "min-h-[44px] max-h-[120px] rounded-md bg-input px-4 py-3",
               "text-sm text-foreground leading-relaxed",
-              "border border-border",
+              "shadow-border",
               (!isConnected || !isAuthenticated || isRunning) && "opacity-50"
             )}
             textAlignVertical="center"
@@ -150,7 +150,7 @@ export function Composer({ className }: ComposerProps) {
         >
           <buttonConfig.icon
             size={18}
-            color={buttonConfig.variant === "primary" ? "#09090b" : "#fafafa"}
+            color={buttonConfig.variant === "secondary" ? "#171717" : "#ffffff"}
             strokeWidth={2.5}
           />
         </Pressable>
