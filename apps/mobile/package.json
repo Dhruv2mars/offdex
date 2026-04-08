@@ -11,7 +11,8 @@
     "ios": "expo run:ios",
     "test": "bun test --pass-with-no-tests",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:assets": "node scripts/generate-assets.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/geist": "^0.4.1",
