@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "65db9cc52019",
+  "session_id": "019d6cbc-c6bb-7a51-9e65-9ebfdba6cc6f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T12:47:56.597599Z",
+  "branch": "feat/webui-nested-project-sidebar",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "ef7505c0e637",
+  "checkpoint_transcript_start": 1782,
+  "transcript_lines_at_start": 1782,
+  "token_usage": {
+    "input_tokens": 7133828,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6951552,
+    "output_tokens": 9517,
+    "api_call_count": 37
+  },
+  "session_metrics": {
+    "turn_count": 5
+  }
+}
