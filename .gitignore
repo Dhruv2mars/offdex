@@ -22,3 +22,4 @@ apps/mobile/modules/**/android/build/
 
 *.log
 *.tsbuildinfo
+assets/
