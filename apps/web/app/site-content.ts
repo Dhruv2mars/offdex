@@ -5,6 +5,8 @@ export const githubReleasesUrl = "https://github.com/Dhruv2mars/offdex/releases"
 export const androidApkDownloadUrl =
   "https://github.com/Dhruv2mars/offdex/releases/latest/download/offdex-android.apk";
 
+export const webAppUrl = "/app";
+
 export const cliInstallCommand = "npm install -g @dhruv2mars/offdex";
 
 export const bridgeStartCommand = "offdex start";
