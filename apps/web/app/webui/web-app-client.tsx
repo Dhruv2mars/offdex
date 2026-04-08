@@ -357,9 +357,22 @@ export function WebAppClient() {
           messages: [],
         }
       : selectedThread;
+  const projectName = "Offdex";
   const displayMessages =
     displayThread?.id === OFFDEX_NEW_THREAD_ID ? [] : displayThread?.messages ?? [];
-  const projectName = "Offdex";
+  const projectThreadGroups = threads.reduce<Array<{ name: string; threads: OffdexThread[] }>>(
+    (groups, thread) => {
+      const name = thread.projectLabel || projectName;
+      const existingGroup = groups.find((group) => group.name === name);
+      if (existingGroup) {
+        existingGroup.threads.push(thread);
+        return groups;
+      }
+      groups.push({ name, threads: [thread] });
+      return groups;
+    },
+    []
+  );
   const machineName = health?.macName ?? snapshot?.pairing.macName ?? "No trusted Mac";
   const transportPath =
     connectionTransport === "relay"
@@ -405,51 +418,54 @@ export function WebAppClient() {
             </span>
             {isSidebarOpen ? <span>New chat</span> : null}
           </button>
-
-          <div className="mt-1 flex h-10 w-full items-center gap-3 rounded-md px-2 text-sm font-medium text-muted-foreground">
-            <span className="grid h-6 w-6 shrink-0 place-items-center">
-              <Icon name="folder" />
-            </span>
-            {isSidebarOpen ? <span>Projects</span> : null}
-          </div>
-          {isSidebarOpen ? (
-            <div className="ml-8 mt-1 rounded-md bg-card px-2 py-1.5 text-sm font-medium shadow-border">
-              {projectName}
-            </div>
-          ) : null}
         </nav>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
           {isSidebarOpen ? (
             <>
-              <div className="px-2 pb-2 pt-3 text-xs font-medium text-muted-foreground">
-                Threads
+              <div className="flex items-center justify-between px-2 pb-2 pt-3 text-xs font-medium text-muted-foreground">
+                <span>Threads</span>
+                <span className="sr-only">Projects</span>
               </div>
               <div className="space-y-1">
-                {threads.map((thread) => {
-                  const isActive =
-                    thread.id === displayThread?.id && displayThread?.id !== OFFDEX_NEW_THREAD_ID;
-
-                  return (
-                    <button
-                      className={`focus-ring flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition ${
-                        isActive
-                          ? "bg-card font-medium text-foreground shadow-border"
-                          : "text-foreground hover:bg-card"
-                      }`}
-                      key={thread.id}
-                      onClick={() => setSelectedThreadId(thread.id)}
-                      type="button"
+                {projectThreadGroups.map((group) => (
+                  <div key={group.name}>
+                    <div
+                      className="flex h-8 items-center gap-2 rounded-md px-2 text-sm font-medium text-muted-foreground"
+                      data-webui-project-row
                     >
-                      <span className="min-w-0 flex-1 truncate">{thread.title}</span>
-                      {thread.unreadCount > 0 ? (
-                        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-foreground px-1 text-[11px] font-medium text-background">
-                          {thread.unreadCount}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
+                      <Icon name="folder" className="h-4 w-4 shrink-0" />
+                      <span className="min-w-0 truncate">{group.name}</span>
+                    </div>
+                    <div className="ml-6 space-y-1" data-webui-project-threads>
+                      {group.threads.map((thread) => {
+                        const isActive =
+                          thread.id === displayThread?.id &&
+                          displayThread?.id !== OFFDEX_NEW_THREAD_ID;
+
+                        return (
+                          <button
+                            className={`focus-ring flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition ${
+                              isActive
+                                ? "bg-card font-medium text-foreground shadow-border"
+                                : "text-foreground hover:bg-card"
+                            }`}
+                            key={thread.id}
+                            onClick={() => setSelectedThreadId(thread.id)}
+                            type="button"
+                          >
+                            <span className="min-w-0 flex-1 truncate">{thread.title}</span>
+                            {thread.unreadCount > 0 ? (
+                              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-foreground px-1 text-[11px] font-medium text-background">
+                                {thread.unreadCount}
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           ) : (
@@ -536,7 +552,7 @@ export function WebAppClient() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between px-4 md:px-6">
+        <header className="flex h-14 shrink-0 items-center px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
             {!isSidebarOpen ? (
               <button
@@ -553,16 +569,6 @@ export function WebAppClient() {
               {isPending ? "Syncing" : formatState(connectionState)}
             </span>
           </div>
-          <button
-            className="focus-ring hidden rounded-md bg-background px-3 py-1.5 text-xs font-medium shadow-border transition hover:bg-muted md:inline-flex"
-            onClick={() => {
-              setSidebarOpen(true);
-              setSettingsOpen((current) => !current);
-            }}
-            type="button"
-          >
-            {codexReady ? "Codex ready" : "Sign in on Mac"}
-          </button>
         </header>
 
         <section className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-6">

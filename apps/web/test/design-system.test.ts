@@ -66,7 +66,10 @@ describe("web DESIGN.md system", () => {
     expect(webui).toContain("New chat");
     expect(webui).toContain("Projects");
     expect(webui).toContain("Threads");
+    expect(webui).toContain("data-webui-project-row");
+    expect(webui).toContain("data-webui-project-threads");
     expect(webui).toContain("Settings");
+    expect(webui).not.toContain("Sign in on Mac");
     expect(webui).not.toContain("Session cockpit");
     expect(webui).not.toContain("Turn stack");
     expect(webui).not.toContain("Machine trust");
