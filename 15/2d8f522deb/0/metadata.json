@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "152d8f522deb",
+  "session_id": "019d6b78-7559-7c91-aadb-0ba8bbb780ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T12:35:41.637721Z",
+  "branch": "feat/webui-chat-sidebar",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "7ae222671ef0",
+  "token_usage": {
+    "input_tokens": 470339208,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 454053504,
+    "output_tokens": 1436561,
+    "api_call_count": 3546
+  },
+  "session_metrics": {
+    "turn_count": 20
+  }
+}
