@@ -25,7 +25,9 @@ Supported targets:
 Common usage:
 
 ```bash
-offdex bridge --host 0.0.0.0 --port 42420
-offdex bridge --control-plane-url https://control.offdex.app
+offdex start --host 0.0.0.0 --port 42420
+offdex start --control-plane-url https://control.offdex.app
+offdex status
+offdex stop
 offdex --help
 ```

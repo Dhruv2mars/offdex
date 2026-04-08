@@ -460,7 +460,7 @@ describe("bridge state store", () => {
     expect(output.length).toBeGreaterThan(50);
   });
 
-  test("renders bridge startup details above the pairing qr", async () => {
+  test("renders product startup details above the pairing qr", async () => {
     const output = await createBridgeStartupOutput({
       payload: {
         bridgeUrl: "http://127.0.0.1:42420",
@@ -472,9 +472,9 @@ describe("bridge state store", () => {
       relayUrl: "wss://relay.example.com",
     });
 
-    expect(output).toContain("Offdex Bridge");
+    expect(output).toContain("Offdex is running");
     expect(output).toContain("Pairing page: http://127.0.0.1:42420/pairing");
-    expect(output).toContain("Secure relay: wss://relay.example.com");
+    expect(output).toContain("Remote access: wss://relay.example.com");
     expect(output).toContain("offdex://pair?");
   });
 });

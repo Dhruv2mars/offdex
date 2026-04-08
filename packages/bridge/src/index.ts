@@ -341,13 +341,13 @@ export async function createBridgeStartupOutput(input: {
   const qrOutput = await createTerminalPairingOutput(input.payload.pairingUri);
   const lines = [
     "",
-    "Offdex Bridge",
-    `Local bridge: ${input.payload.bridgeUrl}`,
+    "Offdex is running",
+    `Local URL: ${input.payload.bridgeUrl}`,
     `Pairing page: ${input.payload.bridgeUrl.replace(/\/+$/, "")}/pairing`,
     `Machine: ${input.payload.macName}`,
     input.payload.bridgeHints.length > 0 ? "Local paths:" : null,
     ...input.payload.bridgeHints.map((hint) => `  • ${hint}`),
-    input.relayUrl ? `Secure relay: ${input.relayUrl}` : "Secure relay: disabled",
+    input.relayUrl ? `Remote access: ${input.relayUrl}` : "Remote access: local network only",
     qrOutput.trimEnd(),
     "",
   ];

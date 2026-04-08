@@ -1,11 +1,14 @@
 export type BridgeMode = "demo" | "codex";
 
+export type CliCommand = "onboarding" | "start" | "status" | "stop" | "help";
+
 export type CliOptions = {
-  command: "bridge" | "help";
+  command: CliCommand;
   host: string;
   port: number;
   bridgeMode: BridgeMode;
   controlPlaneUrl?: string;
+  deprecatedBridgeAlias?: boolean;
 };
 
 export const DEFAULT_PORT = 42420;
@@ -16,8 +19,16 @@ export function usage() {
     "Offdex CLI",
     "",
     "Usage:",
-    "  offdex bridge [options]",
-    "  offdex help",
+    "  offdex",
+    "  offdex start [options]",
+    "  offdex status [options]",
+    "  offdex stop [options]",
+    "  offdex --help",
+    "",
+    "Commands:",
+    "  start                         Start the Mac bridge and show the pairing QR",
+    "  status                        Check the local bridge",
+    "  stop                          Stop the local bridge started by Offdex",
     "",
     "Options:",
     "  --host <host>                 Bridge host. Default: 0.0.0.0",
@@ -31,6 +42,24 @@ export function usage() {
     "  OFFDEX_BRIDGE_PORT",
     "  OFFDEX_BRIDGE_MODE",
     "  OFFDEX_CONTROL_PLANE_URL",
+  ].join("\n");
+}
+
+export function onboarding() {
+  return [
+    "Offdex",
+    "Codex from your phone.",
+    "",
+    "Get started:",
+    "  1. Run offdex start",
+    "  2. Open Offdex on your phone",
+    "  3. Scan the QR from this terminal",
+    "",
+    "Useful commands:",
+    "  offdex start      Start the Mac bridge",
+    "  offdex status     Check if Offdex is running",
+    "  offdex stop       Stop the local bridge",
+    "  offdex --help     Show all options",
   ].join("\n");
 }
 
@@ -56,10 +85,24 @@ export function parseArgs(
   const args = [...argv];
   const firstArg = args[0];
 
-  if (!firstArg || firstArg === "bridge") {
-    if (firstArg === "bridge") {
-      args.shift();
-    }
+  if (!firstArg) {
+    return {
+      command: "onboarding",
+      host: DEFAULT_HOST,
+      port: DEFAULT_PORT,
+      bridgeMode: "codex",
+      controlPlaneUrl: undefined,
+    };
+  }
+
+  let command: CliCommand = "start";
+  let deprecatedBridgeAlias = false;
+  if (firstArg === "start" || firstArg === "bridge") {
+    deprecatedBridgeAlias = firstArg === "bridge";
+    args.shift();
+  } else if (firstArg === "status" || firstArg === "stop") {
+    command = firstArg;
+    args.shift();
   } else if (firstArg === "help" || firstArg === "--help" || firstArg === "-h") {
     return {
       command: "help",
@@ -72,11 +115,12 @@ export function parseArgs(
   }
 
   const options: CliOptions = {
-    command: "bridge",
+    command,
     host: env.OFFDEX_BRIDGE_HOST || DEFAULT_HOST,
     port: parsePort(env.OFFDEX_BRIDGE_PORT || String(DEFAULT_PORT)),
     bridgeMode: parseBridgeMode(env.OFFDEX_BRIDGE_MODE || "codex"),
     controlPlaneUrl: env.OFFDEX_CONTROL_PLANE_URL || undefined,
+    ...(command === "start" ? { deprecatedBridgeAlias } : {}),
   };
 
   while (args.length > 0) {

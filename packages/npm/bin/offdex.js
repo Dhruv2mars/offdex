@@ -13,11 +13,33 @@ import {
 } from "./offdex-lib.js";
 
 const args = process.argv.slice(2);
+const ONBOARDING_TEXT = `Offdex
+Codex from your phone.
+
+Get started:
+  1. Run offdex start
+  2. Open Offdex on your phone
+  3. Scan the QR from this terminal
+
+Useful commands:
+  offdex start      Start the Mac bridge
+  offdex status     Check if Offdex is running
+  offdex stop       Stop the local bridge
+  offdex --help     Show all options
+`;
 const HELP_TEXT = `Offdex CLI
 
 Usage:
-  offdex bridge [options]
-  offdex help
+  offdex
+  offdex start [options]
+  offdex status [options]
+  offdex stop [options]
+  offdex --help
+
+Commands:
+  start                         Start the Mac bridge and show the pairing QR
+  status                        Check the local bridge
+  stop                          Stop the local bridge started by Offdex
 
 Options:
   --host <host>                 Bridge host. Default: 0.0.0.0
@@ -37,9 +59,14 @@ const packageVersion = readPackageVersion();
 const currentInstalledVersion = installedVersion(process.env);
 const workspaceBridgeCli = resolveWorkspaceBridgeCli();
 
+if (!existsSync(installedBin) && args.length === 0) {
+  console.log(ONBOARDING_TEXT);
+  process.exit(0);
+}
+
 if (
   !existsSync(installedBin) &&
-  (args.length === 0 || args[0] === "help" || args[0] === "--help" || args[0] === "-h")
+  (args[0] === "help" || args[0] === "--help" || args[0] === "-h")
 ) {
   console.log(HELP_TEXT);
   process.exit(0);

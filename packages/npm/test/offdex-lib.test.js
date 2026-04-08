@@ -34,7 +34,29 @@ test("npm wrapper help works inside a workspace checkout without a native runtim
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Offdex CLI/);
-  assert.match(result.stdout, /offdex bridge/);
+  assert.match(result.stdout, /offdex start/);
+});
+
+test("npm wrapper shows onboarding for bare offdex without downloading runtime", () => {
+  const installRoot = mkdtempSync(join(tmpdir(), "offdex-empty-runtime-"));
+  const result = spawnSync(
+    process.execPath,
+    [join(repoRoot, "packages", "npm", "bin", "offdex.js")],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        OFFDEX_INSTALL_ROOT: installRoot,
+      },
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Run offdex start/);
+  assert.match(result.stdout, /Scan the QR/);
+  assert.doesNotMatch(result.stdout, /Usage:/);
+  assert.doesNotMatch(result.stderr, /setting up native runtime/);
 });
 
 test("npm wrapper help works in an installed package without downloading runtime", () => {
@@ -45,7 +67,7 @@ test("npm wrapper help works in an installed package without downloading runtime
   });
   writeFileSync(
     join(packageRoot, "package.json"),
-    JSON.stringify({ name: "@dhruv2mars/offdex", version: "0.0.5", type: "module" })
+    JSON.stringify({ name: "@dhruv2mars/offdex", version: "0.0.6", type: "module" })
   );
 
   const result = spawnSync(
@@ -64,6 +86,6 @@ test("npm wrapper help works in an installed package without downloading runtime
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Offdex CLI/);
-  assert.match(result.stdout, /offdex bridge/);
+  assert.match(result.stdout, /offdex start/);
   assert.doesNotMatch(result.stderr, /setting up native runtime/);
 });

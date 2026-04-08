@@ -189,7 +189,7 @@ export default function PairScreen() {
           <View className="bg-black/60 rounded-2xl px-6 py-4">
             <Text className="text-sm text-white text-center leading-relaxed">
               Point your camera at the QR code displayed by{" "}
-              <Text className="font-mono bg-white/20 px-1 rounded">offdex bridge</Text>
+              <Text className="font-mono bg-white/20 px-1 rounded">offdex start</Text>
             </Text>
           </View>
         </View>

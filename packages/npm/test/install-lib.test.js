@@ -108,7 +108,7 @@ test("npm installer prefers compressed runtime assets when the release publishes
   const requestedUrls = [];
 
   const result = await installRuntime({
-    version: "0.0.5",
+    version: "0.0.6",
     platform: "darwin",
     arch: "arm64",
     home,

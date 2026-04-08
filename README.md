@@ -43,8 +43,10 @@ The npm package downloads the matching native bridge runtime for the current pla
 CLI usage:
 
 ```bash
-offdex bridge --host 0.0.0.0 --port 42420
-offdex bridge --control-plane-url https://control.example.com
+offdex start --host 0.0.0.0 --port 42420
+offdex start --control-plane-url https://control.example.com
+offdex status
+offdex stop
 offdex --help
 ```
 

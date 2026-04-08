@@ -20,8 +20,8 @@ describe("mobile app config", () => {
   });
 
   test("keeps app metadata aligned with the shipped build", () => {
-    expect(appVersion).toBe("0.0.5");
-    expect(appBuildNumber).toBe("5");
+    expect(appVersion).toBe("0.0.6");
+    expect(appBuildNumber).toBe("6");
   });
 
   test("publishes Offdex support links instead of upstream Codex links", () => {

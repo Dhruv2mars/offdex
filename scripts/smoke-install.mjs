@@ -137,11 +137,11 @@ try {
     cwd: repoRoot,
     env: tarballEnv,
   });
-  if (!help.stdout.includes("Offdex CLI") || !help.stdout.includes("offdex bridge")) {
+  if (!help.stdout.includes("Offdex CLI") || !help.stdout.includes("offdex start")) {
     fail(`help output was not clear\n${help.stdout}\n${help.stderr}`);
   }
 
-  const directHelp = await runAsyncCapture(process.execPath, [launcher, "bridge", "--help"], {
+  const directHelp = await runAsyncCapture(process.execPath, [launcher, "start", "--help"], {
     cwd: repoRoot,
     env: tarballEnv,
   });
@@ -150,7 +150,7 @@ try {
   }
 
   const bridgePort = await getFreePort();
-  bridgeProcess = spawn(globalLauncher, ["bridge", "--mode", "demo", "--host", "127.0.0.1", "--port", String(bridgePort)], {
+  bridgeProcess = spawn(globalLauncher, ["start", "--mode", "demo", "--host", "127.0.0.1", "--port", String(bridgePort)], {
     cwd: repoRoot,
     env: tarballEnv,
     stdio: ["ignore", "pipe", "pipe"],
@@ -173,10 +173,10 @@ try {
   }, 10000);
 
   await waitFor(() => {
-    return stdout.includes(`listening on http://127.0.0.1:${bridgePort}`) && stdout.includes("Pairing page:");
+    return stdout.includes(`[offdex] started on http://127.0.0.1:${bridgePort}`) && stdout.includes("Pairing page:");
   }, 10000);
 
-  if (!stdout.includes(`listening on http://127.0.0.1:${bridgePort}`) || !stdout.includes("Pairing page:")) {
+  if (!stdout.includes(`[offdex] started on http://127.0.0.1:${bridgePort}`) || !stdout.includes("Pairing page:")) {
     fail(`bridge startup output missing expected details\n${stdout}\n${stderr}`);
   }
 } finally {

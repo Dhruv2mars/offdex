@@ -376,7 +376,7 @@ export default function MachinesScreen() {
                     Connect via QR Code
                   </Text>
                   <Text className="text-xs text-muted-foreground leading-relaxed">
-                    Run <Text className="font-mono bg-muted px-1 rounded">offdex bridge</Text> on your Mac to display a pairing QR code, then scan it with this app.
+                    Run <Text className="font-mono bg-muted px-1 rounded">offdex start</Text> on your Mac to display a pairing QR code, then scan it with this app.
                   </Text>
                 </View>
               </View>
