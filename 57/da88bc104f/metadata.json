@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "57da88bc104f",
+  "strategy": "manual-commit",
+  "branch": "feat/final-connectivity-refactor",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "package.json",
+    "packages/control-plane/src/index.ts",
+    "packages/control-plane/test/index.test.ts",
+    "packages/protocol/src/index.ts",
+    "packages/protocol/test/index.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/57/da88bc104f/0/metadata.json",
+      "transcript": "/57/da88bc104f/0/full.jsonl",
+      "content_hash": "/57/da88bc104f/0/content_hash.txt",
+      "prompt": "/57/da88bc104f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 441926760,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 426110080,
+    "output_tokens": 1398661,
+    "api_call_count": 3345
+  }
+}

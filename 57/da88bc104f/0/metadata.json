@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "57da88bc104f",
+  "session_id": "019d6b78-7559-7c91-aadb-0ba8bbb780ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T10:05:33.463509Z",
+  "branch": "feat/final-connectivity-refactor",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "package.json",
+    "packages/control-plane/src/index.ts",
+    "packages/control-plane/test/index.test.ts",
+    "packages/protocol/src/index.ts",
+    "packages/protocol/test/index.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "c461510c7022",
+  "token_usage": {
+    "input_tokens": 441926760,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 426110080,
+    "output_tokens": 1398661,
+    "api_call_count": 3345
+  },
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T10:05:09.791641Z",
+    "agent_lines": 0,
+    "human_added": 816,
+    "human_modified": 18,
+    "human_removed": 0,
+    "total_committed": 816,
+    "agent_percentage": 0
+  }
+}
