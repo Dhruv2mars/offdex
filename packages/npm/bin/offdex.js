@@ -13,68 +13,111 @@ import {
 } from "./offdex-lib.js";
 
 const args = process.argv.slice(2);
-const ONBOARDING_TEXT = `Offdex
-Codex mobile app.
+const colorEnabled =
+  Boolean(process.stdout.isTTY) &&
+  process.env.NO_COLOR !== "1" &&
+  process.env.NO_COLOR !== "true" &&
+  process.env.TERM !== "dumb";
+const paint = (code, text) => colorEnabled ? `\u001b[${code}m${text}\u001b[0m` : text;
+const green = (text) => paint("38;2;16;163;127", text);
+const muted = (text) => paint("38;2;156;163;160", text);
+const bold = (text) => paint("1", text);
+const command = (text) => paint("38;2;225;229;226", text);
+const link = (text) => paint("38;2;203;255;229", text);
 
-Use Codex from your phone while the real Codex session keeps running on this Mac.
+function onboardingText() {
+  return [
+    bold(green("Offdex")),
+    muted("Codex mobile app."),
+    "",
+    "Use Codex from your phone while the real Codex session keeps running on this Mac.",
+    "",
+    green("Get started"),
+    `  1. Run ${command("offdex start")}`,
+    "  2. Open Offdex on your phone.",
+    "  3. Scan the QR from this terminal.",
+    "  4. Send a prompt and watch Codex reply live.",
+    "",
+    green("Core commands"),
+    `  ${command("offdex help")}       Commands, docs, GitHub, feedback.`,
+    `  ${command("offdex start")}      Start the bridge and show the QR.`,
+    `  ${command("offdex status")}     Show bridge, Codex, and client status.`,
+    `  ${command("offdex stop")}       Stop the local bridge.`,
+    "",
+    `Docs: ${link("https://offdexapp.vercel.app")}`,
+  ].join("\n");
+}
 
-Get started:
-  1. Run: offdex start
-  2. Open Offdex on your phone.
-  3. Scan the QR from this terminal.
-  4. Send a prompt and watch Codex reply live.
+function helpText() {
+  return [
+    bold(green("Offdex help")),
+    muted("Codex mobile app."),
+    "",
+    green("Commands"),
+    `  ${command("offdex")}`,
+    "      Open the Offdex home screen.",
+    "",
+    `  ${command("offdex help")}`,
+    "      Show commands, docs, and support links.",
+    "",
+    `  ${command("offdex start")} ${muted("[options]")}`,
+    "      Start the bridge and show the pairing QR.",
+    "",
+    `  ${command("offdex status")} ${muted("[options]")}`,
+    "      Show bridge, Codex, client, and remote status.",
+    "",
+    `  ${command("offdex stop")} ${muted("[options]")}`,
+    "      Stop the local bridge started by Offdex.",
+    "",
+    green("Start options"),
+    `  ${command("--host <host>")}                 Default: 0.0.0.0`,
+    `  ${command("--port <port>")}                 Default: 42420`,
+    `  ${command("--mode <codex|demo>")}           Default: codex`,
+    `  ${command("--control-plane-url <url>")}     Enable managed remote pairing.`,
+    "",
+    green("Environment fallbacks"),
+    `  ${command("OFFDEX_BRIDGE_HOST")}`,
+    `  ${command("OFFDEX_BRIDGE_PORT")}`,
+    `  ${command("OFFDEX_BRIDGE_MODE")}`,
+    `  ${command("OFFDEX_CONTROL_PLANE_URL")}`,
+    "",
+    green("Links"),
+    `  Docs:     ${link("https://offdexapp.vercel.app")}`,
+    `  GitHub:   ${link("https://github.com/Dhruv2mars/offdex")}`,
+    `  Feedback: ${link("https://github.com/Dhruv2mars/offdex/issues")}`,
+  ].join("\n");
+}
 
-Core commands:
-  offdex help       Commands, docs, GitHub, feedback.
-  offdex start      Start the bridge and show the QR.
-  offdex status     Show bridge, Codex, and client status.
-  offdex stop       Stop the local bridge.
+function offlineText() {
+  return [
+    bold("Offdex is not running"),
+    `Start it with: ${command("offdex start")}`,
+  ].join("\n");
+}
 
-Docs: https://offdexapp.vercel.app
-`;
-const HELP_TEXT = `Offdex help
-Codex mobile app.
+function commandName(argv) {
+  return argv[0] ?? "onboarding";
+}
 
-Commands:
-  offdex
-      Open the Offdex home screen.
+function canAnswerWithoutRuntime(argv) {
+  const name = commandName(argv);
+  return (
+    argv.length === 0 ||
+    name === "help" ||
+    name === "--help" ||
+    name === "-h" ||
+    name === "status" ||
+    name === "stop"
+  );
+}
 
-  offdex help
-      Show commands, docs, and support links.
-
-  offdex start [options]
-      Start the bridge and show the pairing QR.
-
-  offdex status [options]
-      Show bridge, Codex, client, and remote status.
-
-  offdex stop [options]
-      Stop the local bridge started by Offdex.
-
-Start options:
-  --host <host>                 Default: 0.0.0.0
-  --port <port>                 Default: 42420
-  --mode <codex|demo>           Default: codex
-  --control-plane-url <url>     Enable managed remote pairing.
-
-Environment fallbacks:
-  OFFDEX_BRIDGE_HOST
-  OFFDEX_BRIDGE_PORT
-  OFFDEX_BRIDGE_MODE
-  OFFDEX_CONTROL_PLANE_URL
-
-Links:
-  Docs:     https://offdexapp.vercel.app
-  GitHub:   https://github.com/Dhruv2mars/offdex
-  Feedback: https://github.com/Dhruv2mars/offdex/issues
-`;
 const installedBin = resolveInstalledBin(process.env, process.platform);
 const packageVersion = readPackageVersion();
 const currentInstalledVersion = installedVersion(process.env);
 const workspaceBridgeCli = resolveWorkspaceBridgeCli();
 
 if (!existsSync(installedBin) && args.length === 0) {
-  console.log(ONBOARDING_TEXT);
+  console.log(onboardingText());
   process.exit(0);
 }
 
@@ -82,7 +125,7 @@ if (
   !existsSync(installedBin) &&
   (args[0] === "help" || args[0] === "--help" || args[0] === "-h")
 ) {
-  console.log(HELP_TEXT);
+  console.log(helpText());
   process.exit(0);
 }
 
@@ -94,7 +137,18 @@ if (workspaceBridgeCli && !existsSync(installedBin)) {
   process.exit(result.status ?? 1);
 }
 
+if (!existsSync(installedBin) && args[0] === "status") {
+  console.log(offlineText());
+  process.exit(1);
+}
+
+if (!existsSync(installedBin) && args[0] === "stop") {
+  console.log(offlineText());
+  process.exit(0);
+}
+
 if (
+  !canAnswerWithoutRuntime(args) &&
   shouldInstallBinary({
     binExists: existsSync(installedBin),
     installedVersion: currentInstalledVersion,

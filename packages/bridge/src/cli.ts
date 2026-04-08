@@ -18,6 +18,34 @@ import { createBridgeStartupOutput, startBridgeServer, type BridgePairingPayload
 
 const DAEMON_CHILD_ENV = "OFFDEX_BRIDGE_DAEMON_CHILD";
 
+function shouldAnimate() {
+  return Boolean(process.stdout.isTTY) &&
+    process.env.CI !== "true" &&
+    process.env.NO_COLOR !== "1" &&
+    process.env.NO_COLOR !== "true";
+}
+
+function createStartupSpinner(label: string) {
+  if (!shouldAnimate()) {
+    return { stop() {} };
+  }
+
+  const frames = ["-", "\\", "|", "/"];
+  let index = 0;
+  process.stdout.write(`${frames[index]} ${label}`);
+  const timer = setInterval(() => {
+    index = (index + 1) % frames.length;
+    process.stdout.write(`\r${frames[index]} ${label}`);
+  }, 90);
+
+  return {
+    stop() {
+      clearInterval(timer);
+      process.stdout.write("\r\u001b[2K");
+    },
+  };
+}
+
 function printUsageAndExit(code = 0): never {
   const output = usage();
   if (code === 0) {
@@ -100,13 +128,16 @@ async function waitForPairingPayload(baseUrl: string, timeoutMs = 5_000) {
   throw lastError instanceof Error ? lastError : new Error("bridge_start_timeout");
 }
 
-async function printStartupOutput(baseUrl: string, relayUrl: string | null) {
+async function createStartupOutput(baseUrl: string, relayUrl: string | null) {
   const payload = await waitForPairingPayload(baseUrl);
-  const output = await createBridgeStartupOutput({
+  return createBridgeStartupOutput({
     payload,
     relayUrl,
   });
-  console.log(output);
+}
+
+async function printStartupOutput(baseUrl: string, relayUrl: string | null) {
+  console.log(await createStartupOutput(baseUrl, relayUrl));
 }
 
 async function startDetachedBridgeAndExit(options: CliOptions): Promise<never> {
@@ -148,10 +179,14 @@ async function startDetachedBridgeAndExit(options: CliOptions): Promise<never> {
     closeSync(logFd);
   }
 
+  const spinner = createStartupSpinner("Starting Offdex bridge");
   try {
-    await printStartupOutput(localBridgeUrl(options, null), options.controlPlaneUrl ?? null);
+    const output = await createStartupOutput(localBridgeUrl(options, null), options.controlPlaneUrl ?? null);
+    spinner.stop();
+    console.log(output);
     process.exit(0);
   } catch (error) {
+    spinner.stop();
     console.error("offdex: bridge did not start cleanly");
     console.error(`offdex: see log at ${logPath}`);
     if (error instanceof Error) {

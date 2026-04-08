@@ -1,6 +1,6 @@
 {
   "name": "@dhruv2mars/offdex",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Codex mobile bridge CLI for Offdex",
   "type": "module",
   "bin": {
@@ -14,7 +14,6 @@
   },
   "scripts": {
     "offdex": "node bin/offdex.js",
-    "postinstall": "node bin/install.js",
     "build": "node -e \"process.exit(0)\"",
     "check": "node --check bin/offdex.js && node --check bin/offdex-lib.js && node --check bin/install.js && node --check bin/install-lib.js && node --test test/*.test.js",
     "test": "node --test test/*.test.js"
