@@ -6,6 +6,7 @@ import {
   cliInstallCommand,
   githubReleasesUrl,
   siteTagline,
+  webAppUrl,
 } from "../app/site-content";
 
 describe("web site content", () => {
@@ -27,5 +28,9 @@ describe("web site content", () => {
   test("publishes the current CLI onboarding commands", () => {
     expect(cliInstallCommand).toBe("npm install -g @dhruv2mars/offdex");
     expect(bridgeStartCommand).toBe("offdex start");
+  });
+
+  test("publishes the web app entrypoint", () => {
+    expect(webAppUrl).toBe("/app");
   });
 });

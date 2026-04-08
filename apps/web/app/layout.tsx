@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { siteTagline } from "./site-content";
 
-const sans = Inter({
+const sans = Instrument_Sans({
   variable: "--font-body-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const mono = JetBrains_Mono({
+const mono = IBM_Plex_Mono({
   variable: "--font-body-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
