@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "4083390561e3",
+  "session_id": "019d6e4c-3e05-7f71-8117-dd5bc9d39d2f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T18:54:48.984222Z",
+  "branch": "feat/web-docs-changelog-download",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/test/changelog-releases.test.ts",
+    "apps/web/test/public-pages.test.ts"
+  ],
+  "agent": "Codex",
+  "turn_id": "5d233e3417de",
+  "token_usage": {
+    "input_tokens": 13363181,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 12577152,
+    "output_tokens": 64996,
+    "api_call_count": 155
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T18:54:47.324491Z",
+    "agent_lines": 73,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 73,
+    "agent_percentage": 100
+  }
+}

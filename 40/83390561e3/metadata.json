@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "4083390561e3",
+  "strategy": "manual-commit",
+  "branch": "feat/web-docs-changelog-download",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/test/changelog-releases.test.ts",
+    "apps/web/test/public-pages.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/40/83390561e3/0/metadata.json",
+      "transcript": "/40/83390561e3/0/full.jsonl",
+      "content_hash": "/40/83390561e3/0/content_hash.txt",
+      "prompt": "/40/83390561e3/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13363181,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 12577152,
+    "output_tokens": 64996,
+    "api_call_count": 155
+  }
+}
