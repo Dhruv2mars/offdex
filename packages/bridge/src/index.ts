@@ -157,6 +157,33 @@ type RelayBridgeRequest =
   | { id: string; action: "turn"; threadId: string; body: string }
   | { id: string; action: "interrupt"; threadId: string };
 
+function shouldColorTerminal() {
+  return Boolean(process.stdout.isTTY) &&
+    process.env.NO_COLOR !== "1" &&
+    process.env.NO_COLOR !== "true" &&
+    process.env.TERM !== "dumb";
+}
+
+function paintTerminal(code: string, text: string) {
+  return shouldColorTerminal() ? `\u001b[${code}m${text}\u001b[0m` : text;
+}
+
+function openAiGreen(text: string) {
+  return paintTerminal("38;2;16;163;127", text);
+}
+
+function openAiMint(text: string) {
+  return paintTerminal("38;2;203;255;229", text);
+}
+
+function openAiMuted(text: string) {
+  return paintTerminal("38;2;156;163;160", text);
+}
+
+function terminalBold(text: string) {
+  return paintTerminal("1", text);
+}
+
 export function buildBridgeHints(
   port: number,
   readNetworkInterfaces: () => Record<string, BridgeAddressRecord[] | undefined> = networkInterfaces,
@@ -327,11 +354,11 @@ export function createBridgeStateStore(options?: {
 
 export async function createTerminalPairingOutput(pairingUri: string) {
   const qr = await QRCode.toString(pairingUri, {
-    type: "terminal",
-    small: false,
+    type: "utf8",
+    margin: 0,
   });
 
-  return ["Scan with Offdex", qr, ""].join("\n");
+  return [openAiGreen("Scan with Offdex"), qr, ""].join("\n");
 }
 
 export async function createBridgeStartupOutput(input: {
@@ -340,11 +367,11 @@ export async function createBridgeStartupOutput(input: {
 }) {
   const qrOutput = await createTerminalPairingOutput(input.payload.pairingUri);
   const lines = [
-    "Offdex is running",
+    terminalBold(openAiGreen("Offdex is running")),
     "Scan the QR in the mobile app.",
-    `Bridge: ${input.payload.bridgeUrl}`,
-    `Remote: ${input.relayUrl ? "connected" : "local network only"}`,
-    "Manage: offdex status | offdex stop",
+    `${openAiMuted("Bridge:")} ${openAiMint(input.payload.bridgeUrl)}`,
+    `${openAiMuted("Remote:")} ${input.relayUrl ? "connected" : "local network only"}`,
+    `${openAiMuted("Manage:")} offdex status | offdex stop`,
     "",
     qrOutput.trimEnd(),
     "",

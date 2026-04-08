@@ -94,3 +94,66 @@ test("npm wrapper help works in an installed package without downloading runtime
   assert.match(result.stdout, /https:\/\/offdexapp\.vercel\.app/);
   assert.doesNotMatch(result.stderr, /setting up native runtime/);
 });
+
+test("npm wrapper status does not download runtime before Offdex is running", () => {
+  const packageRoot = mkdtempSync(join(tmpdir(), "offdex-installed-package-"));
+  const installRoot = mkdtempSync(join(tmpdir(), "offdex-empty-runtime-"));
+  cpSync(join(repoRoot, "packages", "npm", "bin"), join(packageRoot, "bin"), {
+    recursive: true,
+  });
+  writeFileSync(
+    join(packageRoot, "package.json"),
+    JSON.stringify({ name: "@dhruv2mars/offdex", version: "0.0.7", type: "module" })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [join(packageRoot, "bin", "offdex.js"), "status"],
+    {
+      cwd: packageRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        OFFDEX_INSTALL_ROOT: installRoot,
+        OFFDEX_RELEASE_BASE_URL: "http://127.0.0.1:1/offline",
+      },
+    }
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /Offdex is not running/);
+  assert.match(result.stdout, /offdex start/);
+  assert.doesNotMatch(result.stderr, /setting up native runtime/);
+  assert.doesNotMatch(result.stderr, /download/);
+});
+
+test("npm wrapper stop does not download runtime before Offdex is running", () => {
+  const packageRoot = mkdtempSync(join(tmpdir(), "offdex-installed-package-"));
+  const installRoot = mkdtempSync(join(tmpdir(), "offdex-empty-runtime-"));
+  cpSync(join(repoRoot, "packages", "npm", "bin"), join(packageRoot, "bin"), {
+    recursive: true,
+  });
+  writeFileSync(
+    join(packageRoot, "package.json"),
+    JSON.stringify({ name: "@dhruv2mars/offdex", version: "0.0.7", type: "module" })
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [join(packageRoot, "bin", "offdex.js"), "stop"],
+    {
+      cwd: packageRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        OFFDEX_INSTALL_ROOT: installRoot,
+        OFFDEX_RELEASE_BASE_URL: "http://127.0.0.1:1/offline",
+      },
+    }
+  );
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Offdex is not running/);
+  assert.doesNotMatch(result.stderr, /setting up native runtime/);
+  assert.doesNotMatch(result.stderr, /download/);
+});

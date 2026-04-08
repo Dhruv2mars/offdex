@@ -16,6 +16,41 @@ export const DEFAULT_HOST = "0.0.0.0";
 export const OFFDEX_WEB_URL = "https://offdexapp.vercel.app";
 export const OFFDEX_GITHUB_URL = "https://github.com/Dhruv2mars/offdex";
 export const OFFDEX_ISSUES_URL = `${OFFDEX_GITHUB_URL}/issues`;
+const OPENAI_GREEN = "38;2;16;163;127";
+const OPENAI_MINT = "38;2;203;255;229";
+const OPENAI_MUTED = "38;2;156;163;160";
+const OPENAI_TEXT = "38;2;225;229;226";
+
+function shouldColor() {
+  return Boolean(process.stdout.isTTY) &&
+    process.env.NO_COLOR !== "1" &&
+    process.env.NO_COLOR !== "true" &&
+    process.env.TERM !== "dumb";
+}
+
+function paint(code: string, text: string) {
+  return shouldColor() ? `\u001b[${code}m${text}\u001b[0m` : text;
+}
+
+function green(text: string) {
+  return paint(OPENAI_GREEN, text);
+}
+
+function mint(text: string) {
+  return paint(OPENAI_MINT, text);
+}
+
+function muted(text: string) {
+  return paint(OPENAI_MUTED, text);
+}
+
+function bright(text: string) {
+  return paint(OPENAI_TEXT, text);
+}
+
+function bold(text: string) {
+  return paint("1", text);
+}
 
 export type BridgeRunStateView = {
   pid: number;
@@ -72,64 +107,64 @@ export function createDaemonLaunchPlan(input: {
 
 export function usage() {
   return [
-    "Offdex help",
-    "Codex mobile app.",
+    bold(green("Offdex help")),
+    muted("Codex mobile app."),
     "",
-    "Commands:",
-    "  offdex",
+    green("Commands"),
+    `  ${bright("offdex")}`,
     "      Open the Offdex home screen.",
     "",
-    "  offdex help",
+    `  ${bright("offdex help")}`,
     "      Show commands, docs, and support links.",
     "",
-    "  offdex start [options]",
+    `  ${bright("offdex start")} ${muted("[options]")}`,
     "      Start the bridge and show the pairing QR.",
     "",
-    "  offdex status [options]",
+    `  ${bright("offdex status")} ${muted("[options]")}`,
     "      Show bridge, Codex, client, and remote status.",
     "",
-    "  offdex stop [options]",
+    `  ${bright("offdex stop")} ${muted("[options]")}`,
     "      Stop the local bridge started by Offdex.",
     "",
-    "Start options:",
-    "  --host <host>                 Default: 0.0.0.0",
-    "  --port <port>                 Default: 42420",
-    "  --mode <codex|demo>           Default: codex",
-    "  --control-plane-url <url>     Enable managed remote pairing.",
+    green("Start options"),
+    `  ${bright("--host <host>")}                 Default: 0.0.0.0`,
+    `  ${bright("--port <port>")}                 Default: 42420`,
+    `  ${bright("--mode <codex|demo>")}           Default: codex`,
+    `  ${bright("--control-plane-url <url>")}     Enable managed remote pairing.`,
     "",
-    "Environment fallbacks:",
-    "  OFFDEX_BRIDGE_HOST",
-    "  OFFDEX_BRIDGE_PORT",
-    "  OFFDEX_BRIDGE_MODE",
-    "  OFFDEX_CONTROL_PLANE_URL",
+    green("Environment fallbacks"),
+    `  ${bright("OFFDEX_BRIDGE_HOST")}`,
+    `  ${bright("OFFDEX_BRIDGE_PORT")}`,
+    `  ${bright("OFFDEX_BRIDGE_MODE")}`,
+    `  ${bright("OFFDEX_CONTROL_PLANE_URL")}`,
     "",
-    "Links:",
-    `  Docs:     ${OFFDEX_WEB_URL}`,
-    `  GitHub:   ${OFFDEX_GITHUB_URL}`,
-    `  Feedback: ${OFFDEX_ISSUES_URL}`,
+    green("Links"),
+    `  Docs:     ${mint(OFFDEX_WEB_URL)}`,
+    `  GitHub:   ${mint(OFFDEX_GITHUB_URL)}`,
+    `  Feedback: ${mint(OFFDEX_ISSUES_URL)}`,
   ].join("\n");
 }
 
 export function onboarding() {
   return [
-    "Offdex",
-    "Codex mobile app.",
+    bold(green("Offdex")),
+    muted("Codex mobile app."),
     "",
     "Use Codex from your phone while the real Codex session keeps running on this Mac.",
     "",
-    "Get started:",
-    "  1. Run: offdex start",
+    green("Get started"),
+    `  1. Run ${bright("offdex start")}`,
     "  2. Open Offdex on your phone.",
     "  3. Scan the QR from this terminal.",
     "  4. Send a prompt and watch Codex reply live.",
     "",
-    "Core commands:",
-    "  offdex help       Commands, docs, GitHub, feedback.",
-    "  offdex start      Start the bridge and show the QR.",
-    "  offdex status     Show bridge, Codex, and client status.",
-    "  offdex stop       Stop the local bridge.",
+    green("Core commands"),
+    `  ${bright("offdex help")}       Commands, docs, GitHub, feedback.`,
+    `  ${bright("offdex start")}      Start the bridge and show the QR.`,
+    `  ${bright("offdex status")}     Show bridge, Codex, and client status.`,
+    `  ${bright("offdex stop")}       Stop the local bridge.`,
     "",
-    `Docs: ${OFFDEX_WEB_URL}`,
+    `Docs: ${mint(OFFDEX_WEB_URL)}`,
   ].join("\n");
 }
 
@@ -151,21 +186,21 @@ export function formatBridgeStatus(input: {
     : "Remote: local network only";
 
   return [
-    "Offdex is running",
-    `Bridge: ${input.baseUrl}`,
-    input.health.macName ? `Machine: ${input.health.macName}` : null,
-    `Runtime: ${input.health.bridgeMode ?? "codex"}`,
+    bold(green("Offdex is running")),
+    `${muted("Bridge:")} ${mint(input.baseUrl)}`,
+    input.health.macName ? `${muted("Machine:")} ${input.health.macName}` : null,
+    `${muted("Runtime:")} ${input.health.bridgeMode ?? "codex"}`,
     codexLine,
-    `Clients: ${clientCount} live`,
+    `${muted("Clients:")} ${clientCount} live`,
     remoteLine,
-    input.state?.startedAt ? `Started: ${input.state.startedAt}` : null,
+    input.state?.startedAt ? `${muted("Started:")} ${input.state.startedAt}` : null,
   ].filter(Boolean).join("\n");
 }
 
 export function formatOfflineStatus() {
   return [
-    "Offdex is not running",
-    "Start it with: offdex start",
+    bold("Offdex is not running"),
+    `Start it with: ${bright("offdex start")}`,
   ].join("\n");
 }
 
