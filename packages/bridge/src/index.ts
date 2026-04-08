@@ -184,6 +184,18 @@ function terminalBold(text: string) {
   return paintTerminal("1", text);
 }
 
+function terminalTitle(text: string) {
+  return `${openAiMuted("==")} ${terminalBold(openAiGreen(text))} ${openAiMuted("==")}`;
+}
+
+function terminalSection(text: string) {
+  return `${openAiGreen("->")} ${terminalBold(text)}`;
+}
+
+function terminalRow(label: string, value: string) {
+  return `  ${openAiMuted(label.padEnd(8))} ${value}`;
+}
+
 export function createBridgeWebUiUrl(
   bridgeUrl: string,
   webAppUrl = process.env.OFFDEX_WEB_UI_URL ?? "https://offdexapp.vercel.app/webui",
@@ -371,7 +383,7 @@ export async function createTerminalPairingOutput(pairingUri: string) {
     margin: 0,
   });
 
-  return [openAiGreen("Scan with Offdex"), qr, ""].join("\n");
+  return [terminalSection("Pair with your phone"), openAiGreen("Scan with Offdex"), qr, ""].join("\n");
 }
 
 export async function createBridgeStartupOutput(input: {
@@ -380,12 +392,12 @@ export async function createBridgeStartupOutput(input: {
 }) {
   const qrOutput = await createTerminalPairingOutput(input.payload.pairingUri);
   const lines = [
-    terminalBold(openAiGreen("Offdex is running")),
+    terminalTitle("Offdex is running"),
     "Scan the QR in the mobile app.",
-    `${openAiMuted("Bridge:")} ${openAiMint(input.payload.bridgeUrl)}`,
-    `${openAiMuted("Web UI:")} ${openAiMint(createBridgeWebUiUrl(input.payload.bridgeUrl, undefined, input.payload.pairingUri))}`,
-    `${openAiMuted("Remote:")} ${input.relayUrl ? "connected" : "local network only"}`,
-    `${openAiMuted("Manage:")} offdex status | offdex stop`,
+    terminalRow("Bridge", openAiMint(input.payload.bridgeUrl)),
+    terminalRow("Web UI", openAiMint(createBridgeWebUiUrl(input.payload.bridgeUrl, undefined, input.payload.pairingUri))),
+    terminalRow("Remote", input.relayUrl ? "connected" : "local network only"),
+    terminalRow("Manage", "offdex status | offdex stop"),
     "",
     qrOutput.trimEnd(),
     "",

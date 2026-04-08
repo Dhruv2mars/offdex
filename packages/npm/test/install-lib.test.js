@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { gzipSync } from "node:zlib";
 
 import {
@@ -69,6 +70,22 @@ test("npm installer skips native runtime download inside the monorepo workspace"
     }),
     true
   );
+});
+
+test("npm installer skip message uses the polished terminal layout", () => {
+  const result = spawnSync(process.execPath, [join(import.meta.dirname, "..", "bin", "install.js")], {
+    cwd: join(import.meta.dirname, ".."),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      NO_COLOR: "1",
+      OFFDEX_SKIP_INSTALL: "1",
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /== Offdex setup ==/);
+  assert.match(result.stdout, /Runtime  workspace checkout; native install skipped/);
 });
 
 test("npm installer can be explicitly skipped by environment", () => {
