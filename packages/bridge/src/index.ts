@@ -328,10 +328,10 @@ export function createBridgeStateStore(options?: {
 export async function createTerminalPairingOutput(pairingUri: string) {
   const qr = await QRCode.toString(pairingUri, {
     type: "terminal",
-    small: true,
+    small: false,
   });
 
-  return ["", "Offdex Pairing", qr, pairingUri, ""].join("\n");
+  return ["Scan with Offdex", qr, ""].join("\n");
 }
 
 export async function createBridgeStartupOutput(input: {
@@ -340,14 +340,12 @@ export async function createBridgeStartupOutput(input: {
 }) {
   const qrOutput = await createTerminalPairingOutput(input.payload.pairingUri);
   const lines = [
-    "",
     "Offdex is running",
-    `Local URL: ${input.payload.bridgeUrl}`,
-    `Pairing page: ${input.payload.bridgeUrl.replace(/\/+$/, "")}/pairing`,
-    `Machine: ${input.payload.macName}`,
-    input.payload.bridgeHints.length > 0 ? "Local paths:" : null,
-    ...input.payload.bridgeHints.map((hint) => `  • ${hint}`),
-    input.relayUrl ? `Remote access: ${input.relayUrl}` : "Remote access: local network only",
+    "Scan the QR in the mobile app.",
+    `Bridge: ${input.payload.bridgeUrl}`,
+    `Remote: ${input.relayUrl ? "connected" : "local network only"}`,
+    "Manage: offdex status | offdex stop",
+    "",
     qrOutput.trimEnd(),
     "",
   ];

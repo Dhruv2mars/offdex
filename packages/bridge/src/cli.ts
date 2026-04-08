@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 
 import { decodePairingUri } from "@offdex/protocol";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import {
+  createDaemonLaunchPlan,
   formatBridgeStatus,
   formatOfflineStatus,
   onboarding,
@@ -12,7 +14,9 @@ import {
   usage,
   type CliOptions,
 } from "./cli-lib";
-import { createBridgeStartupOutput, startBridgeServer } from "./index";
+import { createBridgeStartupOutput, startBridgeServer, type BridgePairingPayload } from "./index";
+
+const DAEMON_CHILD_ENV = "OFFDEX_BRIDGE_DAEMON_CHILD";
 
 function printUsageAndExit(code = 0): never {
   const output = usage();
@@ -33,6 +37,10 @@ type BridgeRunState = {
 
 function runStatePath() {
   return join(homedir(), ".offdex", "bridge-run.json");
+}
+
+function runLogPath() {
+  return join(homedir(), ".offdex", "bridge.log");
 }
 
 function writeRunState(state: BridgeRunState) {
@@ -66,6 +74,91 @@ function localBridgeUrl(options: CliOptions, state: BridgeRunState | null) {
   const host = state?.host && state.host !== "0.0.0.0" ? state.host : options.host;
   const normalizedHost = host === "0.0.0.0" ? "127.0.0.1" : host;
   return `http://${normalizedHost}:${state?.port ?? options.port}`;
+}
+
+async function readPairingPayload(baseUrl: string): Promise<BridgePairingPayload> {
+  const response = await fetch(`${baseUrl}/pairing.json`);
+  if (!response.ok) {
+    throw new Error(`pairing_status:${response.status}`);
+  }
+  return response.json() as Promise<BridgePairingPayload>;
+}
+
+async function waitForPairingPayload(baseUrl: string, timeoutMs = 5_000) {
+  const startedAt = Date.now();
+  let lastError: unknown = null;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      return await readPairingPayload(baseUrl);
+    } catch (error) {
+      lastError = error;
+      await Bun.sleep(150);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("bridge_start_timeout");
+}
+
+async function printStartupOutput(baseUrl: string, relayUrl: string | null) {
+  const payload = await waitForPairingPayload(baseUrl);
+  const output = await createBridgeStartupOutput({
+    payload,
+    relayUrl,
+  });
+  console.log(output);
+}
+
+async function startDetachedBridgeAndExit(options: CliOptions): Promise<never> {
+  if (options.port === 0) {
+    console.error("offdex: background start needs an explicit port");
+    process.exit(1);
+  }
+
+  const existingState = readRunState();
+  const baseUrl = localBridgeUrl(options, existingState);
+  if (existingState && processIsRunning(existingState.pid)) {
+    try {
+      await printStartupOutput(baseUrl, options.controlPlaneUrl ?? null);
+      process.exit(0);
+    } catch {
+      removeRunState();
+    }
+  }
+
+  const logPath = runLogPath();
+  mkdirSync(dirname(logPath), { recursive: true });
+  const logFd = openSync(logPath, "a");
+  const launch = createDaemonLaunchPlan({
+    argv: process.argv,
+    execPath: process.execPath,
+  });
+
+  try {
+    const child = spawn(launch.command, launch.args, {
+      detached: true,
+      stdio: ["ignore", logFd, logFd],
+      env: {
+        ...process.env,
+        [DAEMON_CHILD_ENV]: "1",
+      },
+    });
+    child.unref();
+  } finally {
+    closeSync(logFd);
+  }
+
+  try {
+    await printStartupOutput(localBridgeUrl(options, null), options.controlPlaneUrl ?? null);
+    process.exit(0);
+  } catch (error) {
+    console.error("offdex: bridge did not start cleanly");
+    console.error(`offdex: see log at ${logPath}`);
+    if (error instanceof Error) {
+      console.error(`offdex: ${error.message}`);
+    }
+    process.exit(1);
+  }
 }
 
 async function printStatusAndExit(options: CliOptions): Promise<never> {
@@ -153,7 +246,10 @@ if (options.deprecatedBridgeAlias) {
   console.error("offdex: `offdex bridge` is deprecated. Use `offdex start`.");
 }
 
-console.log("Starting Offdex bridge...");
+if (process.env[DAEMON_CHILD_ENV] !== "1") {
+  await startDetachedBridgeAndExit(options);
+}
+
 const bridge = startBridgeServer({
   host: options.host,
   port: options.port,
@@ -168,26 +264,30 @@ writeRunState({
   startedAt: new Date().toISOString(),
 });
 
-void (async () => {
-  let payload = bridge.getPairingPayload();
+if (process.env[DAEMON_CHILD_ENV] === "1") {
+  console.log(`Offdex bridge daemon running on ${localBridgeUrl(options, null)}`);
+} else {
+  void (async () => {
+    let payload = bridge.getPairingPayload();
 
-  if (options.controlPlaneUrl) {
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      if (decodePairingUri(payload.pairingUri).version === 3) {
-        break;
+    if (options.controlPlaneUrl) {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        if (decodePairingUri(payload.pairingUri).version === 3) {
+          break;
+        }
+
+        await Bun.sleep(200);
+        payload = bridge.getPairingPayload();
       }
-
-      await Bun.sleep(200);
-      payload = bridge.getPairingPayload();
     }
-  }
 
-  const output = await createBridgeStartupOutput({
-    payload,
-    relayUrl: options.controlPlaneUrl ?? bridge.bridgeState.relayUrl,
-  });
-  console.log(output);
-})();
+    const output = await createBridgeStartupOutput({
+      payload,
+      relayUrl: options.controlPlaneUrl ?? bridge.bridgeState.relayUrl,
+    });
+    console.log(output);
+  })();
+}
 
 process.on("SIGINT", () => {
   removeRunState();

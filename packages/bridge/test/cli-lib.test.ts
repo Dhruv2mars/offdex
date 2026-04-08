@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_HOST,
   DEFAULT_PORT,
+  createDaemonLaunchPlan,
   formatBridgeStatus,
   formatOfflineStatus,
   onboarding,
@@ -105,6 +106,44 @@ describe("bridge cli parser", () => {
     expect(() => parseArgs(["wat"])).toThrow("unknown_command:wat");
     expect(() => parseArgs(["start", "--wat"])).toThrow("unknown_option:--wat");
     expect(() => parseArgs(["start", "--port"])).toThrow("missing_value:--port");
+  });
+});
+
+describe("bridge cli daemon launcher", () => {
+  test("relaunches through Bun when running from source", () => {
+    expect(
+      createDaemonLaunchPlan({
+        argv: ["/opt/homebrew/bin/bun", "/repo/packages/bridge/src/cli.ts", "start", "--port", "42420"],
+        execPath: "/opt/homebrew/bin/bun",
+      })
+    ).toEqual({
+      command: "/opt/homebrew/bin/bun",
+      args: ["/repo/packages/bridge/src/cli.ts", "start", "--port", "42420"],
+    });
+  });
+
+  test("relaunches the compiled binary directly", () => {
+    expect(
+      createDaemonLaunchPlan({
+        argv: ["/Users/me/.offdex/bin/offdex", "start", "--port", "42420"],
+        execPath: "/opt/homebrew/bin/bun",
+      })
+    ).toEqual({
+      command: "/Users/me/.offdex/bin/offdex",
+      args: ["start", "--port", "42420"],
+    });
+  });
+
+  test("drops Bun's virtual compiled entry when relaunching the binary", () => {
+    expect(
+      createDaemonLaunchPlan({
+        argv: ["bun", "/$bunfs/root/offdex", "start", "--port", "42420"],
+        execPath: "/Users/me/.offdex/bin/offdex",
+      })
+    ).toEqual({
+      command: "/Users/me/.offdex/bin/offdex",
+      args: ["start", "--port", "42420"],
+    });
   });
 });
 

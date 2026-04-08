@@ -451,16 +451,19 @@ describe("bridge state store", () => {
     expect(second.relayRoomId).toBe(first.relayRoomId);
   });
 
-  test("renders terminal pairing output with the deep link", async () => {
+  test("renders square terminal pairing output without exposing the deep link", async () => {
     const output = await createTerminalPairingOutput(
       "offdex://pair?bridge=http%3A%2F%2F127.0.0.1%3A42420&name=This%20Mac&v=1"
     );
 
-    expect(output).toContain("offdex://pair?");
+    expect(output).toContain("Scan with Offdex");
+    expect(output).not.toContain("offdex://pair?");
+    expect(output).not.toContain("▀");
+    expect(output).not.toContain("▄");
     expect(output.length).toBeGreaterThan(50);
   });
 
-  test("renders product startup details above the pairing qr", async () => {
+  test("renders minimal product startup details above the pairing qr", async () => {
     const output = await createBridgeStartupOutput({
       payload: {
         bridgeUrl: "http://127.0.0.1:42420",
@@ -473,8 +476,11 @@ describe("bridge state store", () => {
     });
 
     expect(output).toContain("Offdex is running");
-    expect(output).toContain("Pairing page: http://127.0.0.1:42420/pairing");
-    expect(output).toContain("Remote access: wss://relay.example.com");
-    expect(output).toContain("offdex://pair?");
+    expect(output).toContain("Scan the QR");
+    expect(output).toContain("Bridge: http://127.0.0.1:42420");
+    expect(output).toContain("Remote: connected");
+    expect(output).toContain("offdex status");
+    expect(output).not.toContain("Local paths:");
+    expect(output).not.toContain("offdex://pair?");
   });
 });

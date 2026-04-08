@@ -36,6 +36,7 @@ const packageVersion = JSON.parse(readFileSync(packageJsonPath, "utf8")).version
 const tarballEnv = {
   ...process.env,
   OFFDEX_INSTALL_ROOT: installRoot,
+  HOME: join(tempRoot, "home"),
 };
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const bunCommand = process.platform === "win32" ? "bun.exe" : "bun";
@@ -46,7 +47,7 @@ const assetName = assetNameFor();
 const checksumName = checksumsAssetNameFor();
 const assetPath = join(releaseDir, assetName);
 let globalLauncher = null;
-let bridgeProcess = null;
+let bridgePort = null;
 
 mkdirSync(releaseDir, { recursive: true });
 mkdirSync(packageDir, { recursive: true });
@@ -137,7 +138,7 @@ try {
     cwd: repoRoot,
     env: tarballEnv,
   });
-  if (!help.stdout.includes("Offdex CLI") || !help.stdout.includes("offdex start")) {
+  if (!help.stdout.includes("Offdex help") || !help.stdout.includes("offdex start")) {
     fail(`help output was not clear\n${help.stdout}\n${help.stderr}`);
   }
 
@@ -149,22 +150,10 @@ try {
     fail(`launcher help output missing CLI options\n${directHelp.stdout}\n${directHelp.stderr}`);
   }
 
-  const bridgePort = await getFreePort();
-  bridgeProcess = spawn(globalLauncher, ["start", "--mode", "demo", "--host", "127.0.0.1", "--port", String(bridgePort)], {
+  bridgePort = await getFreePort();
+  const bridgeStart = await runAsyncCapture(globalLauncher, ["start", "--mode", "demo", "--host", "127.0.0.1", "--port", String(bridgePort)], {
     cwd: repoRoot,
     env: tarballEnv,
-    stdio: ["ignore", "pipe", "pipe"],
-    detached: process.platform !== "win32",
-    shell: process.platform === "win32" && /\.cmd$/i.test(globalLauncher),
-  });
-
-  let stdout = "";
-  let stderr = "";
-  bridgeProcess.stdout.on("data", (chunk) => {
-    stdout += String(chunk);
-  });
-  bridgeProcess.stderr.on("data", (chunk) => {
-    stderr += String(chunk);
   });
 
   await waitFor(async () => {
@@ -172,16 +161,15 @@ try {
     return response.ok;
   }, 10000);
 
-  await waitFor(() => {
-    return stdout.includes(`[offdex] started on http://127.0.0.1:${bridgePort}`) && stdout.includes("Pairing page:");
-  }, 10000);
-
-  if (!stdout.includes(`[offdex] started on http://127.0.0.1:${bridgePort}`) || !stdout.includes("Pairing page:")) {
-    fail(`bridge startup output missing expected details\n${stdout}\n${stderr}`);
+  if (!bridgeStart.stdout.includes("Offdex is running") || !bridgeStart.stdout.includes("Scan with Offdex")) {
+    fail(`bridge startup output missing expected details\n${bridgeStart.stdout}\n${bridgeStart.stderr}`);
   }
 } finally {
-  if (bridgeProcess) {
-    await stopProcess(bridgeProcess);
+  if (globalLauncher && bridgePort) {
+    await runAsyncCapture(globalLauncher, ["stop", "--host", "127.0.0.1", "--port", String(bridgePort)], {
+      cwd: repoRoot,
+      env: tarballEnv,
+    }).catch(() => {});
   }
   await new Promise((resolvePromise, rejectPromise) =>
     server.close((error) => (error ? rejectPromise(error) : resolvePromise()))
@@ -263,40 +251,6 @@ function runAsyncCapture(command, args, options = {}) {
   });
 }
 
-function stopProcess(child) {
-  return new Promise((resolvePromise) => {
-    if (child.exitCode !== null || child.signalCode !== null) {
-      resolvePromise();
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      if (process.platform !== "win32" && child.pid) {
-        try {
-          process.kill(-child.pid, "SIGKILL");
-          return;
-        } catch {
-          // Fall through to the direct child kill.
-        }
-      }
-      child.kill("SIGKILL");
-    }, 2000);
-    child.once("exit", () => {
-      clearTimeout(timeout);
-      resolvePromise();
-    });
-    if (process.platform !== "win32" && child.pid) {
-      try {
-        process.kill(-child.pid, "SIGTERM");
-      } catch {
-        child.kill("SIGTERM");
-      }
-      return;
-    }
-    child.kill("SIGTERM");
-  });
-}
-
 async function waitFor(fn, timeoutMs) {
   const startedAt = Date.now();
   let lastError = null;
@@ -337,10 +291,12 @@ function cleanup() {
 }
 
 function fail(message) {
-  if (bridgeProcess) {
-    try {
-      bridgeProcess.kill("SIGTERM");
-    } catch {}
+  if (globalLauncher && bridgePort) {
+    spawnSync(globalLauncher, ["stop", "--host", "127.0.0.1", "--port", String(bridgePort)], {
+      cwd: repoRoot,
+      env: tarballEnv,
+      shell: process.platform === "win32" && /\.cmd$/i.test(globalLauncher),
+    });
   }
   cleanup();
   console.error(`offdex install smoke: ${message}`);
