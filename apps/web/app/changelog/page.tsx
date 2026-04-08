@@ -40,12 +40,12 @@ function cleanReleaseBody(body: string) {
 
   // Categories
   const categories = {
-    feat: { title: "### ✨ Features", items: [] as string[] },
-    fix: { title: "### 🐛 Bug Fixes", items: [] as string[] },
-    perf: { title: "### ⚡️ Performance", items: [] as string[] },
-    polish: { title: "### 💅 Polish", items: [] as string[] },
-    chore: { title: "### 🛠 Under the Hood", items: [] as string[] },
-    other: { title: "### 📝 Other Updates", items: [] as string[] }
+    feat: { title: "### Features", items: [] as string[] },
+    fix: { title: "### Bug Fixes", items: [] as string[] },
+    perf: { title: "### Performance", items: [] as string[] },
+    polish: { title: "### Polish", items: [] as string[] },
+    chore: { title: "### Under the Hood", items: [] as string[] },
+    other: { title: "### Other Updates", items: [] as string[] }
   };
 
   for (const item of listItems) {
