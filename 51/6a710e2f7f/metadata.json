@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "516a710e2f7f",
+  "strategy": "manual-commit",
+  "branch": "fix/web-prod-landing-deploy",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/app/page.tsx",
+    "apps/web/test/design-system.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/51/6a710e2f7f/0/metadata.json",
+      "transcript": "/51/6a710e2f7f/0/full.jsonl",
+      "content_hash": "/51/6a710e2f7f/0/content_hash.txt",
+      "prompt": "/51/6a710e2f7f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1663354,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1536896,
+    "output_tokens": 16704,
+    "api_call_count": 29
+  }
+}

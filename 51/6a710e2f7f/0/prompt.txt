@@ -1,0 +1,1 @@
+i have updated the landing page, but its not updated yet on vercel in prod. can you check and fix that
