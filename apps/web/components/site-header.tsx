@@ -6,7 +6,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 bg-background/80 shadow-border backdrop-blur-md">
       <div className="mx-auto flex h-14 w-full max-w-[1200px] items-center justify-between px-6 md:px-8">
         <Link href="/" className="flex items-center gap-2 rounded-md focus-ring">
-          <img src="/logo.svg" alt="Offdex Logo" className="h-8 w-8" />
+          <img src="/logo.svg" alt="Offdex Logo" className="h-5 w-auto" />
           <span className="font-semibold tracking-[-0.32px]">Offdex</span>
         </Link>
         <nav className="flex items-center gap-6 text-[14px] font-medium">
