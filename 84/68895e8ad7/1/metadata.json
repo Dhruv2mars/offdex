@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "8468895e8ad7",
+  "session_id": "019d6cbc-c6bb-7a51-9e65-9ebfdba6cc6f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T11:25:24.880242Z",
+  "branch": "feat/design-md-frontend-refactor",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/mobile/tsconfig.json",
+    "apps/mobile/app/(tabs)/_layout.tsx",
+    "apps/mobile/app/chat/[id].tsx",
+    "apps/mobile/components/chat/thread-item.tsx",
+    "apps/mobile/components/layout/connection-banner.tsx",
+    "apps/mobile/package.json",
+    "apps/mobile/app/(tabs)/machines.tsx",
+    "apps/mobile/app/(tabs)/settings.tsx",
+    "apps/mobile/app/pair.tsx",
+    "apps/mobile/components/chat/composer.tsx",
+    "apps/mobile/components/layout/empty-state.tsx",
+    "apps/mobile/components/ui/badge.tsx",
+    "apps/mobile/components/ui/button.tsx",
+    "bun.lock",
+    "apps/mobile/App.tsx",
+    "apps/mobile/app.json",
+    "apps/mobile/app/_layout.tsx",
+    "apps/mobile/components/chat/message-bubble.tsx",
+    "apps/mobile/components/ui/card.tsx",
+    "apps/mobile/components/ui/input.tsx",
+    "apps/mobile/app/(tabs)/index.tsx",
+    "apps/mobile/components/layout/header.tsx",
+    "apps/mobile/components/ui/skeleton.tsx",
+    "apps/mobile/global.css"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "81320c16ab5e",
+  "checkpoint_transcript_start": 390,
+  "transcript_lines_at_start": 390,
+  "token_usage": {
+    "input_tokens": 3994566,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3712640,
+    "output_tokens": 18112,
+    "api_call_count": 32
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T11:25:22.675084Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 252,
+    "human_removed": 2152,
+    "total_committed": 0,
+    "agent_percentage": 0
+  }
+}
