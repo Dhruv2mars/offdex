@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "86fe3d3888d2",
+  "session_id": "019d6b78-7559-7c91-aadb-0ba8bbb780ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T08:17:52.38629Z",
+  "branch": "fix/cli-bun-install-qr",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "254e6c39204e",
+  "token_usage": {
+    "input_tokens": 385685365,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 370696832,
+    "output_tokens": 1282991,
+    "api_call_count": 2986
+  },
+  "session_metrics": {
+    "turn_count": 8
+  }
+}
