@@ -4,7 +4,14 @@ import { decodePairingUri } from "@offdex/protocol";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { onboarding, parseArgs, usage, type CliOptions } from "./cli-lib";
+import {
+  formatBridgeStatus,
+  formatOfflineStatus,
+  onboarding,
+  parseArgs,
+  usage,
+  type CliOptions,
+} from "./cli-lib";
 import { createBridgeStartupOutput, startBridgeServer } from "./index";
 
 function printUsageAndExit(code = 0): never {
@@ -75,23 +82,17 @@ async function printStatusAndExit(options: CliOptions): Promise<never> {
       codexConnected?: boolean;
       codexAccount?: { plan?: string | null; email?: string | null } | null;
       bridgeMode?: string;
+      liveClientCount?: number;
+      relayConnected?: boolean;
+      relayUrl?: string | null;
     };
-    console.log("Offdex is running");
-    console.log(`Local URL: ${baseUrl}`);
-    if (health.macName) console.log(`Machine: ${health.macName}`);
-    console.log(`Runtime: ${health.bridgeMode ?? "codex"}`);
-    console.log(
-      health.codexConnected
-        ? `Codex: signed in${health.codexAccount?.email ? ` as ${health.codexAccount.email}` : ""}`
-        : "Codex: not signed in on this Mac"
-    );
+    console.log(formatBridgeStatus({ baseUrl, state, health }));
     process.exit(0);
   } catch {
     if (state && !processIsRunning(state.pid)) {
       removeRunState();
     }
-    console.log("Offdex is not running");
-    console.log("Start it with: offdex start");
+    console.log(formatOfflineStatus());
     process.exit(1);
   }
 }
@@ -152,6 +153,7 @@ if (options.deprecatedBridgeAlias) {
   console.error("offdex: `offdex bridge` is deprecated. Use `offdex start`.");
 }
 
+console.log("Starting Offdex bridge...");
 const bridge = startBridgeServer({
   host: options.host,
   port: options.port,
@@ -166,7 +168,6 @@ writeRunState({
   startedAt: new Date().toISOString(),
 });
 
-console.log(`[offdex] started on http://${options.host}:${bridge.server.port ?? options.port}`);
 void (async () => {
   let payload = bridge.getPairingPayload();
 
