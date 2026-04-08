@@ -1,7 +1,3 @@
-the CLI looks a bit bland (meh!) right now. very basic. lets make it much better in terms of looks. what are your thoughts?
-
----
-
 PLEASE IMPLEMENT THIS PLAN:
 # More Expressive Offdex CLI
 
