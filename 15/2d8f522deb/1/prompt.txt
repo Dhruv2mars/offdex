@@ -1,31 +1,13 @@
-ok, here is the thing. you are doing the full frontend revamp. but this should happen at a fundamental level. like, from scratch. you have to think from a first prnciples thinking about the layout, screens, tabs, icon, etc etc everything. i see that the layout, buttons, the the overall structure remains the same as before. i expect that to change as well. i am expecting a complete frontend redo! please note this!!
-
----
-
-you did a great job. but i think there are still major changes and things to improve in terms of user interface. 
-
-overall vision: it should look and feel like the ChatGPT app. in terms of layout, structure, functionality. not in terms of theme, the current one is great. 
-
-i am attaching a few screenshots here, so you can see the structure. then we can discuss and think based on that. these images are from the web version of chatgpt, but you know that things will be very similar on mobile as well. 
-
-basically, these are the things that are fundamental:
-
-- main screen with a promptbox on bottom which starts a new thread. 
-- sidebar containing the project name, and under that, the threads (chats). 
-- bottom of sidebar is the settings section. 
-
-also, if you actually need to know about the structure (from a web pov), you should checkout t3code: https://github.com/pingdotgg/t3code
-
-the t3code structure is what we should get inspiration from. note, that we are just going to implement the layout, structure, positioning, and working of the things. not the theme or design choices, that remains same as current. 
-
-first, we will redo our webUI, since the aspect ratio and our reference material is desktop aligned. once we are done with that, we will imply that to mobile as well. 
-
-if you have any questions, ask me.
-
----
-
 collapsable sidebar, img (sidebar contains the project name, like offdex, then the threads (chats) in there as in the image). dont care about the plugins and automations. but this is a great inspo for the sidebar. 
 
 the sidebar should be exactly like in the image, in terms of layout and structure. everything else other than new thread, projects, and threads can be inside the settings. 
 
 lets go one by one, sidebar for now. do you have any questions regarding this?
+
+---
+
+<image>
+
+---
+
+</image>
