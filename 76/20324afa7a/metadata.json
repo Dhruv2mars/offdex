@@ -3,7 +3,7 @@
   "checkpoint_id": "7620324afa7a",
   "strategy": "manual-commit",
   "branch": "feat/mobile-chat-shell",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/mobile/app/(tabs)/_layout.tsx",
     "apps/mobile/app/(tabs)/index.tsx",
@@ -32,13 +32,19 @@
       "transcript": "/76/20324afa7a/1/full.jsonl",
       "content_hash": "/76/20324afa7a/1/content_hash.txt",
       "prompt": "/76/20324afa7a/1/prompt.txt"
+    },
+    {
+      "metadata": "/76/20324afa7a/2/metadata.json",
+      "transcript": "/76/20324afa7a/2/full.jsonl",
+      "content_hash": "/76/20324afa7a/2/content_hash.txt",
+      "prompt": "/76/20324afa7a/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 492682031,
+    "input_tokens": 492706073,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 475755904,
-    "output_tokens": 1485301,
-    "api_call_count": 3712
+    "cache_read_tokens": 475759360,
+    "output_tokens": 1485337,
+    "api_call_count": 3713
   }
 }
