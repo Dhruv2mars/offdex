@@ -31,6 +31,6 @@ describe("web site content", () => {
   });
 
   test("publishes the web app entrypoint", () => {
-    expect(webAppUrl).toBe("/app");
+    expect(webAppUrl).toBe("/webui");
   });
 });

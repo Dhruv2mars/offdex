@@ -56,7 +56,8 @@ Remote pairing is enabled by default through the free Cloudflare Worker relay. F
 
 ### Web
 
-The web app is live at [offdexapp.vercel.app](https://offdexapp.vercel.app).
+The landing page is live at [offdexapp.vercel.app](https://offdexapp.vercel.app).
+The browser Codex client is live at [offdexapp.vercel.app/webui](https://offdexapp.vercel.app/webui).
 
 ### Android APK
 
