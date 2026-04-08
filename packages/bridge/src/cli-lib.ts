@@ -16,6 +16,8 @@ export const DEFAULT_HOST = "0.0.0.0";
 export const OFFDEX_WEB_URL = "https://offdexapp.vercel.app";
 export const OFFDEX_GITHUB_URL = "https://github.com/Dhruv2mars/offdex";
 export const OFFDEX_ISSUES_URL = `${OFFDEX_GITHUB_URL}/issues`;
+export const OFFDEX_CONTROL_PLANE_URL =
+  "https://offdex-control-plane.dhruv-sharma10102005.workers.dev";
 const OPENAI_GREEN = "38;2;16;163;127";
 const OPENAI_MINT = "38;2;203;255;229";
 const OPENAI_MUTED = "38;2;156;163;160";
@@ -130,13 +132,13 @@ export function usage() {
     `  ${bright("--host <host>")}                 Default: 0.0.0.0`,
     `  ${bright("--port <port>")}                 Default: 42420`,
     `  ${bright("--mode <codex|demo>")}           Default: codex`,
-    `  ${bright("--control-plane-url <url>")}     Enable managed remote pairing.`,
+    `  ${bright("--control-plane-url <url>")}     Override managed remote pairing.`,
     "",
     green("Environment fallbacks"),
     `  ${bright("OFFDEX_BRIDGE_HOST")}`,
     `  ${bright("OFFDEX_BRIDGE_PORT")}`,
     `  ${bright("OFFDEX_BRIDGE_MODE")}`,
-    `  ${bright("OFFDEX_CONTROL_PLANE_URL")}`,
+    `  ${bright("OFFDEX_CONTROL_PLANE_URL")}      Default: ${OFFDEX_CONTROL_PLANE_URL}`,
     "",
     green("Links"),
     `  Docs:     ${mint(OFFDEX_WEB_URL)}`,
@@ -260,7 +262,7 @@ export function parseArgs(
     host: env.OFFDEX_BRIDGE_HOST || DEFAULT_HOST,
     port: parsePort(env.OFFDEX_BRIDGE_PORT || String(DEFAULT_PORT)),
     bridgeMode: parseBridgeMode(env.OFFDEX_BRIDGE_MODE || "codex"),
-    controlPlaneUrl: env.OFFDEX_CONTROL_PLANE_URL || undefined,
+    controlPlaneUrl: env.OFFDEX_CONTROL_PLANE_URL || OFFDEX_CONTROL_PLANE_URL,
     ...(command === "start" ? { deprecatedBridgeAlias } : {}),
   };
 

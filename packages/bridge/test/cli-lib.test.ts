@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_HOST,
   DEFAULT_PORT,
+  OFFDEX_CONTROL_PLANE_URL,
   createDaemonLaunchPlan,
   formatBridgeStatus,
   formatOfflineStatus,
@@ -29,7 +30,7 @@ describe("bridge cli parser", () => {
       host: DEFAULT_HOST,
       port: DEFAULT_PORT,
       bridgeMode: "codex",
-      controlPlaneUrl: undefined,
+      controlPlaneUrl: OFFDEX_CONTROL_PLANE_URL,
       deprecatedBridgeAlias: false,
     });
   });
@@ -86,7 +87,7 @@ describe("bridge cli parser", () => {
       host: DEFAULT_HOST,
       port: DEFAULT_PORT,
       bridgeMode: "codex",
-      controlPlaneUrl: undefined,
+      controlPlaneUrl: OFFDEX_CONTROL_PLANE_URL,
     });
     expect(parseArgs(["stop", "--port", "5555"]).command).toBe("stop");
     expect(parseArgs(["stop", "--port", "5555"]).port).toBe(5555);

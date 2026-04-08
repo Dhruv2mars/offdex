@@ -144,7 +144,7 @@ function CurrentConnectionCard() {
   }
 
   const RuntimeIcon = runtimeTarget === "cli" ? Terminal : Monitor;
-  const TransportIcon = connectionTransport === "direct" ? Wifi : Globe;
+  const TransportIcon = connectionTransport === "local" ? Wifi : Globe;
 
   return (
     <Card className="mx-4">
@@ -358,7 +358,7 @@ export default function MachinesScreen() {
             <EmptyState
               icon={Laptop}
               title="No machines found"
-              description="Sign in to your Codex account to see your available machines, or scan a QR code to pair directly."
+              description="Sign in to your Codex account to see your available machines, or scan a QR code to trust this device."
               action={{
                 label: "Scan QR Code",
                 onPress: handleScanQR,

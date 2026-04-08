@@ -682,25 +682,33 @@ export async function resolveManagedConnection(
   const machinesPayload = await listManagedMachines(session);
   const machine = machinesPayload.machines.find((entry) => entry.machineId === machineId) ?? null;
 
-  if (ticket.direct) {
-    for (const bridgeUrl of ticket.direct.bridgeUrls) {
-      const directTarget = encodeDirectConnectionTarget({
-        bridgeUrl,
-        accessToken: ticket.direct.accessToken,
-      });
-      try {
-        await fetchBridgeHealthWithTimeout(directTarget, DIRECT_HEALTH_PROBE_TIMEOUT_MS);
-        return {
-          machine,
-          connectionTarget: directTarget,
-          connectionLabel: bridgeUrl,
-          connectionTransport: "direct" as const,
-        };
-      } catch {}
-    }
+  return resolveMachineConnection(machine, ticket);
+}
+
+export async function resolveMachineConnection(
+  machine: OffdexMachineRecord | null,
+  ticket?: OffdexConnectionTicket
+) {
+  const bridgeUrls = [
+    ...(ticket?.local?.bridgeUrls ?? []),
+    ...(ticket?.direct?.bridgeUrls ?? []),
+    ...(machine?.directBridgeUrls ?? []),
+    machine?.localBridgeUrl,
+  ].filter((url): url is string => Boolean(url));
+
+  for (const bridgeUrl of [...new Set(bridgeUrls)]) {
+    try {
+      await fetchBridgeHealthWithTimeout(bridgeUrl, DIRECT_HEALTH_PROBE_TIMEOUT_MS);
+      return {
+        machine,
+        connectionTarget: normalizeBridgeBaseUrl(bridgeUrl),
+        connectionLabel: machine?.macName ?? bridgeUrl,
+        connectionTransport: "local" as const,
+      };
+    } catch {}
   }
 
-  if (!ticket.relay) {
+  if (!ticket?.relay) {
     throw new Error("Managed connection failed: no relay fallback available.");
   }
 
@@ -708,7 +716,7 @@ export async function resolveManagedConnection(
     machine,
     connectionTarget: encodeRelayConnectionTarget({
       bridgeUrl: machine?.localBridgeUrl ?? "http://127.0.0.1:42420",
-      macName: machine?.macName ?? session.ownerLabel,
+      macName: machine?.macName ?? "Trusted machine",
       relay: {
         relayUrl: ticket.relay.relayUrl,
         roomId: ticket.relay.roomId,
@@ -716,7 +724,7 @@ export async function resolveManagedConnection(
       },
       version: 2,
     }),
-    connectionLabel: ticket.relay.relayUrl,
+    connectionLabel: machine?.macName ?? ticket.relay.relayUrl,
     connectionTransport: "relay" as const,
   };
 }

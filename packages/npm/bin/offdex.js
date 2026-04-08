@@ -24,6 +24,7 @@ const muted = (text) => paint("38;2;156;163;160", text);
 const bold = (text) => paint("1", text);
 const command = (text) => paint("38;2;225;229;226", text);
 const link = (text) => paint("38;2;203;255;229", text);
+const controlPlaneUrl = "https://offdex-control-plane.dhruv-sharma10102005.workers.dev";
 
 function onboardingText() {
   return [
@@ -73,13 +74,13 @@ function helpText() {
     `  ${command("--host <host>")}                 Default: 0.0.0.0`,
     `  ${command("--port <port>")}                 Default: 42420`,
     `  ${command("--mode <codex|demo>")}           Default: codex`,
-    `  ${command("--control-plane-url <url>")}     Enable managed remote pairing.`,
+    `  ${command("--control-plane-url <url>")}     Override managed remote pairing.`,
     "",
     green("Environment fallbacks"),
     `  ${command("OFFDEX_BRIDGE_HOST")}`,
     `  ${command("OFFDEX_BRIDGE_PORT")}`,
     `  ${command("OFFDEX_BRIDGE_MODE")}`,
-    `  ${command("OFFDEX_CONTROL_PLANE_URL")}`,
+    `  ${command("OFFDEX_CONTROL_PLANE_URL")}      Default: ${controlPlaneUrl}`,
     "",
     green("Links"),
     `  Docs:     ${link("https://offdexapp.vercel.app")}`,

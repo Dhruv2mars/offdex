@@ -2,63 +2,30 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  OFFDEX_NEW_THREAD_ID,
+  claimPairing,
+  extractPairingUri,
+  fetchBridgeHealth,
+  fetchBridgeSnapshot,
+  liveUrlForConnection,
+  normalizeBridgeUrl,
+  parseManagedSession,
+  readLiveSnapshotMessage,
+  resolveManagedConnection,
+  sendBridgeTurn,
+  serializeManagedSession,
+  type BridgeHealth,
+  type ConnectionTransport,
+  type ManagedSession,
+  type OffdexMessage,
+  type OffdexThread,
+  type OffdexWorkspaceSnapshot,
+} from "./web-transport";
+
 type ConnectionState = "idle" | "connecting" | "live" | "offline";
-type RuntimeTarget = "cli" | "desktop";
-type TurnState = "idle" | "running" | "completed" | "failed";
-const OFFDEX_NEW_THREAD_ID = "offdex-new-thread";
-
-type OffdexMessage = {
-  id: string;
-  role: "user" | "assistant" | "system";
-  body: string;
-  createdAt: string;
-};
-
-type OffdexThread = {
-  id: string;
-  title: string;
-  projectLabel: string;
-  runtimeTarget: RuntimeTarget;
-  state: TurnState;
-  unreadCount: number;
-  updatedAt: string;
-  messages: OffdexMessage[];
-};
-
-type OffdexWorkspaceSnapshot = {
-  pairing: {
-    bridgeUrl: string;
-    bridgeHints: string[];
-    macName: string;
-    state: "unpaired" | "paired" | "reconnecting";
-    lastSeenAt: string;
-    runtimeTarget: RuntimeTarget;
-  };
-  capabilityMatrix: {
-    mobile: "expo";
-    web: "next";
-    runtimes: RuntimeTarget[];
-  };
-  threads: OffdexThread[];
-};
-
-type OffdexRuntimeAccount = {
-  id: string | null;
-  email: string | null;
-  name: string | null;
-  planType: string | null;
-  isAuthenticated: boolean;
-};
-
-type BridgeHealth = {
-  ok?: boolean;
-  macName?: string;
-  bridgeMode?: string;
-  codexConnected?: boolean;
-  codexAccount?: OffdexRuntimeAccount | null;
-  liveClientCount?: number;
-  relayConnected?: boolean;
-};
+const STORED_BRIDGE_KEY = "offdex:web:bridge";
+const STORED_SESSION_KEY = "offdex:web:machine-session";
 
 const sampleThreads: OffdexThread[] = [
   {
@@ -86,20 +53,6 @@ const sampleThreads: OffdexThread[] = [
   },
 ];
 
-function normalizeBridgeUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  return trimmed.replace(/\/+$/, "");
-}
-
-function liveUrlForBridge(baseUrl: string) {
-  const url = new URL(baseUrl);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.pathname = "/live";
-  url.search = "";
-  return url.toString();
-}
-
 function formatState(state: ConnectionState) {
   if (state === "live") return "Live";
   if (state === "connecting") return "Connecting";
@@ -116,6 +69,8 @@ function roleLabel(role: OffdexMessage["role"]) {
 export function WebAppClient() {
   const searchParams = useSearchParams();
   const [bridgeUrl, setBridgeUrl] = useState("");
+  const [connectionTarget, setConnectionTarget] = useState("");
+  const [connectionTransport, setConnectionTransport] = useState<ConnectionTransport | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
   const [snapshot, setSnapshot] = useState<OffdexWorkspaceSnapshot | null>(null);
   const [health, setHealth] = useState<BridgeHealth | null>(null);
@@ -134,29 +89,86 @@ export function WebAppClient() {
 
   useEffect(() => {
     const fromUrl = normalizeBridgeUrl(searchParams.get("bridge") ?? "");
+    const fromPairing = searchParams.get("pair") ?? "";
+    const storedSession =
+      typeof window !== "undefined"
+        ? parseManagedSession(window.localStorage.getItem(STORED_SESSION_KEY))
+        : null;
     const fromStorage =
       typeof window !== "undefined"
-        ? normalizeBridgeUrl(window.localStorage.getItem("offdex:web:bridge") ?? "")
+        ? normalizeBridgeUrl(window.localStorage.getItem(STORED_BRIDGE_KEY) ?? "")
         : "";
     const nextBridge = fromUrl || fromStorage || "http://127.0.0.1:42420";
     setBridgeUrl(nextBridge);
-    if (fromUrl) {
+    if (fromPairing) {
+      void connectFromPairing(fromPairing);
+    } else if (fromUrl) {
       void connect(fromUrl);
+    } else if (storedSession) {
+      void connectFromSession(storedSession);
     }
     return () => socketRef.current?.close();
     // Run once on page open; reconnect is user-driven after that.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function fetchJson<T>(url: string, init?: RequestInit) {
-    const response = await fetch(url, init);
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText}`.trim());
+  async function connectFromPairing(pairingUri: string) {
+    setError("");
+    setConnectionState("connecting");
+    socketRef.current?.close();
+
+    try {
+      const claim = await claimPairing(pairingUri);
+      if (!claim) {
+        return connect(bridgeUrl);
+      }
+      window.localStorage.setItem(STORED_SESSION_KEY, serializeManagedSession(claim.session));
+      const resolved = await resolveManagedConnection(claim.session);
+      await connect(resolved.target, {
+        transport: resolved.transport,
+        persistUrl: claim.machines.find((machine) => machine.machineId === claim.session.machineId)?.localBridgeUrl,
+      });
+    } catch (connectError) {
+      setConnectionState("offline");
+      setError(
+        connectError instanceof Error
+          ? `Could not pair this machine: ${connectError.message}`
+          : "Could not pair this machine."
+      );
     }
-    return response.json() as Promise<T>;
   }
 
-  async function connect(target = bridgeUrl) {
+  async function connectFromSession(session: ManagedSession) {
+    setError("");
+    setConnectionState("connecting");
+    socketRef.current?.close();
+
+    try {
+      const resolved = await resolveManagedConnection(session);
+      await connect(resolved.target, { transport: resolved.transport });
+    } catch (connectError) {
+      setConnectionState("offline");
+      setError(
+        connectError instanceof Error
+          ? `Could not reconnect to this machine: ${connectError.message}`
+          : "Could not reconnect to this machine."
+      );
+    }
+  }
+
+  async function connectFromInput() {
+    const pairingUri = extractPairingUri(bridgeUrl);
+    if (pairingUri) {
+      await connectFromPairing(pairingUri);
+      return;
+    }
+    await connect();
+  }
+
+  async function connect(
+    target = bridgeUrl,
+    options?: { transport?: ConnectionTransport; persistUrl?: string }
+  ) {
     const nextBridgeUrl = normalizeBridgeUrl(target);
     if (!nextBridgeUrl) return;
 
@@ -166,30 +178,33 @@ export function WebAppClient() {
 
     try {
       const [nextHealth, nextSnapshot] = await Promise.all([
-        fetchJson<BridgeHealth>(`${nextBridgeUrl}/health`),
-        fetchJson<OffdexWorkspaceSnapshot>(`${nextBridgeUrl}/snapshot`),
+        fetchBridgeHealth(nextBridgeUrl),
+        fetchBridgeSnapshot(nextBridgeUrl),
       ]);
+      const displayBridgeUrl =
+        options?.persistUrl ?? (options?.transport === "relay" ? bridgeUrl : nextBridgeUrl);
 
-      window.localStorage.setItem("offdex:web:bridge", nextBridgeUrl);
+      if (displayBridgeUrl) {
+        window.localStorage.setItem(STORED_BRIDGE_KEY, displayBridgeUrl);
+      }
       startTransition(() => {
-        setBridgeUrl(nextBridgeUrl);
+        setBridgeUrl(displayBridgeUrl || nextBridgeUrl);
+        setConnectionTarget(nextBridgeUrl);
+        setConnectionTransport(options?.transport ?? "local");
         setHealth(nextHealth);
         setSnapshot(nextSnapshot);
         setSelectedThreadId(nextSnapshot.threads[0]?.id ?? "");
         setConnectionState("live");
       });
 
-      const socket = new WebSocket(liveUrlForBridge(nextBridgeUrl));
+      const socket = new WebSocket(liveUrlForConnection(nextBridgeUrl));
       socketRef.current = socket;
       socket.onmessage = (event) => {
-        const payload = JSON.parse(event.data as string) as {
-          type?: string;
-          data?: OffdexWorkspaceSnapshot;
-        };
-        if (payload.type === "workspace.snapshot" && payload.data) {
+        const nextSnapshot = readLiveSnapshotMessage(nextBridgeUrl, event.data as string);
+        if (nextSnapshot) {
           startTransition(() => {
-            setSnapshot(payload.data ?? null);
-            setSelectedThreadId((current) => current || payload.data?.threads[0]?.id || "");
+            setSnapshot(nextSnapshot);
+            setSelectedThreadId((current) => current || nextSnapshot.threads[0]?.id || "");
           });
         }
       };
@@ -198,6 +213,8 @@ export function WebAppClient() {
       };
     } catch (connectError) {
       setConnectionState("offline");
+      setConnectionTarget("");
+      setConnectionTransport(null);
       setError(
         connectError instanceof Error
           ? `Could not connect to ${nextBridgeUrl}: ${connectError.message}`
@@ -214,19 +231,12 @@ export function WebAppClient() {
     setError("");
 
     try {
-      const result = await fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(
-        `${bridgeUrl}/turn`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            threadId:
-              selectedThreadId === OFFDEX_NEW_THREAD_ID
-                ? OFFDEX_NEW_THREAD_ID
-                : selectedThread?.id ?? OFFDEX_NEW_THREAD_ID,
-            body,
-          }),
-        }
+      const result = await sendBridgeTurn(
+        connectionTarget || bridgeUrl,
+        selectedThreadId === OFFDEX_NEW_THREAD_ID
+          ? OFFDEX_NEW_THREAD_ID
+          : selectedThread?.id ?? OFFDEX_NEW_THREAD_ID,
+        body
       );
       startTransition(() => {
         setSnapshot(result.snapshot);
@@ -276,21 +286,21 @@ export function WebAppClient() {
             </span>
           </div>
 
-          <label className="mt-5 block text-xs font-medium text-muted-foreground" htmlFor="bridge-url">
-            Bridge URL
+          <label className="mt-5 block text-xs font-medium text-muted-foreground" htmlFor="machine-link">
+            Machine link
           </label>
           <div className="mt-2 flex gap-2">
             <input
-              id="bridge-url"
+              id="machine-link"
               value={bridgeUrl}
               onChange={(event) => setBridgeUrl(event.target.value)}
               className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/35 px-3 py-2.5 font-mono text-xs text-foreground outline-none transition focus:border-brand/60"
-              placeholder="http://127.0.0.1:42420"
+              placeholder="Paste the QR link or local bridge address"
             />
             <button
               className="rounded-2xl bg-brand px-4 text-sm font-semibold text-black transition hover:bg-brand-soft disabled:opacity-50"
               disabled={connectionState === "connecting"}
-              onClick={() => void connect()}
+              onClick={() => void connectFromInput()}
               type="button"
             >
               Connect
@@ -307,8 +317,10 @@ export function WebAppClient() {
               <p className="mt-1 font-semibold">{codexReady ? "Ready" : "Sign in"}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
-              <p className="text-muted-foreground">Clients</p>
-              <p className="mt-1 font-semibold">{health?.liveClientCount ?? 0}</p>
+              <p className="text-muted-foreground">Path</p>
+              <p className="mt-1 font-semibold">
+                {connectionTransport === "relay" ? "Remote" : connectionTransport === "local" ? "Local" : "None"}
+              </p>
             </div>
           </div>
         </div>
