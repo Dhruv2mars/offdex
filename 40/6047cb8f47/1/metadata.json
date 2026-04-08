@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "406047cb8f47",
+  "session_id": "019d6cbc-c6bb-7a51-9e65-9ebfdba6cc6f",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T11:16:20.054747Z",
+  "branch": "feat/design-md-frontend-refactor",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/app/page.tsx",
+    "apps/web/app/webui/page.tsx",
+    "apps/web/app/webui/web-app-client.tsx",
+    "apps/web/app/architecture/page.tsx",
+    "apps/web/app/globals.css",
+    "apps/web/app/install-command.tsx",
+    "apps/web/app/layout.tsx"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "81320c16ab5e",
+  "checkpoint_transcript_start": 320,
+  "transcript_lines_at_start": 320,
+  "token_usage": {
+    "input_tokens": 3090453,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3071104,
+    "output_tokens": 11763,
+    "api_call_count": 15
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T11:16:18.214144Z",
+    "agent_lines": 0,
+    "human_added": 11,
+    "human_modified": 257,
+    "human_removed": 0,
+    "total_committed": 11,
+    "agent_percentage": 0
+  }
+}
