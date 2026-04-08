@@ -5,7 +5,15 @@
   "branch": "feat/expressive-offdex-cli",
   "checkpoints_count": 1,
   "files_touched": [
-    "packages/npm/bin/install.js"
+    "packages/bridge/src/cli-lib.ts",
+    "packages/bridge/src/cli.ts",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/cli-lib.test.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/npm/bin/install.js",
+    "packages/npm/bin/offdex.js",
+    "packages/npm/test/install-lib.test.js",
+    "packages/npm/test/offdex-lib.test.js"
   ],
   "sessions": [
     {
@@ -13,6 +21,19 @@
       "transcript": "/59/78e536f027/0/full.jsonl",
       "content_hash": "/59/78e536f027/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/59/78e536f027/1/metadata.json",
+      "transcript": "/59/78e536f027/1/full.jsonl",
+      "content_hash": "/59/78e536f027/1/content_hash.txt",
+      "prompt": "/59/78e536f027/1/prompt.txt"
     }
-  ]
+  ],
+  "token_usage": {
+    "input_tokens": 2856045,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2695552,
+    "output_tokens": 20825,
+    "api_call_count": 38
+  }
 }

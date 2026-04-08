@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "5978e536f027",
+  "session_id": "019d6da8-9bf3-7a31-8b8d-1d4705dbf464",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T15:25:35.651503Z",
+  "branch": "feat/expressive-offdex-cli",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/test/cli-lib.test.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/npm/test/offdex-lib.test.js",
+    "packages/bridge/src/cli-lib.ts",
+    "packages/bridge/src/cli.ts",
+    "packages/bridge/src/index.ts",
+    "packages/npm/bin/offdex.js",
+    "packages/npm/bin/install.js",
+    "packages/npm/test/install-lib.test.js"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "337c1a10c679",
+  "token_usage": {
+    "input_tokens": 2856045,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2695552,
+    "output_tokens": 20825,
+    "api_call_count": 38
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T15:25:35.410918Z",
+    "agent_lines": 247,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 247,
+    "agent_percentage": 100
+  }
+}
