@@ -17,6 +17,12 @@ export default function Home() {
           </Link>
           <nav className="flex items-center gap-6 text-[14px] font-medium">
             <a
+              href="#architecture"
+              className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md"
+            >
+              Architecture
+            </a>
+            <a
               href="https://github.com/Dhruv2mars/offdex"
               target="_blank"
               rel="noopener noreferrer"
@@ -69,17 +75,28 @@ export default function Home() {
               </div>
             </div>
             <div className="p-5 md:p-6 font-mono text-[14px] leading-[1.8] h-[340px] md:h-[460px]">
-              <p className="text-muted-foreground">$ npm install -g @dhruv2mars/offdex</p>
-              <p className="mt-3 text-muted-foreground">$ offdex start</p>
-              <p className="mt-3 text-foreground font-semibold">● Bridge started on port 42420</p>
+              <p className="text-foreground flex items-center gap-[1ch]">
+                <span>$</span>
+                <span className="inline-flex h-[1.4em] overflow-hidden">
+                  <span className="animate-pkg-scroll flex flex-col">
+                    <span className="flex h-[1.4em] items-center">npm</span>
+                    <span className="flex h-[1.4em] items-center">bun</span>
+                    <span className="flex h-[1.4em] items-center">pnpm</span>
+                    <span className="flex h-[1.4em] items-center">npm</span>
+                  </span>
+                </span>
+                <span>install -g @dhruv2mars/offdex</span>
+              </p>
+              <p className="mt-4 text-foreground">$ offdex start</p>
+              <p className="mt-4 text-foreground">Bridge started on port 42420</p>
               <p className="text-[#0a72ef]">Waiting for client connection...</p>
               <p className="mt-4 text-[#27c93f]">✓ Client connected: Mobile App (iOS)</p>
               <p className="text-muted-foreground">Synchronizing local context tree...</p>
               <p className="text-muted-foreground">Establishing encrypted relay fallback tunnel...</p>
               <p className="text-[#27c93f]">✓ Tunnel active</p>
-              <p className="text-foreground mt-4">Processing context snapshot...</p>
+              <p className="mt-4 text-muted-foreground">Processing context snapshot...</p>
               <div className="mt-4 flex items-center gap-2 text-muted-foreground">
-                <span className="inline-block h-[16px] w-[10px] animate-pulse bg-foreground" />
+                <span className="inline-block h-[16px] w-[10px] animate-blink bg-foreground" />
               </div>
             </div>
           </div>
@@ -94,7 +111,7 @@ export default function Home() {
                 </div>
                 
                 {/* Phone Screen UI */}
-                <div className="flex h-full flex-col p-4 md:p-5 pt-12">
+                <div className="flex h-full flex-col p-4 md:p-5 pt-20 md:pt-24">
                   <div className="flex items-center justify-between rounded-[10px] bg-background p-3 shadow-border">
                     <div>
                       <p className="text-[12px] md:text-[13px] font-semibold text-foreground">Active Session</p>
@@ -120,58 +137,73 @@ export default function Home() {
       </section>
 
       {/* The Workflow Pipeline */}
-      <section className="mx-auto w-full max-w-[1200px] border-t border-[#ebebeb] px-6 py-24 md:px-8 md:py-32">
+      <section
+        id="architecture"
+        className="mx-auto w-full max-w-[1200px] border-t border-[#ebebeb] px-6 py-24 md:px-8 md:py-32"
+      >
         <div className="grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
           
           {/* Step 1: Install */}
-          <div className="relative">
-            <div className="mb-6 flex items-center gap-3">
+          <div className="relative group">
+            <div className="mb-6 flex items-center gap-4">
               <span className="flex h-[28px] items-center rounded-full bg-[#ebf5ff] px-3 font-mono text-[12px] font-semibold text-[#0a72ef]">01</span>
               <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Install Bridge</h3>
+              <div className="hidden h-[1px] flex-1 border-t border-dashed border-[#ebebeb] md:block" />
             </div>
             <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
               Get the CLI. The native bridge runs directly on your Mac, owning Codex authentication and executing commands securely.
             </p>
-            <div className="rounded-[8px] bg-[#fafafa] p-4 font-mono text-[13px] text-foreground shadow-border">
+            <div className="flex h-[64px] items-center rounded-[8px] bg-[#fafafa] px-4 font-mono text-[13px] text-foreground shadow-border transition-colors hover:bg-[#f5f5f5]">
               <span className="select-none text-[#0a72ef]">$ </span>
-              npm i -g @dhruv2mars/offdex
+              <span className="ml-2 flex items-center gap-[1ch]">
+                <span className="inline-flex h-[1.4em] overflow-hidden text-[#0a72ef]">
+                  <span className="animate-pkg-scroll flex flex-col">
+                    <span className="flex h-[1.4em] items-center">npm</span>
+                    <span className="flex h-[1.4em] items-center">bun</span>
+                    <span className="flex h-[1.4em] items-center">pnpm</span>
+                    <span className="flex h-[1.4em] items-center">npm</span>
+                  </span>
+                </span>
+                <span>i -g @dhruv2mars/offdex</span>
+              </span>
             </div>
-            <div className="absolute left-[180px] top-[14px] hidden w-[calc(100%-160px)] border-t border-dashed border-[#ebebeb] md:block" />
           </div>
 
           {/* Step 2: Start */}
-          <div className="relative">
-            <div className="mb-6 flex items-center gap-3">
+          <div className="relative group">
+            <div className="mb-6 flex items-center gap-4">
               <span className="flex h-[28px] items-center rounded-full bg-[#fff0f7] px-3 font-mono text-[12px] font-semibold text-[#de1d8d]">02</span>
               <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Start Relay</h3>
+              <div className="hidden h-[1px] flex-1 border-t border-dashed border-[#ebebeb] md:block" />
             </div>
             <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
               Initiate the local network bridge. Fallback instantly to the encrypted Cloudflare tunnel when leaving home.
             </p>
-            <div className="rounded-[8px] bg-[#fafafa] p-4 font-mono text-[13px] text-foreground shadow-border">
+            <div className="flex h-[64px] items-center rounded-[8px] bg-[#fafafa] px-4 font-mono text-[13px] text-foreground shadow-border transition-colors hover:bg-[#f5f5f5]">
               <span className="select-none text-[#de1d8d]">$ </span>
-              offdex start
+              <span className="ml-2">offdex start</span>
             </div>
-            <div className="absolute left-[160px] top-[14px] hidden w-[calc(100%-140px)] border-t border-dashed border-[#ebebeb] md:block" />
           </div>
 
           {/* Step 3: Pair */}
-          <div className="relative">
-            <div className="mb-6 flex items-center gap-3">
+          <div className="relative group">
+            <div className="mb-6 flex items-center gap-4">
               <span className="flex h-[28px] items-center rounded-full bg-[#ffefe5] px-3 font-mono text-[12px] font-semibold text-[#ff5b4f]">03</span>
               <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Pair Client</h3>
             </div>
             <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
               Scan the QR code to trust your mobile phone or web browser. Once trusted, re-connect automatically.
             </p>
-            <div className="flex items-center gap-4 rounded-[8px] bg-[#fafafa] p-4 font-mono text-[13px] text-foreground shadow-border">
-              <div className="grid h-[30px] w-[30px] grid-cols-2 gap-1 rounded-[4px] bg-background p-1 shadow-border">
-                <div className="rounded-[1px] bg-[#ff5b4f]" />
-                <div className="rounded-[1px] bg-foreground" />
-                <div className="rounded-[1px] bg-foreground" />
-                <div className="rounded-[1px] bg-[#ff5b4f]" />
+            <div className="flex h-[64px] items-center gap-4 rounded-[8px] bg-[#fafafa] px-4 shadow-border transition-colors hover:bg-[#f5f5f5]">
+              <div className="grid h-9 w-9 place-items-center rounded-[6px] bg-background shadow-border">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                  <path d="M3 14h7v7H3z" />
+                </svg>
               </div>
-              <span className="text-muted-foreground">Device connected.</span>
+              <span className="font-mono text-[13px] text-foreground">Securely paired</span>
             </div>
           </div>
 
