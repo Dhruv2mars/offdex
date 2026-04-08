@@ -21,6 +21,10 @@ Use Bun unless a package script explicitly uses Node.
 
 Write TypeScript for app and package source. Follow existing formatting: two-space JSON indentation, lowercase kebab-case filenames such as `bridge-client.ts`, and PascalCase React components only where component exports require it. Prefer workspace imports like `@offdex/protocol` over relative cross-package paths. Keep environment-specific values behind documented `OFFDEX_*` variables.
 
+## Design System
+
+Root `DESIGN.md` is the strict design authority for all future frontend work. Follow it over previous Offdex visual direction unless the user explicitly changes the design system. Do not refactor existing web or mobile surfaces solely to match `DESIGN.md` until the user asks for that frontend redesign.
+
 ## Testing Guidelines
 
 Most workspaces use `bun test`; `packages/npm` uses Node's built-in test runner. Name tests `*.test.ts` or `*.test.js` and place them in the nearest `test/` directory. Add tests for protocol, pairing, CLI, installer, and routing behavior before changing implementation. After fixes, run the targeted workspace test and then `bun run test` when practical.
