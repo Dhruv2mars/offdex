@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "8468895e8ad7",
+  "strategy": "manual-commit",
+  "branch": "feat/design-md-frontend-refactor",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/mobile/tsconfig.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/84/68895e8ad7/0/metadata.json",
+      "transcript": "/84/68895e8ad7/0/full.jsonl",
+      "content_hash": "/84/68895e8ad7/0/content_hash.txt",
+      "prompt": "/84/68895e8ad7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 470339208,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 454053504,
+    "output_tokens": 1436561,
+    "api_call_count": 3546
+  }
+}
