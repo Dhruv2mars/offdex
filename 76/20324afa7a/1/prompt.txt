@@ -30,3 +30,7 @@ ok, so webui is done. is the below things also done fully and completely:
 - mobile app
 
 if not then do it, if yes, then do the end to end testing of the complete product just like a user. full workflow from start to end. you would only need me during the scanning of the qr in the terminal. tell me when you need it, ill do it. for mobile app, do the testing first on my phone via adb.
+
+---
+
+yeah, you have full permission to do anything and everything you want to achieve the goal. go ahead
