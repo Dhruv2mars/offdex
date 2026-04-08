@@ -1,0 +1,67 @@
+ok, from the last message, a lot has been changed in the project. i would like you to look at the entire codebase, the commits that have happened. based on that, we can now move forward.
+
+---
+
+ok, we will wait for the build to finish, in meantime we will move forward to do more things. 
+
+now, we will take progress step by step. first, focusing on perfecting the CLI!
+
+run the cli workflow, from installing it to using it. see what parts are currently not working if any. and focus on what can be improved and made better. one thing that i noticed yesterday was, it was taking too much time to install 57mb runtime, basically, overall performance.
+
+---
+
+ok, this is a progress, good. but one thing that i have noticed is, our iteration speed it quite low. we have to wait so much for the builds to pass. i mean, its better that we do iterations locally and when we have to ship, then only we do builds and passes.
+
+---
+
+ok, our current focus is to make the cli best of the best. i uninstalled and reinstalled it to check the experience. here is my thoughts:
+- install is quick, thanks to bun. 
+- post install, when i do offdex, it opens the help screen. that we need to fix. 
+- when i do offdex bridge, then it installs the runtime binary and open the qr screen. 
+- upon doing just offdex, it should open the onboarding screen. like you know, a better ux for a first time user. for help, it should be --help. 
+- change the naming of offdex brige, it should be something on the lines of start, stop, status, etc. 
+- the cli is something which has to be the most performant and have the best ux of all things. as this is thefirst thing users will do, it has to be the best ux. 
+
+revamp the UX !!!!
+
+---
+
+few refactors/changes:
+
+- first is the install cmd, that is great. no change there. 
+- then the user runs offdex. it opens the homepage kind of thing. its a onboarding flow for the first time user. shows what offdex is, how to use it, cmds, etc. like a onboarding flow/homepage. for a reccuring user, it will show the similar thing, meaning, its just static content. you get it what i mean to say here, right?
+- there are in total 5 cmds: 
+1. offdex. it opens that homepage. 
+2. offdex help, for help section. it incl cmds, docs link, github, feedback/issue, etc. 
+3. offdex start, it opens the bridge. the qr is shown. 
+4. offdex stop, to stop the running bridge. 
+5. offdex status, shows the bridges running, the clients connected to them, and that sorts of telemetry/info. 
+
+- each of these cmds have to be extremely good in terms of ux and performance. make sure it shows the relevant and important info. no jargon. make sure its clean. make the UI of it great as well, include animations, etc stuff which will give the CLI a character and a liveliness. but make sure that it doesnt slow it down or make it less performant. it has to be bug free as well. 
+
+do all this. whatever you feel is missing, you should fill that in yourself. since you are a great design and product engineer, i expect a perfection and detailed oriented work from you!
+
+---
+
+if i have to test it, how do i do that? without doing the release yet.
+
+---
+
+run it yourself and see if everything works perfectly as we wanted it to work.
+
+---
+
+more things to do:
+- when a user starts. it should show the qr in square ratio, its currently not square. 
+- it should be minimal with only relevant info. not too much info. 
+- even if user do ctrl+C the bridge should keep on. this way, even if the terminal is turned off, it will be still working.
+
+---
+
+is the new cli version released? do it. 
+
+also, make our dev workflow such that, if we have changed or updated the cli, then the builds and test should be for cli only, why does android have to go through all of that even if it has no changes.
+
+---
+
+divide the workflow in such a way where the build and test actions during publish only occurs to the ones that have been changed. like it should be in 3 terms: web, mobile, and cli.
