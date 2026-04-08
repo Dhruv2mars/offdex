@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "372de37b09bb",
+  "strategy": "manual-commit",
+  "branch": "feat/webui-route",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/37/2de37b09bb/0/metadata.json",
+      "transcript": "/37/2de37b09bb/0/full.jsonl",
+      "content_hash": "/37/2de37b09bb/0/content_hash.txt",
+      "prompt": "/37/2de37b09bb/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 454455772,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 438437504,
+    "output_tokens": 1412283,
+    "api_call_count": 3435
+  }
+}
