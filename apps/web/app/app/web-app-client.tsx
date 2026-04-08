@@ -2,15 +2,53 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  OFFDEX_NEW_THREAD_ID,
-  type OffdexMessage,
-  type OffdexRuntimeAccount,
-  type OffdexThread,
-  type OffdexWorkspaceSnapshot,
-} from "@offdex/protocol";
-
 type ConnectionState = "idle" | "connecting" | "live" | "offline";
+type RuntimeTarget = "cli" | "desktop";
+type TurnState = "idle" | "running" | "completed" | "failed";
+const OFFDEX_NEW_THREAD_ID = "offdex-new-thread";
+
+type OffdexMessage = {
+  id: string;
+  role: "user" | "assistant" | "system";
+  body: string;
+  createdAt: string;
+};
+
+type OffdexThread = {
+  id: string;
+  title: string;
+  projectLabel: string;
+  runtimeTarget: RuntimeTarget;
+  state: TurnState;
+  unreadCount: number;
+  updatedAt: string;
+  messages: OffdexMessage[];
+};
+
+type OffdexWorkspaceSnapshot = {
+  pairing: {
+    bridgeUrl: string;
+    bridgeHints: string[];
+    macName: string;
+    state: "unpaired" | "paired" | "reconnecting";
+    lastSeenAt: string;
+    runtimeTarget: RuntimeTarget;
+  };
+  capabilityMatrix: {
+    mobile: "expo";
+    web: "next";
+    runtimes: RuntimeTarget[];
+  };
+  threads: OffdexThread[];
+};
+
+type OffdexRuntimeAccount = {
+  id: string | null;
+  email: string | null;
+  name: string | null;
+  planType: string | null;
+  isAuthenticated: boolean;
+};
 
 type BridgeHealth = {
   ok?: boolean;
