@@ -9,11 +9,11 @@ function cleanReleaseBody(body: string) {
 
   let cleaned = body
     // Remove "Full Changelog" section completely
-    .replace(/\*\*Full Changelog\*\*:.*$/is, "")
+    .replace(/\*\*Full Changelog\*\*:[\s\S]*$/i, "")
     // Remove "What's Changed" heading as it is redundant
     .replace(/## What's Changed\n/g, "")
     // Remove "New Contributors" section
-    .replace(/## New Contributors.*$/is, "")
+    .replace(/## New Contributors[\s\S]*$/i, "")
     // Strip contributor mentions ("by @username")
     .replace(/\s*by @[\w-]+\s*/g, " ")
     // Strip PR numbers ("in #123" or "(#123)")
@@ -170,12 +170,12 @@ export default async function ChangelogPage() {
                         {release.title}
                       </h2>
                       {release.isPrerelease ? (
-                        <span className="rounded-full bg-[#fafafa] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#de1d8d] shadow-border">
+                        <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#de1d8d] shadow-border">
                           Prerelease
                         </span>
                       ) : null}
                       {isLatest ? (
-                        <span className="rounded-full bg-[#fafafa] px-[10px] py-[2px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] shadow-border">
+                        <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] shadow-border">
                           Latest
                         </span>
                       ) : null}
@@ -219,7 +219,7 @@ export default async function ChangelogPage() {
               href={githubReleasesUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-8 inline-flex rounded-[6px] bg-foreground px-5 py-[10px] text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
+              className="mt-8 inline-flex rounded-[6px] bg-foreground px-6 py-[12px] text-[15px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
             >
               Go to GitHub
             </a>
