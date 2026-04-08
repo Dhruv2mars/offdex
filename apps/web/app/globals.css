@@ -118,9 +118,9 @@ a {
 
 @keyframes pkg-scroll {
   0%, 25% { transform: translateY(0); }
-  33.33%, 58.33% { transform: translateY(-25%); }
-  66.66%, 91.66% { transform: translateY(-50%); }
-  100% { transform: translateY(-75%); }
+  33.33%, 58.33% { transform: translateY(-1.4em); }
+  66.66%, 91.66% { transform: translateY(-2.8em); }
+  100% { transform: translateY(-4.2em); }
 }
 
 .animate-fade-in {
