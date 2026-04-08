@@ -1,0 +1,1 @@
+ok, from the last message, a lot has been changed in the project. i would like you to look at the entire codebase, the commits that have happened. based on that, we can now move forward.

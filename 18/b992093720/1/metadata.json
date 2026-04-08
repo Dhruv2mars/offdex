@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "18b992093720",
+  "session_id": "019d6b78-7559-7c91-aadb-0ba8bbb780ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T05:11:09.427027Z",
+  "branch": "fix/product-link-drift",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "README.md",
+    "apps/web/app/page.tsx",
+    "apps/web/app/site-content.ts",
+    "apps/web/test/site-content.test.ts",
+    ".github/workflows/release.yml",
+    "packages/npm/test/release-contract.test.js",
+    "apps/web/app/site-content.ts",
+    "apps/web/app/page.tsx",
+    "apps/mobile/app/(tabs)/machines.tsx",
+    "apps/mobile/app/pair.tsx",
+    "README.md",
+    ".github/workflows/release.yml",
+    "apps/web/test/site-content.test.ts",
+    "packages/npm/test/release-contract.test.js"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "c37d7bb7f498",
+  "token_usage": {
+    "input_tokens": 313983088,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 300771072,
+    "output_tokens": 1147338,
+    "api_call_count": 2469
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T05:10:51.712361Z",
+    "agent_lines": 44,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 44,
+    "agent_percentage": 100
+  }
+}
