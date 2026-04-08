@@ -8,79 +8,70 @@ import { TerminalBlock } from "../../components/terminal-block";
 export default function DownloadPage() {
   return (
     <main className="flex-1 pb-32">
-      <section className="mx-auto w-full max-w-[800px] px-6 pt-24 pb-16 md:px-8 md:pt-32">
-        <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.92px] md:text-[56px] md:tracking-[-2.4px]">
-          Download
-        </h1>
-        <p className="mt-5 text-[18px] leading-[1.6] text-muted-foreground">
-          Install the CLI on your host machine, then get the mobile app to connect.
-        </p>
+      {/* Hero Section */}
+      <section className="relative mx-auto w-full max-w-[1200px] overflow-hidden px-6 pt-24 pb-12 text-center md:px-8 md:pt-32">
+        <div className="animate-fade-in relative z-10 mx-auto max-w-[900px]">
+          <h1 className="text-[56px] font-semibold leading-[1.05] tracking-[-2.4px] md:text-[76px] md:tracking-[-2.88px] lg:text-[88px]">
+            Download <br className="hidden md:block" /> Offdex.
+          </h1>
+          <p className="mx-auto mt-6 max-w-[600px] text-[18px] leading-[1.6] text-muted-foreground md:text-[20px]">
+            Install the CLI on your host machine, then get the mobile app to connect from anywhere.
+          </p>
+        </div>
+      </section>
 
-        <div className="mt-12 grid gap-6">
-          {/* Bridge CLI */}
-          <div className="flex flex-col gap-6 rounded-[12px] bg-background p-6 shadow-card md:p-8">
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ebf5ff] shadow-border">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a72ef" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="4 17 10 11 4 5" />
-                  <line x1="12" y1="19" x2="20" y2="19" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-[20px] font-semibold tracking-[-0.8px] text-foreground">Bridge CLI</h2>
-                <p className="text-[14px] text-muted-foreground">macOS, Windows, Linux</p>
-              </div>
+      {/* Download Actions */}
+      <section className="mx-auto w-full max-w-[800px] px-6 md:px-8">
+        <div className="animate-fade-in-delay relative z-10 flex flex-col items-center">
+          
+          {/* 1. Bridge CLI */}
+          <div className="w-full max-w-[640px] mb-16 md:mb-24">
+            <div className="mb-6 flex items-center justify-center gap-3">
+              <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-[#0a72ef] bg-[#ebf5ff] shadow-border">
+                macOS / Linux / Windows
+              </span>
             </div>
             <TerminalBlock command={cliInstallCommand} />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Android */}
-            <div className="flex flex-col rounded-[12px] bg-background p-6 shadow-card md:p-8">
-              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-[#fff0f7] shadow-border">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#de1d8d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                  <line x1="12" y1="18" x2="12.01" y2="18" />
-                </svg>
-              </div>
-              <h2 className="text-[20px] font-semibold tracking-[-0.8px] text-foreground">Android</h2>
-              <p className="mt-2 text-[15px] leading-[1.6] text-muted-foreground">
-                Download the latest signed APK directly to your device.
-              </p>
-              <div className="mt-8 flex flex-1 flex-col justify-end">
-                <a
-                  href={androidApkDownloadUrl}
-                  className="flex w-full items-center justify-center rounded-[6px] bg-foreground px-4 py-[10px] text-[14px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
-                >
-                  Download APK
-                </a>
-              </div>
+          {/* 2. Mobile Apps */}
+          <div className="w-full max-w-[640px] border-t border-[#ebebeb] pt-16 md:pt-24 text-center">
+            <div className="mb-8 flex items-center justify-center gap-3">
+              <span className="flex items-center rounded-full px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-[#fafafa] shadow-border">
+                Mobile Clients
+              </span>
             </div>
-
-            {/* iOS */}
-            <div className="flex flex-col rounded-[12px] bg-background p-6 shadow-card md:p-8">
-              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-[#ffefe5] shadow-border">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff5b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z" />
-                  <path d="M10 2c1 .5 2 2 2 5" />
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a
+                href={androidApkDownloadUrl}
+                className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-[6px] bg-foreground px-8 py-[14px] text-[15px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-              </div>
-              <h2 className="text-[20px] font-semibold tracking-[-0.8px] text-foreground">iOS Beta</h2>
-              <p className="mt-2 text-[15px] leading-[1.6] text-muted-foreground">
-                Build locally from source. Public TestFlight coming soon.
-              </p>
-              <div className="mt-8 flex flex-1 flex-col justify-end">
-                <a
-                  href={`${githubRepoUrl}/tree/main/apps/mobile`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center rounded-[6px] bg-[#fafafa] px-4 py-[10px] text-[14px] font-medium text-foreground shadow-border transition-colors hover:bg-[#f5f5f5] focus-ring"
-                >
-                  View Source
-                </a>
-              </div>
+                Download Android APK
+              </a>
+              
+              <a
+                href={`${githubRepoUrl}/tree/main/apps/mobile`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-[6px] bg-background px-8 py-[14px] text-[15px] font-medium text-foreground shadow-border transition-colors hover:bg-[#fafafa] focus-ring"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                </svg>
+                View iOS Source
+              </a>
             </div>
+            <p className="mt-8 text-[14px] text-muted-foreground">
+              The native iOS app exists in the repo. Public TestFlight coming soon.
+            </p>
           </div>
+
         </div>
       </section>
     </main>
