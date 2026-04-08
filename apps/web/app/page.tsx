@@ -1,144 +1,255 @@
 import Link from "next/link";
 import {
   androidApkDownloadUrl,
-  bridgeStartCommand,
-  cliInstallCommand,
   githubReleasesUrl,
   webAppUrl,
 } from "./site-content";
-import { InstallCommand } from "./install-command";
-
-const commandMap = [
-  ["01", "Mac bridge", "Owns Codex auth, threads, runtime state, and the live stream."],
-  ["02", "Trusted clients", "Phone and browser connect as thin controls, not shadow runtimes."],
-  ["03", "Relay fallback", "Local first nearby, encrypted relay only when the client is away."],
-] as const;
-
-const runModes = [
-  ["Run", "Send the next turn to the Mac session already doing the work.", "text-develop"],
-  ["Trust", "Pair once with QR, then reconnect through the trusted machine record.", "text-preview"],
-  ["Control", "Switch runtime target, clear local trust, or open project support.", "text-ship"],
-] as const;
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-20 bg-background/90 shadow-border backdrop-blur">
-        <div className="mx-auto grid h-16 w-full max-w-7xl grid-cols-[1fr_auto] items-center px-5 md:px-8">
-          <Link className="focus-ring flex w-fit items-center gap-3 rounded-md" href="/">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-foreground text-sm font-semibold text-background">
-              O
-            </span>
-            <span className="text-sm font-semibold">Offdex</span>
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 bg-background/80 shadow-border backdrop-blur-md">
+        <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6 md:px-8">
+          <Link href="/" className="flex items-center gap-3 rounded-md focus-ring">
+            <img src="/logo.svg" alt="Offdex Logo" className="h-8 w-8" />
+            <span className="font-semibold tracking-[-0.32px]">Offdex</span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
-            <Link className="focus-ring rounded-md hover:text-foreground" href={webAppUrl}>
-              Open app
-            </Link>
-            <Link className="focus-ring rounded-md hover:text-foreground" href="/architecture">
-              Signal path
-            </Link>
+          <nav className="flex items-center gap-6 text-[14px] font-medium">
+            <a
+              href="https://github.com/Dhruv2mars/offdex"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-md"
+            >
+              <span className="sr-only">GitHub</span>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z" />
+              </svg>
+            </a>
           </nav>
         </div>
       </header>
 
-      <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl gap-5 px-5 py-6 md:grid-cols-[280px_minmax(0,1fr)] md:px-8">
-        <aside className="hidden rounded-lg bg-card p-4 shadow-card md:block">
-          <div className="rounded-md bg-foreground p-4 text-background">
-            <p className="font-mono text-xs uppercase text-background/60">Offdex</p>
-            <p className="mt-10 text-3xl font-semibold tracking-[-0.96px]">Run Codex from the closest screen.</p>
+      {/* Hero Section */}
+      <section className="relative mx-auto w-full max-w-[1200px] overflow-hidden px-6 pt-24 pb-20 text-center md:px-8 md:pt-32 md:pb-24">
+        <div className="animate-fade-in relative z-10 mx-auto max-w-[900px]">
+          <h1 className="text-[56px] font-semibold leading-[1.05] tracking-[-2.4px] md:text-[76px] md:tracking-[-2.88px] lg:text-[88px]">
+            The Codex <br className="hidden md:block" /> Mobile App.
+          </h1>
+          <p className="mx-auto mt-6 max-w-[600px] text-[18px] leading-[1.6] text-muted-foreground md:text-[20px]">
+            A remote control for your local Codex runtime. Keep Codex working on your Mac, and control it from anywhere.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href={githubReleasesUrl}
+              className="rounded-[6px] bg-foreground px-6 py-[12px] text-[15px] font-medium text-background transition-colors hover:bg-[#333333] focus-ring"
+            >
+              Install CLI
+            </a>
+            <a
+              href={androidApkDownloadUrl}
+              className="rounded-[6px] bg-background px-6 py-[12px] text-[15px] font-medium text-foreground shadow-border transition-colors hover:bg-[#fafafa] focus-ring"
+            >
+              Install Mobile App
+            </a>
           </div>
-          <div className="mt-4 space-y-2">
-            {runModes.map(([title, body, color]) => (
-              <div className="rounded-lg bg-background p-4 shadow-border" key={title}>
-                <p className={`font-mono text-xs font-medium ${color}`}>{title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
-              </div>
-            ))}
-          </div>
-        </aside>
+        </div>
 
-        <div className="grid content-start gap-5">
-          <section className="rounded-lg bg-card p-5 shadow-card md:p-8">
-            <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_360px]">
-              <div>
-                <p className="font-mono text-xs font-medium uppercase text-muted-foreground">
-                  Start from the bridge.
-                </p>
-                <h1 className="mt-5 max-w-3xl text-5xl font-semibold leading-none tracking-[-2.4px] md:text-6xl">
-                  Codex stays on the Mac. Control moves with you.
-                </h1>
-                <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-                  Offdex turns your phone and browser into trusted controls for the same live Codex session.
-                </p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link
-                    className="focus-ring rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition hover:bg-[#333333]"
-                    href={webAppUrl}
-                  >
-                    Open control
-                  </Link>
-                  <a
-                    className="focus-ring rounded-md bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-border transition hover:bg-muted"
-                    href={androidApkDownloadUrl}
-                  >
-                    Install Android
-                  </a>
-                  <a
-                    className="focus-ring rounded-md bg-background px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-border transition hover:text-foreground"
-                    href={githubReleasesUrl}
-                  >
-                    Releases
-                  </a>
+        {/* Visual / Art Component */}
+        <div className="animate-fade-in-delay relative mx-auto mt-16 w-full max-w-[1000px] h-[420px] md:mt-24 md:h-[540px] pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]">
+          
+          {/* Mac Terminal Window */}
+          <div className="absolute left-1/2 top-0 z-10 w-[95%] max-w-[760px] -translate-x-1/2 overflow-hidden rounded-[16px] bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.15)] text-left">
+            <div className="flex h-12 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-5">
+              <div className="flex gap-2">
+                <div className="h-3 w-3 rounded-full bg-[#ff5f56]" />
+                <div className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
+                <div className="h-3 w-3 rounded-full bg-[#27c93f]" />
+              </div>
+            </div>
+            <div className="p-5 md:p-6 font-mono text-[14px] leading-[1.8] h-[340px] md:h-[460px]">
+              <p className="text-muted-foreground">$ npm install -g @dhruv2mars/offdex</p>
+              <p className="mt-3 text-muted-foreground">$ offdex start</p>
+              <p className="mt-3 text-foreground font-semibold">● Bridge started on port 42420</p>
+              <p className="text-[#0a72ef]">Waiting for client connection...</p>
+              <p className="mt-4 text-[#27c93f]">✓ Client connected: Mobile App (iOS)</p>
+              <p className="text-muted-foreground">Synchronizing local context tree...</p>
+              <p className="text-muted-foreground">Establishing encrypted relay fallback tunnel...</p>
+              <p className="text-[#27c93f]">✓ Tunnel active</p>
+              <p className="text-foreground mt-4">Processing context snapshot...</p>
+              <div className="mt-4 flex items-center gap-2 text-muted-foreground">
+                <span className="inline-block h-[16px] w-[10px] animate-pulse bg-foreground" />
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Phone Mockup */}
+          <div className="absolute top-[80px] left-1/2 z-20 w-[220px] ml-[40px] md:top-[100px] md:w-[260px] md:ml-[160px]">
+            <div className="overflow-hidden rounded-[36px] bg-background p-[10px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.2)]">
+              <div className="relative h-[400px] md:h-[460px] w-full overflow-hidden rounded-[26px] bg-[#fafafa] shadow-border">
+                {/* Notch */}
+                <div className="absolute inset-x-0 -top-[1px] flex justify-center">
+                  <div className="h-6 w-24 rounded-b-[14px] border-b border-x border-[#ebebeb] bg-background" />
                 </div>
-              </div>
-
-              <div className="rounded-lg bg-background p-4 shadow-border">
-                <p className="font-mono text-xs font-medium uppercase text-muted-foreground">
-                  Command map
-                </p>
-                <div className="mt-4 space-y-3">
-                  {commandMap.map(([step, title, body]) => (
-                    <div className="grid grid-cols-[36px_minmax(0,1fr)] gap-3 rounded-lg bg-card p-4 shadow-card" key={title}>
-                      <span className="font-mono text-xs text-muted-foreground">{step}</span>
-                      <div>
-                        <p className="text-sm font-semibold">{title}</p>
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">{body}</p>
-                      </div>
+                
+                {/* Phone Screen UI */}
+                <div className="flex h-full flex-col p-4 md:p-5 pt-12">
+                  <div className="flex items-center justify-between rounded-[10px] bg-background p-3 shadow-border">
+                    <div>
+                      <p className="text-[12px] md:text-[13px] font-semibold text-foreground">Active Session</p>
+                      <p className="mt-1 text-[10px] md:text-[11px] font-medium text-[#27c93f]">Bridge Connected</p>
                     </div>
-                  ))}
+                    <div className="grid h-6 w-6 md:h-7 md:w-7 place-items-center rounded-full bg-[#fafafa] shadow-border">
+                      <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#27c93f]" />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-auto space-y-3 md:space-y-4 pb-2 md:pb-4">
+                     <div className="relative h-12 md:h-14 w-[85%] overflow-hidden rounded-[10px] bg-background shadow-border">
+                        <div className="absolute inset-0 animate-pulse bg-[#0a72ef]/5" />
+                     </div>
+                     <div className="h-8 md:h-10 w-full rounded-[10px] bg-background shadow-border" />
+                     <div className="h-8 md:h-10 w-[60%] rounded-[10px] bg-background shadow-border" />
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
-
-          <section className="grid gap-5 md:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="rounded-lg bg-card p-5 shadow-card">
-              <InstallCommand command={cliInstallCommand} />
-              <p className="mt-4 rounded-md bg-muted px-4 py-3 font-mono text-sm text-muted-foreground shadow-border">
-                $ {bridgeStartCommand}
-              </p>
-            </div>
-
-            <div className="rounded-lg bg-card p-5 shadow-card">
-              <p className="font-mono text-xs font-medium uppercase text-muted-foreground">
-                Handoff state
-              </p>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                {["Mac", "Phone", "Web"].map((label, index) => (
-                  <div className="rounded-md bg-background px-3 py-4 shadow-border" key={label}>
-                    <p className="font-mono text-muted-foreground">0{index + 1}</p>
-                    <p className="mt-2 font-semibold">{label}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                One source of truth, multiple controls, no duplicated Codex runtime.
-              </p>
-            </div>
-          </section>
+          </div>
         </div>
       </section>
+
+      {/* The Workflow Pipeline */}
+      <section className="mx-auto w-full max-w-[1200px] border-t border-[#ebebeb] px-6 py-24 md:px-8 md:py-32">
+        <div className="grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
+          
+          {/* Step 1: Install */}
+          <div className="relative">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="flex h-[28px] items-center rounded-full bg-[#ebf5ff] px-3 font-mono text-[12px] font-semibold text-[#0a72ef]">01</span>
+              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Install Bridge</h3>
+            </div>
+            <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
+              Get the CLI. The native bridge runs directly on your Mac, owning Codex authentication and executing commands securely.
+            </p>
+            <div className="rounded-[8px] bg-[#fafafa] p-4 font-mono text-[13px] text-foreground shadow-border">
+              <span className="select-none text-[#0a72ef]">$ </span>
+              npm i -g @dhruv2mars/offdex
+            </div>
+            <div className="absolute left-[180px] top-[14px] hidden w-[calc(100%-160px)] border-t border-dashed border-[#ebebeb] md:block" />
+          </div>
+
+          {/* Step 2: Start */}
+          <div className="relative">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="flex h-[28px] items-center rounded-full bg-[#fff0f7] px-3 font-mono text-[12px] font-semibold text-[#de1d8d]">02</span>
+              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Start Relay</h3>
+            </div>
+            <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
+              Initiate the local network bridge. Fallback instantly to the encrypted Cloudflare tunnel when leaving home.
+            </p>
+            <div className="rounded-[8px] bg-[#fafafa] p-4 font-mono text-[13px] text-foreground shadow-border">
+              <span className="select-none text-[#de1d8d]">$ </span>
+              offdex start
+            </div>
+            <div className="absolute left-[160px] top-[14px] hidden w-[calc(100%-140px)] border-t border-dashed border-[#ebebeb] md:block" />
+          </div>
+
+          {/* Step 3: Pair */}
+          <div className="relative">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="flex h-[28px] items-center rounded-full bg-[#ffefe5] px-3 font-mono text-[12px] font-semibold text-[#ff5b4f]">03</span>
+              <h3 className="text-[20px] font-semibold tracking-[-0.96px] text-foreground">Pair Client</h3>
+            </div>
+            <p className="mb-8 text-[15px] leading-[1.6] text-muted-foreground">
+              Scan the QR code to trust your mobile phone or web browser. Once trusted, re-connect automatically.
+            </p>
+            <div className="flex items-center gap-4 rounded-[8px] bg-[#fafafa] p-4 font-mono text-[13px] text-foreground shadow-border">
+              <div className="grid h-[30px] w-[30px] grid-cols-2 gap-1 rounded-[4px] bg-background p-1 shadow-border">
+                <div className="rounded-[1px] bg-[#ff5b4f]" />
+                <div className="rounded-[1px] bg-foreground" />
+                <div className="rounded-[1px] bg-foreground" />
+                <div className="rounded-[1px] bg-[#ff5b4f]" />
+              </div>
+              <span className="text-muted-foreground">Device connected.</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Feature Grid (Architecture) */}
+      <section className="mx-auto w-full max-w-[1200px] border-t border-[#ebebeb] px-6 py-24 md:px-8 md:py-32">
+        <div className="mb-16">
+          <span className="rounded-full bg-[#fafafa] px-[12px] py-[4px] font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground shadow-border">
+            Architecture
+          </span>
+          <h2 className="mt-8 max-w-2xl text-[32px] font-semibold leading-[1.15] tracking-[-1.28px] md:text-[40px] md:tracking-[-2.4px]">
+            Put authority in the bridge. Keep every client disposable.
+          </h2>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Card 1 */}
+          <div className="rounded-[12px] bg-background p-8 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#fafafa] shadow-border">
+              <span className="font-mono text-[13px] font-bold text-foreground">01</span>
+            </div>
+            <h3 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Mac as the Brain</h3>
+            <p className="mt-4 text-[16px] leading-[1.6] text-muted-foreground">
+              The bridge retains all state, context logic, and authentication records. Your mobile device performs no heavy computation, existing merely as a lens into the active session.
+            </p>
+          </div>
+
+          {/* Card 2 */}
+          <div className="rounded-[12px] bg-background p-8 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#ebf5ff] shadow-border">
+              <span className="font-mono text-[13px] font-bold text-[#0a72ef]">02</span>
+            </div>
+            <h3 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Local-First Routing</h3>
+            <p className="mt-4 text-[16px] leading-[1.6] text-muted-foreground">
+              Mobile and web clients will attempt local bridging first. Remote traffic routes through an encrypted Cloudflare fallback only when offline, keeping your commands private.
+            </p>
+          </div>
+
+          {/* Card 3 */}
+          <div className="rounded-[12px] bg-background p-8 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#fff0f7] shadow-border">
+              <span className="font-mono text-[13px] font-bold text-[#de1d8d]">03</span>
+            </div>
+            <h3 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Secure Pairing</h3>
+            <p className="mt-4 text-[16px] leading-[1.6] text-muted-foreground">
+              Cryptographic QR handshakes bind your clients to the Mac bridge. Random connections from internet clients are structurally impossible without the localized QR token.
+            </p>
+          </div>
+
+          {/* Card 4 */}
+          <div className="rounded-[12px] bg-background p-8 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#ffefe5] shadow-border">
+              <span className="font-mono text-[13px] font-bold text-[#ff5b4f]">04</span>
+            </div>
+            <h3 className="text-[24px] font-semibold tracking-[-0.96px] text-foreground">Disposable UI</h3>
+            <p className="mt-4 text-[16px] leading-[1.6] text-muted-foreground">
+              Clear app storage safely at any time. Pairing credentials can be re-issued instantly, and ongoing sessions resume seamlessly across all connected clients.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[#ebebeb] bg-[#fafafa] py-16">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center justify-between gap-6 px-6 md:flex-row md:px-8">
+          <div className="flex items-center gap-3">
+            <img src="/logo.svg" alt="Offdex Logo" className="h-6 w-6 rounded-md grayscale" />
+            <span className="text-[14px] font-medium text-foreground">Offdex. Codex for mobile.</span>
+          </div>
+          <div className="flex gap-8 text-[14px] font-medium text-muted-foreground">
+            <a href={githubReleasesUrl} className="transition-colors hover:text-foreground">GitHub</a>
+            <a href={androidApkDownloadUrl} className="transition-colors hover:text-foreground">Android</a>
+            <Link href={webAppUrl} className="transition-colors hover:text-foreground">Web App</Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
