@@ -11,9 +11,9 @@ export function PackageManagerTerminal() {
       case "npm":
         return "npm install -g @dhruv2mars/offdex && offdex start";
       case "bun":
-        return "bun add -g @dhruv2mars/offdex && offdex start";
+        return "bun install -g @dhruv2mars/offdex && offdex start";
       case "pnpm":
-        return "pnpm add -g @dhruv2mars/offdex && offdex start";
+        return "pnpm install -g @dhruv2mars/offdex && offdex start";
     }
   };
 
