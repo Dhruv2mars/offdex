@@ -209,11 +209,9 @@ export default function App() {
   const relayReady = Boolean(relayUrl);
   const transportLabel =
     connectionTransport === "relay"
-      ? "Secure relay"
-      : connectionTransport === "direct"
-        ? "Direct machine link"
-      : connectionTransport === "bridge"
-        ? "Local bridge"
+      ? "Remote relay"
+      : connectionTransport === "local"
+        ? "Local"
         : "Not connected";
   const codexReady = Boolean(codexAccount?.isAuthenticated);
   const chatReadiness = getChatReadiness({
@@ -895,12 +893,10 @@ export default function App() {
                   <Text style={styles.sectionTitle}>{transportLabel}</Text>
                   <Text style={styles.sectionBody}>
                     {connectionTransport === "relay"
-                      ? `Remote access is flowing through ${relayUrl}. Traffic stays encrypted end to end.`
-                      : connectionTransport === "direct"
-                        ? "Offdex reached your machine directly with a short-lived ticket from the control plane."
+                      ? "Remote access is flowing through the encrypted Offdex relay."
                       : relayReady
-                        ? `Your Mac is also attached to ${relayUrl}, so remote access is ready after one trusted QR scan.`
-                        : "Using the direct local bridge path right now."}
+                        ? "Your Mac is also attached to the remote relay, so it can stay reachable after one trusted QR scan."
+                        : "Using the local bridge path right now."}
                   </Text>
                 </View>
                 <View style={styles.sectionCard}>

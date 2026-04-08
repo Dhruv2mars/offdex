@@ -218,7 +218,7 @@ export function getSessionBanner(input: {
     return {
       eyebrow: "Reconnecting",
       title: `Rejoining ${input.macName}`,
-      body: "The trust is still there. Offdex is restoring the live session and will fall back gracefully if the direct path is unavailable.",
+      body: "The trust is still there. Offdex is restoring the live session and will fall back to remote relay if local access is unavailable.",
       accent: "reconnecting",
     };
   }
@@ -241,20 +241,8 @@ export function getSessionBanner(input: {
     };
   }
 
-  if (input.connectionTransport === "direct") {
-    return {
-      eyebrow: "Direct remote",
-      title: `${input.macName} is live`,
-      body:
-        input.hasManagedSession && input.machineCount > 1
-          ? "You can hop across trusted machines without pairing again. Offdex will prefer a direct path whenever it can."
-          : "The phone is talking straight to your machine right now. Turns and thread state should feel immediate.",
-      accent: "ready",
-    };
-  }
-
   return {
-    eyebrow: "Nearby bridge",
+    eyebrow: "Local",
     title: `${input.macName} is ready`,
     body: "You are on the local path, so Offdex can stay especially responsive while still mirroring the real Codex session from your machine.",
     accent: "ready",

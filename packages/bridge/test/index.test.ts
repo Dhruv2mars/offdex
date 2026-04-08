@@ -480,6 +480,7 @@ describe("bridge state store", () => {
     expect(output).toContain("Scan the QR");
     expect(output).toContain("Bridge: http://127.0.0.1:42420");
     expect(output).toContain("Web UI: https://offdexapp.vercel.app/app?bridge=http%3A%2F%2F127.0.0.1%3A42420");
+    expect(output).toContain("pair=offdex%3A%2F%2Fpair");
     expect(output).toContain("Remote: connected");
     expect(output).toContain("offdex status");
     expect(output).not.toContain("Local paths:");

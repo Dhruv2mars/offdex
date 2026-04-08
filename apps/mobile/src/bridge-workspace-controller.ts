@@ -8,7 +8,6 @@ import {
 } from "@offdex/protocol";
 import {
   claimManagedPairing,
-  decodeDirectConnectionTarget,
   decodeRelayConnectionTarget,
   encodeRelayConnectionTarget,
   fetchBridgeHealth,
@@ -71,7 +70,7 @@ export interface BridgeClient {
     machine: OffdexMachineRecord | null;
     connectionTarget: string;
     connectionLabel: string;
-    connectionTransport: "direct" | "relay";
+    connectionTransport: "local" | "relay";
   }>;
 }
 
@@ -85,7 +84,7 @@ export interface BridgeWorkspaceState {
   runtimeTarget: RuntimeTarget;
   bridgeBaseUrl: string;
   connectedBridgeUrl: string | null;
-  connectionTransport: "bridge" | "direct" | "relay" | null;
+  connectionTransport: "local" | "relay" | null;
   connectionState: "idle" | "connecting" | "live" | "degraded";
   bridgeStatus: string;
   relayUrl: string | null;
@@ -122,11 +121,7 @@ function getConnectionTransport(connectionTarget: string): BridgeWorkspaceState[
     return "relay";
   }
 
-  if (decodeDirectConnectionTarget(connectionTarget)) {
-    return "direct";
-  }
-
-  return "bridge";
+  return "local";
 }
 
 function describeConnectionTransport(
@@ -136,11 +131,7 @@ function describeConnectionTransport(
     return "Secure relay";
   }
 
-  if (transport === "direct") {
-    return "Direct link";
-  }
-
-  return "Local bridge";
+  return "Local";
 }
 
 export class BridgeWorkspaceController {

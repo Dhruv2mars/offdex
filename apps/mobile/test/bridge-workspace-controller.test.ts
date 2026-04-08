@@ -235,9 +235,9 @@ function createFakeClient() {
     async resolveManagedConnection(_session, machineId) {
       return {
         machine: machines.find((machine) => machine.machineId === machineId) ?? machines[0],
-        connectionTarget: "offdex-direct://connect?bridge=http%3A%2F%2F192.168.1.8%3A42420&token=token-123",
-        connectionLabel: "http://192.168.1.8:42420",
-        connectionTransport: "direct" as const,
+        connectionTarget: "http://192.168.1.8:42420",
+        connectionLabel: "studio-macbook",
+        connectionTransport: "local" as const,
       };
     },
   };
@@ -537,8 +537,8 @@ describe("bridge workspace controller", () => {
       "offdex://pair?bridge=http%3A%2F%2F192.168.1.8%3A42420&name=studio-macbook&control=https%3A%2F%2Fcontrol.offdex.app&machine=machine-123&claim=claim-123&owner=dhruv%40example.com&v=3"
     );
 
-    expect(controller.getState().connectionTransport).toBe("direct");
-    expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
+    expect(controller.getState().connectionTransport).toBe("local");
+    expect(controller.getState().connectedBridgeUrl).toBe("studio-macbook");
     expect(preferences.readManagedSession()).toEqual({
       controlPlaneUrl: "https://control.offdex.app",
       machineId: "machine-123",
@@ -568,8 +568,8 @@ describe("bridge workspace controller", () => {
     await controller.hydrate();
 
     expect(controller.getState().connectionState).toBe("live");
-    expect(controller.getState().connectionTransport).toBe("direct");
-    expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
+    expect(controller.getState().connectionTransport).toBe("local");
+    expect(controller.getState().connectedBridgeUrl).toBe("studio-macbook");
   });
 
   test("hydrates a saved managed session failure without surfacing an unhandled startup error", async () => {
@@ -624,7 +624,7 @@ describe("bridge workspace controller", () => {
 
     expect(fakeClient.getManagedListRequestCount()).toBe(2);
     expect(controller.getState().machines).toHaveLength(2);
-    expect(controller.getState().connectedBridgeUrl).toBe("http://192.168.1.8:42420");
+    expect(controller.getState().connectedBridgeUrl).toBe("studio-macbook");
   });
 
   test("disconnect clears the saved pairing trust", async () => {

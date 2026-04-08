@@ -132,7 +132,11 @@ jobs:
       - shell: bash
         run: bun test packages/bridge/test/cli-lib.test.ts packages/bridge/test/index.test.ts
       - shell: bash
+        run: bun test packages/control-plane-worker/test/index.test.ts
+      - shell: bash
         run: bun run typecheck --filter=@offdex/bridge
+      - shell: bash
+        run: bun run typecheck --filter=@offdex/control-plane-worker
       - shell: bash
         run: bun run test:install-smoke
 

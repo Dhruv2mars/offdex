@@ -89,7 +89,7 @@ describe("bridge client", () => {
     );
   });
 
-  test("managed connection falls through to a later direct url when the first probe times out", async () => {
+  test("managed connection falls through to a later local url when the first probe times out", async () => {
     const originalFetch = globalThis.fetch;
     const responses: string[] = [];
 
@@ -101,8 +101,7 @@ describe("bridge client", () => {
         return new Response(
           JSON.stringify({
             ticket: {
-              direct: {
-                accessToken: "token-123",
+              local: {
                 bridgeUrls: ["http://10.0.0.2:42420", "http://127.0.0.1:42420"],
               },
               relay: null,
@@ -178,8 +177,8 @@ describe("bridge client", () => {
         deviceId: "device-1",
       });
 
-      expect(resolved.connectionLabel).toBe("http://127.0.0.1:42420");
-      expect(resolved.connectionTransport).toBe("direct");
+      expect(resolved.connectionLabel).toBe("d2m.local");
+      expect(resolved.connectionTransport).toBe("local");
       expect(responses).toContain("http://10.0.0.2:42420/health");
       expect(responses).toContain("http://127.0.0.1:42420/health");
     } finally {

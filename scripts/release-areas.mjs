@@ -39,6 +39,7 @@ export function resolveReleaseAreas(files, options = {}) {
       file.startsWith("packages/bridge/") ||
       file.startsWith("packages/npm/") ||
       file.startsWith("packages/control-plane/") ||
+      file.startsWith("packages/control-plane-worker/") ||
       file.startsWith("packages/relay/") ||
       file === ".github/workflows/release.yml" ||
       file.startsWith("scripts/")

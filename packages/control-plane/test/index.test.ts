@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createBridgeAccessToken, createRelayAuthToken } from "@offdex/protocol";
+import { createRelayAuthToken } from "@offdex/protocol";
 import { createMemoryControlPlaneStateStore, startControlPlaneServer } from "../src";
 
 const activeServers: Array<ReturnType<typeof startControlPlaneServer>> = [];
@@ -161,7 +161,7 @@ describe("control plane", () => {
     );
   });
 
-  test("issues direct-first tickets with relay fallback for trusted devices", async () => {
+  test("issues local-first tickets with relay fallback for trusted devices", async () => {
     const controlPlane = startControlPlaneServer({
       host: "127.0.0.1",
       port: 0,
@@ -215,7 +215,7 @@ describe("control plane", () => {
       ticket: {
         machineId: string;
         transportMode: string;
-        direct: { bridgeUrls: string[]; accessToken: string } | null;
+        local: { bridgeUrls: string[] } | null;
         relay: { relayUrl: string; roomId: string; secret: string } | null;
         ticketId: string;
         expiresAt: string;
@@ -224,17 +224,10 @@ describe("control plane", () => {
 
     expect(ticketResponse.ok).toBe(true);
     expect(ticketPayload.ticket.machineId).toBe("machine-a");
-    expect(ticketPayload.ticket.transportMode).toBe("direct");
-    expect(ticketPayload.ticket.direct?.bridgeUrls).toContain("http://192.168.1.8:42420");
+    expect(ticketPayload.ticket.transportMode).toBe("local");
+    expect(ticketPayload.ticket.local?.bridgeUrls).toContain("http://192.168.1.8:42420");
     expect(ticketPayload.ticket.relay?.roomId).toBe(registerPayload.machine.relay.roomId);
-    expect(ticketPayload.ticket.direct).not.toBeNull();
-    expect(
-      createBridgeAccessToken(
-        "machine-secret-a",
-        ticketPayload.ticket.ticketId,
-        ticketPayload.ticket.expiresAt
-      )
-    ).toBe(ticketPayload.ticket.direct!.accessToken);
+    expect(ticketPayload.ticket.local).not.toBeNull();
   });
 
   test("rejects untrusted connection tickets and relays opaque traffic only", async () => {
