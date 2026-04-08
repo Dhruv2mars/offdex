@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "1246a2168032",
+  "session_id": "019d6b78-7559-7c91-aadb-0ba8bbb780ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-08T06:35:00.401849Z",
+  "branch": "feat/cli-ux-revamp",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/bridge/src/cli.ts",
+    "packages/npm/bin/offdex.js",
+    "packages/npm/README.md",
+    "packages/bridge/src/cli-lib.ts",
+    "packages/bridge/test/cli-lib.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "fe26f9aa3968",
+  "token_usage": {
+    "input_tokens": 341033720,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 327298048,
+    "output_tokens": 1188970,
+    "api_call_count": 2667
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-08T06:34:42.156996Z",
+    "agent_lines": 0,
+    "human_added": 300,
+    "human_modified": 30,
+    "human_removed": 0,
+    "total_committed": 300,
+    "agent_percentage": 0
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "1246a2168032",
+  "strategy": "manual-commit",
+  "branch": "feat/cli-ux-revamp",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/bridge/src/cli-lib.ts",
+    "packages/bridge/src/cli.ts",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/cli-lib.test.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/npm/README.md",
+    "packages/npm/bin/offdex.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/12/46a2168032/0/metadata.json",
+      "transcript": "/12/46a2168032/0/full.jsonl",
+      "content_hash": "/12/46a2168032/0/content_hash.txt",
+      "prompt": "/12/46a2168032/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 341033720,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 327298048,
+    "output_tokens": 1188970,
+    "api_call_count": 2667
+  }
+}

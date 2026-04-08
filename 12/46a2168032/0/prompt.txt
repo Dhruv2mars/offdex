@@ -1,0 +1,25 @@
+ok, from the last message, a lot has been changed in the project. i would like you to look at the entire codebase, the commits that have happened. based on that, we can now move forward.
+
+---
+
+ok, we will wait for the build to finish, in meantime we will move forward to do more things. 
+
+now, we will take progress step by step. first, focusing on perfecting the CLI!
+
+run the cli workflow, from installing it to using it. see what parts are currently not working if any. and focus on what can be improved and made better. one thing that i noticed yesterday was, it was taking too much time to install 57mb runtime, basically, overall performance.
+
+---
+
+ok, this is a progress, good. but one thing that i have noticed is, our iteration speed it quite low. we have to wait so much for the builds to pass. i mean, its better that we do iterations locally and when we have to ship, then only we do builds and passes.
+
+---
+
+ok, our current focus is to make the cli best of the best. i uninstalled and reinstalled it to check the experience. here is my thoughts:
+- install is quick, thanks to bun. 
+- post install, when i do offdex, it opens the help screen. that we need to fix. 
+- when i do offdex bridge, then it installs the runtime binary and open the qr screen. 
+- upon doing just offdex, it should open the onboarding screen. like you know, a better ux for a first time user. for help, it should be --help. 
+- change the naming of offdex brige, it should be something on the lines of start, stop, status, etc. 
+- the cli is something which has to be the most performant and have the best ux of all things. as this is thefirst thing users will do, it has to be the best ux. 
+
+revamp the UX !!!!
