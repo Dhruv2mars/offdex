@@ -1,0 +1,49 @@
+refactor the whole frontend and the UI/UX of the project (mobile apps both ios and android, web landing page, web UI) based on the design.md 
+
+if you have any questions, have doubts, need more context. ask me
+
+---
+
+no, i misclicked. you have to refactor everything, including the icon splash assets as well.
+
+---
+
+PLEASE IMPLEMENT THIS PLAN:
+# Full DESIGN.md Frontend Refactor
+
+## Summary
+
+Baseline is clean: `bun run test` and `bun run typecheck` both pass on `main`.
+
+Create a feature branch, then refactor all frontend surfaces to the light Vercel-inspired system in `DESIGN.md`: mobile iOS/Android, web landing page, `/webui`, `/architecture`, app icon, splash, Android adaptive icons, and favicon. Keep all routes and product behavior unchanged.
+
+## Key Changes
+
+- Web: replace the dark green theme with white/near-black styling, Geist fonts, shadow-as-border cards, 6-8px controls, restrained badges, sticky white navigation, a centered landing hero, a cleaner product mockup, and matching `/webui` chat UI.
+- Mobile: switch to the same light visual system, load Geist/Geist Mono, update native light mode, Android navigation bar, tabs, headers, cards, chat bubbles, composer, machines, settings, QR pairing, empty states, and status banners.
+- Assets: replace the current PNG assets with a deterministic Offdex mark: white canvas, near-black geometric “O”/terminal-card motif, no tiny text, no noisy imagery. Generate `icon.png`, `splash-icon.png`, Android foreground/background/monochrome assets, and `favicon.png` from a committed source SVG using `sharp`.
+- Cleanup: remove the unused excluded `apps/mobile/App.tsx` after confirming Expo Router is the active entrypoint, and remove its `tsconfig` exclusion.
+
+## Public Interfaces
+
+- No transport, protocol, bridge, URL, route, or storage changes.
+- Keep `/`, `/webui`, and `/architecture`.
+- Add mobile font dependencies: `expo-font`, `@expo-google-fonts/geist`, and `@expo-google-fonts/geist-mono`.
+- Keep app icon and splash filenames unchanged so existing `app.json` references stay stable.
+
+## Test Plan
+
+- First add failing static design tests for web/mobile: expected white/near-black palette, Geist usage, shadow-border variables, light app config, and no legacy dark-green theme tokens.
+- Add/adjust asset checks for expected filenames, dimensions, and no stale excluded `App.tsx`.
+- Run targeted checks: `bun run test --filter=@offdex/web`, `bun run test --filter=@offdex/mobile`, `bun run typecheck --filter=@offdex/web`, `bun run typecheck --filter=@offdex/mobile`.
+- Run full checks: `bun run test`, `bun run typecheck`, and `bun run lint`.
+- Run the web app and verify `/`, `/webui`, and `/architecture` visually with agent-browser, not Playwright/Chrome.
+- Run Expo for mobile and verify iOS and Android screens manually: first run, QR permission denied/granted, disconnected, reconnecting, connected, Codex sign-in needed, chat empty, chat with messages, running state, machines list, settings, and clear-data confirmation.
+
+## Workflow And Assumptions
+
+- Use branch `feat/design-md-frontend-refactor`.
+- Commit in small steps: `test: lock frontend design contracts`, `feat: refactor web design system`, `feat: refactor mobile design system`, `feat: refresh app assets`.
+- Open PR, merge to `main`, delete branch.
+- Assumption: the asset mark should be minimal and deterministic, not AI-raster generated, to match the strict Vercel-style system.
+- Unresolved questions: none.
