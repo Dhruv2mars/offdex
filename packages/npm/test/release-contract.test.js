@@ -31,10 +31,10 @@ test("release workflow publishes npm and platform binaries", () => {
   assert.doesNotMatch(releaseWorkflow, /bun-windows-arm64/);
 });
 
-test("release workflow publishes Android on tags and keeps manual Android reruns explicit", () => {
+test("release workflow keeps Android builds opt-in for fast CLI releases", () => {
   assert.match(releaseWorkflow, /publish_android:/);
   assert.match(releaseWorkflow, /default:\s*false/);
-  assert.match(releaseWorkflow, /release_tag="\$\{GITHUB_REF_NAME\}"\n\s+publish_android="true"/);
+  assert.match(releaseWorkflow, /release_tag="\$\{GITHUB_REF_NAME\}"\n\s+publish_android="false"/);
   assert.match(
     releaseWorkflow,
     /build_android_release:\n(?:.*\n)*?\s+if:\s+\$\{\{\s*needs\.resolve_tag\.outputs\.publish_android == 'true'\s*\}\}/
