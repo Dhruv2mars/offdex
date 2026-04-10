@@ -56,3 +56,7 @@ Continue if you have next steps, or stop and ask for clarification if you are un
 ---
 
 have you done all the fixes. made sure that the whole landing page incl all the subpages are in exact shape that they were before?
+
+---
+
+okay, the landing page is back where it was. so push to main for that. then i will tell you what actually went wrong this time
