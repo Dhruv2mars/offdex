@@ -75,7 +75,7 @@ export default function Home() {
           </div>
 
           {/* Mobile Phone Mockup */}
-          <div className="absolute top-[80px] left-1/2 z-20 w-[220px] ml-[40px] md:top-[100px] md:w-[260px] md:ml-[160px]">
+          <div className="absolute top-[80px] left-1/2 z-20 w-[180px] ml-[-20px] sm:w-[220px] sm:ml-[40px] md:top-[100px] md:w-[260px] md:ml-[160px]">
             <div className="overflow-hidden rounded-[36px] bg-background p-[10px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.2)]">
               <div className="relative h-[400px] md:h-[460px] w-full overflow-hidden rounded-[26px] bg-[#fafafa] shadow-border">
                 {/* Notch */}
