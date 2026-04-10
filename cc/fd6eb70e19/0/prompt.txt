@@ -1,5 +1,9 @@
-this is a image that i created. this is our mascot, i made a grid style variant of it. in the CLI, there is a mascot currently which shows up, its an iscii/ansi art. now you have to look at this image, and exactly replicate that in there. this is a 24x24 grid cell where i made it. now you have any questions, you can ask me
+the reason for giving you the mascot made in the  24x24 grid layout was so that you can get the shape, and ratio right. all you need to do is, just make sure that the mascot in the CLI follows that.
 
 ---
 
-the reason for giving you the mascot made in the  24x24 grid layout was so that you can get the shape, and ratio right. all you need to do is, just make sure that the mascot in the CLI follows that.
+<image>
+
+---
+
+</image>
