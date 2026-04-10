@@ -114,7 +114,6 @@ function onboardingText() {
 
 function helpText() {
   return [
-    mascotBanner(),
     `${S_STEP} ${bgBlue("OFFDEX HELP")}`,
     `${S_BAR} Use Codex from your phone.`,
     section("Commands"),

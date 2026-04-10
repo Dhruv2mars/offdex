@@ -174,7 +174,6 @@ describe("bridge cli copy", () => {
 
   test("renders the mascot as a 12 by 24 grid silhouette", () => {
     expect(gridFromMascotLines(onboarding().split("\n").slice(1, 13))).toEqual(expectedMascotGrid);
-    expect(gridFromMascotLines(usage().split("\n").slice(1, 13))).toEqual(expectedMascotGrid);
   });
 
   test("keeps the mascot plain when terminal colors are disabled", () => {
