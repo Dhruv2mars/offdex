@@ -1,5 +1,1 @@
-but does the mascot look good? are the animations working? arae things looking good and perfect to the eyes? focus on that part
-
----
-
 no worries. now do one thing. cleanup the mess, like the unwanted stuff in the repo. and publish a new release. based on the commits post last release. and remove the already done branches as well.
