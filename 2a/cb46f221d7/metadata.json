@@ -5,6 +5,14 @@
   "branch": "main",
   "checkpoints_count": 6,
   "files_touched": [
+    "apps/web/app/(app)/webui/page.tsx",
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/web/app/(app)/webui/web-transport.ts",
+    "apps/web/app/(marketing)/changelog/page.tsx",
+    "apps/web/app/(marketing)/changelog/releases.ts",
+    "apps/web/app/(marketing)/docs/page.tsx",
+    "apps/web/app/(marketing)/download/page.tsx",
+    "apps/web/app/(marketing)/layout.tsx",
     "apps/web/app/changelog/page.tsx",
     "apps/web/app/changelog/releases.ts",
     "apps/web/app/docs/page.tsx",
@@ -27,6 +35,12 @@
       "transcript": "/2a/cb46f221d7/0/full.jsonl",
       "content_hash": "/2a/cb46f221d7/0/content_hash.txt",
       "prompt": "/2a/cb46f221d7/0/prompt.txt"
+    },
+    {
+      "metadata": "/2a/cb46f221d7/1/metadata.json",
+      "transcript": "/2a/cb46f221d7/1/full.jsonl",
+      "content_hash": "/2a/cb46f221d7/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
