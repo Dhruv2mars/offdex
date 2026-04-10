@@ -39,9 +39,9 @@ export default function Home() {
         <div className="animate-fade-in-delay relative z-20 mx-auto mt-16 w-full max-w-[1000px] h-[420px] md:mt-24 md:h-[540px] pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]">
           
           {/* Shared relative wrapper to scale both elements proportionally */}
-          <div className="relative mx-auto w-[95%] max-w-[760px] h-full">
+          <div className="relative mx-auto w-[95%] max-w-[820px] h-full">
             {/* Mac Terminal Window */}
-            <div className="absolute left-0 top-0 z-10 w-[90%] md:w-full overflow-hidden rounded-[16px] bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.15)] text-left">
+            <div className="absolute left-0 top-0 z-10 w-[90%] md:w-[92%] overflow-hidden rounded-[16px] bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.15)] text-left">
               <div className="flex h-12 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-5">
                 <div className="flex gap-2">
                   <div className="h-3 w-3 rounded-full bg-[#ff5f56]" />
@@ -77,7 +77,7 @@ export default function Home() {
             </div>
 
             {/* Mobile Phone Mockup */}
-            <div className="absolute top-[80px] right-0 sm:-right-[2%] md:top-[100px] md:-right-[6%] z-20 w-[260px] origin-top-right scale-[0.65] sm:scale-75 md:scale-100">
+            <div className="absolute top-[80px] right-0 md:top-[100px] z-20 w-[260px] origin-top-right scale-[0.65] sm:scale-75 md:scale-100">
               <div className="overflow-hidden rounded-[36px] bg-background p-[10px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.2)]">
                 <div className="relative h-[460px] w-full overflow-hidden rounded-[26px] bg-[#fafafa] shadow-border">
                   {/* Notch */}
