@@ -9,6 +9,9 @@ export default function Home() {
     <main className="flex-1">
       {/* Hero Section */}
       <section className="relative mx-auto w-full max-w-[1200px] overflow-hidden px-6 pt-24 pb-20 text-center md:px-8 md:pt-32 md:pb-24">
+        {/* Vercel-style Subtle Pastel Gradient Wash */}
+        <div className="absolute left-1/2 top-0 -z-10 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-[#ff5b4f]/10 via-[#de1d8d]/5 to-[#0a72ef]/10 blur-[120px]" />
+
         <div className="animate-fade-in relative z-10 mx-auto max-w-[900px]">
           <h1 className="text-[56px] font-semibold leading-[1.05] tracking-[-2.4px] md:text-[76px] md:tracking-[-2.88px] lg:text-[88px]">
             The Codex <br className="hidden md:block" /> Mobile App.
