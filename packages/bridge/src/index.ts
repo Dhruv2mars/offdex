@@ -224,9 +224,21 @@ export function createBridgeWebUiUrl(
 export function buildBridgeHints(
   port: number,
   readNetworkInterfaces: () => Record<string, BridgeAddressRecord[] | undefined> = networkInterfaces,
-  readHostname: typeof hostname = hostname
+  readHostname: typeof hostname = hostname,
+  boundHost = "0.0.0.0"
 ) {
   const urls = new Set<string>();
+  const host = boundHost.trim();
+
+  if (host && host !== "0.0.0.0" && host !== "::") {
+    urls.add(`http://${host.includes(":") && !host.startsWith("[") ? `[${host}]` : host}:${port}`);
+    if (host === "localhost" || host === "::1" || host.startsWith("127.")) {
+      urls.add(`http://127.0.0.1:${port}`);
+      urls.add(`http://localhost:${port}`);
+    }
+    return [...urls];
+  }
+
   const interfaces = readNetworkInterfaces();
 
   for (const addresses of Object.values(interfaces)) {
@@ -1044,7 +1056,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   });
 
   const serverPort = server.port ?? port;
-  const bridgeHints = buildBridgeHints(serverPort);
+  const bridgeHints = buildBridgeHints(serverPort, networkInterfaces, hostname, host);
   workspaceStore.updatePairingProfile({
     bridgeUrl: bridgeHints[0] ?? `http://${host}:${serverPort}`,
     bridgeHints,

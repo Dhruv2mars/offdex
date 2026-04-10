@@ -177,6 +177,21 @@ describe("bridge workspace store", () => {
     expect(payload.macName.length).toBeGreaterThan(0);
   });
 
+  test("uses the bound loopback host as the first pairing url", async () => {
+    const bridge = startBridgeServer({ host: "127.0.0.1", port: 0 });
+    activeBridges.push(bridge);
+    const baseUrl = `http://127.0.0.1:${bridge.server.port}`;
+
+    const response = await fetch(`${baseUrl}/pairing.json`);
+    const payload = (await response.json()) as {
+      bridgeUrl: string;
+      bridgeHints: string[];
+    };
+
+    expect(payload.bridgeUrl).toBe(`http://127.0.0.1:${bridge.server.port}`);
+    expect(payload.bridgeHints[0]).toBe(`http://127.0.0.1:${bridge.server.port}`);
+  });
+
   test("publishes relay details when remote pairing is enabled", async () => {
     const bridge = startBridgeServer({
       host: "127.0.0.1",
