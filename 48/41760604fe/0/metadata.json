@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "4841760604fe",
+  "session_id": "ses_2923e076dffezL6oOZzshjw7Hg",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-10T15:14:24.386393Z",
+  "branch": "fix-webapp-mobile-ui",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/app/(marketing)/page.tsx"
+  ],
+  "agent": "OpenCode",
+  "model": "gemini-3.1-pro-preview",
+  "turn_id": "5cb8feb86469",
+  "initial_attribution": {
+    "calculated_at": "2026-04-10T15:14:24.384668Z",
+    "agent_lines": 0,
+    "human_added": 245,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 245,
+    "agent_percentage": 0
+  }
+}

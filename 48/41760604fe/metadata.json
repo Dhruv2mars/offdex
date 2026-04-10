@@ -1,0 +1,18 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "4841760604fe",
+  "strategy": "manual-commit",
+  "branch": "fix-webapp-mobile-ui",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/app/(marketing)/page.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/48/41760604fe/0/metadata.json",
+      "transcript": "/48/41760604fe/0/full.jsonl",
+      "content_hash": "/48/41760604fe/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
