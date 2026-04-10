@@ -409,15 +409,11 @@ export async function createTerminalPairingOutput(pairingUri: string) {
     margin: 0,
   });
 
-  const mascotStr = renderMascot(MASCOT_GRID, false); // No ANSI for plain pairing output in tests and default
-  const paddedMascot = mascotStr.split('\n')
-    .filter(line => line.trim() !== '')
-    .map(line => `  ${line}`).join("\n");
   const indentedQr = qr.split("\n").map(line => `  ${line}`).join("\n");
   return [
     terminalSection("Pair with your phone"), 
     `  ${developBlue("Scan with Offdex")}`, 
-    paddedMascot, 
+    "",
     indentedQr, 
     ""
   ].join("\n");
