@@ -1,0 +1,5 @@
+no worries. now do one thing. cleanup the mess, like the unwanted stuff in the repo. and publish a new release. based on the commits post last release. and remove the already done branches as well.
+
+---
+
+ok, i have made some frontend changes to cli, incl cosmetic changes and removing mascot. just check it and see if everything is perfect. no mascot at all. every function and feature working perfectly. all things looking great!
