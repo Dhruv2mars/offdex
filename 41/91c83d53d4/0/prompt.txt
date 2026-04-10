@@ -1,0 +1,5 @@
+i have made quite a few changes in the CLI, they all are cosmetic and design improvements. check those out. and see if everything is just perfect without any issues, bugs or errors. if you have any question regarding what has been done, or anything else, you can ask me
+
+---
+
+basically, i added the mascot in the CLI as well. during start, aside of the qr code, etc. and added animations to it. check if all of that part of the CLI is good or not

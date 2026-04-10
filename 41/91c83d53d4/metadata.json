@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "4191c83d53d4",
+  "strategy": "manual-commit",
+  "branch": "fix/cli-mascot-terminal-color",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/src/cli.ts",
+    "packages/bridge/src/mascot.ts",
+    "packages/bridge/test/cli-lib.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/41/91c83d53d4/0/metadata.json",
+      "transcript": "/41/91c83d53d4/0/full.jsonl",
+      "content_hash": "/41/91c83d53d4/0/content_hash.txt",
+      "prompt": "/41/91c83d53d4/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 4461888,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4228480,
+    "output_tokens": 14962,
+    "api_call_count": 38
+  }
+}
