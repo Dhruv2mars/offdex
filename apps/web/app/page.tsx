@@ -8,13 +8,13 @@ export default function Home() {
   return (
     <main className="flex-1">
       {/* Hero Section */}
-      <section className="relative mx-auto w-full max-w-[1200px] overflow-hidden px-6 pt-24 pb-20 text-center md:px-8 md:pt-32 md:pb-24">
+      <section className="relative mx-auto w-full max-w-[1200px] overflow-hidden pt-24 pb-20 text-center md:pt-32 md:pb-24">
         {/* Animated & Interactive Background */}
         <HeroBackground />
 
-        <div className="animate-fade-in relative z-10 mx-auto max-w-[900px]">
+        <div className="animate-fade-in relative z-10 mx-auto max-w-[900px] px-6 md:px-8">
           <h1 className="text-[56px] font-semibold leading-[1.05] tracking-[-2.4px] md:text-[76px] md:tracking-[-2.88px] lg:text-[88px]">
-            The Codex <br className="hidden md:block" /> Mobile App.
+            The Codex <br className="hidden md:block" /> <span className="whitespace-nowrap">Mobile App.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-[600px] text-[18px] leading-[1.6] text-muted-foreground md:text-[20px]">
             A remote control for your local Codex runtime. Keep Codex working on your Mac, and control it from anywhere.
