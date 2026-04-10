@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "44b58a0858c3",
+  "session_id": "019d768a-1034-75c3-bf38-1aca475d2932",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-10T08:43:02.224322Z",
+  "branch": "fix/cli-loopback-pairing-url",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/test/index.test.ts",
+    "packages/bridge/src/index.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "dc486abf1eb3",
+  "token_usage": {
+    "input_tokens": 2926417,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2820352,
+    "output_tokens": 14539,
+    "api_call_count": 38
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-10T08:43:01.991261Z",
+    "agent_lines": 29,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 29,
+    "agent_percentage": 100
+  }
+}
