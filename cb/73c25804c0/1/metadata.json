@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "cb73c25804c0",
+  "session_id": "ses_289453e54ffe8XENUz94AnQ5dW",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-10T10:44:33.291497Z",
+  "branch": "fix/cli-no-mascot-polish",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/src/cli-lib.ts",
+    "packages/bridge/src/cli.ts",
+    "packages/bridge/src/mascot.ts",
+    "packages/bridge/test/cli-lib.test.ts",
+    "packages/npm/bin/offdex.js",
+    "packages/npm/test/install-lib.test.js",
+    "apps/web/test/site-header.test.ts",
+    "packages/bridge/src/index.ts",
+    "packages/npm/bin/install.js",
+    "packages/npm/test/offdex-lib.test.js"
+  ],
+  "agent": "OpenCode",
+  "model": "gemini-3.1-pro-preview",
+  "turn_id": "7c74b10cecb9",
+  "initial_attribution": {
+    "calculated_at": "2026-04-10T10:44:33.290725Z",
+    "agent_lines": 98,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 98,
+    "agent_percentage": 100
+  }
+}
