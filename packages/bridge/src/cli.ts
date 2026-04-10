@@ -34,12 +34,14 @@ function createStartupSpinner(label: string) {
   const idleFrame = renderMascot(MASCOT_GRID) + "\n";
   const blinkFrame = renderMascot(MASCOT_BLINK_GRID) + "\n";
   const frames = [idleFrame, idleFrame, idleFrame, blinkFrame];
+  const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
   let index = 0;
+  let spinnerIndex = 0;
   
-  const renderFrame = (frameStr: string) => {
+  const renderFrame = (frameStr: string, spinnerGlyph: string) => {
     const lines = frameStr.split("\n");
     lines.forEach(line => process.stdout.write(line + "\n"));
-    process.stdout.write(`\u001b[38;2;10;114;239m⠋\u001b[0m ${label}\n`);
+    process.stdout.write(`\u001b[38;2;10;114;239m${spinnerGlyph}\u001b[0m ${label}\n`);
   };
 
   const clearFrame = (frameStr: string) => {
@@ -54,12 +56,13 @@ function createStartupSpinner(label: string) {
     process.stdout.write(`\u001b[${lines.length + 1}A`);
   };
 
-  renderFrame(frames[index]);
+  renderFrame(frames[index], spinnerFrames[spinnerIndex]);
 
   const timer = setInterval(() => {
     clearFrame(frames[index]);
     index = (index + 1) % frames.length;
-    renderFrame(frames[index]);
+    spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
+    renderFrame(frames[index], spinnerFrames[spinnerIndex]);
   }, 400);
 
   return {
