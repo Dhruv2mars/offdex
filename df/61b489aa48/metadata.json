@@ -1,0 +1,19 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "df61b489aa48",
+  "strategy": "manual-commit",
+  "branch": "fix-webapp-mobile-ui",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/components/mobile-nav.tsx",
+    "apps/web/components/site-header.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/df/61b489aa48/0/metadata.json",
+      "transcript": "/df/61b489aa48/0/full.jsonl",
+      "content_hash": "/df/61b489aa48/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
