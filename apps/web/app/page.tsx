@@ -38,69 +38,72 @@ export default function Home() {
         {/* Visual / Art Component */}
         <div className="animate-fade-in-delay relative z-20 mx-auto mt-16 w-full max-w-[1000px] h-[420px] md:mt-24 md:h-[540px] pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]">
           
-          {/* Mac Terminal Window */}
-          <div className="absolute left-1/2 top-0 z-10 w-[95%] max-w-[760px] -translate-x-1/2 overflow-hidden rounded-[16px] bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.15)] text-left">
-            <div className="flex h-12 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-5">
-              <div className="flex gap-2">
-                <div className="h-3 w-3 rounded-full bg-[#ff5f56]" />
-                <div className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
-                <div className="h-3 w-3 rounded-full bg-[#27c93f]" />
-              </div>
-            </div>
-            <div className="p-5 md:p-6 font-mono text-[14px] leading-[1.8] h-[340px] md:h-[460px]">
-              <p className="text-foreground flex items-center gap-[1ch]">
-                <span>$</span>
-                <span className="inline-flex h-[1.4em] overflow-hidden">
-                  <span className="animate-pkg-scroll flex flex-col">
-                    <span className="flex h-[1.4em] items-center">npm</span>
-                    <span className="flex h-[1.4em] items-center">bun</span>
-                    <span className="flex h-[1.4em] items-center">pnpm</span>
-                    <span className="flex h-[1.4em] items-center">npm</span>
-                  </span>
-                </span>
-                <span>install -g @dhruv2mars/offdex</span>
-              </p>
-              <p className="mt-4 text-foreground">$ offdex start</p>
-              <p className="mt-4 text-foreground">Bridge started on port 42420</p>
-              <p className="text-[#0a72ef]">Waiting for client connection...</p>
-              <p className="mt-4 text-[#27c93f]">✓ Client connected: Mobile App (iOS)</p>
-              <p className="text-muted-foreground">Synchronizing local context tree...</p>
-              <p className="text-muted-foreground">Establishing encrypted relay fallback tunnel...</p>
-              <p className="text-[#27c93f]">✓ Tunnel active</p>
-              <p className="mt-4 text-muted-foreground">Processing context snapshot...</p>
-              <div className="mt-4 flex items-center gap-2 text-muted-foreground">
-                <span className="inline-block h-[16px] w-[10px] animate-blink bg-foreground" />
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Phone Mockup */}
-          <div className="absolute top-[80px] left-1/2 z-20 w-[180px] ml-[-20px] sm:w-[220px] sm:ml-[40px] md:top-[100px] md:w-[260px] md:ml-[160px]">
-            <div className="overflow-hidden rounded-[36px] bg-background p-[10px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.2)]">
-              <div className="relative h-[400px] md:h-[460px] w-full overflow-hidden rounded-[26px] bg-[#fafafa] shadow-border">
-                {/* Notch */}
-                <div className="absolute inset-x-0 -top-[1px] flex justify-center">
-                  <div className="h-6 w-24 rounded-b-[14px] border-b border-x border-[#ebebeb] bg-background" />
+          {/* Shared relative wrapper to scale both elements proportionally */}
+          <div className="relative mx-auto w-[95%] max-w-[760px] h-full">
+            {/* Mac Terminal Window */}
+            <div className="absolute left-0 top-0 z-10 w-full overflow-hidden rounded-[16px] bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.15)] text-left">
+              <div className="flex h-12 items-center gap-2 border-b border-[#ebebeb] bg-[#fafafa] px-5">
+                <div className="flex gap-2">
+                  <div className="h-3 w-3 rounded-full bg-[#ff5f56]" />
+                  <div className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
+                  <div className="h-3 w-3 rounded-full bg-[#27c93f]" />
                 </div>
-                
-                {/* Phone Screen UI */}
-                <div className="flex h-full flex-col p-4 md:p-5 pt-20 md:pt-24">
-                  <div className="flex items-center justify-between rounded-[10px] bg-background p-3 shadow-border">
-                    <div>
-                      <p className="text-[12px] md:text-[13px] font-semibold text-foreground">Active Session</p>
-                      <p className="mt-1 text-[10px] md:text-[11px] font-medium text-[#27c93f]">Bridge Connected</p>
-                    </div>
-                    <div className="grid h-6 w-6 md:h-7 md:w-7 place-items-center rounded-full bg-[#fafafa] shadow-border">
-                      <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-[#27c93f]" />
-                    </div>
+              </div>
+              <div className="p-5 md:p-6 font-mono text-[14px] leading-[1.8] h-[340px] md:h-[460px]">
+                <p className="text-foreground flex items-center gap-[1ch]">
+                  <span>$</span>
+                  <span className="inline-flex h-[1.4em] overflow-hidden">
+                    <span className="animate-pkg-scroll flex flex-col">
+                      <span className="flex h-[1.4em] items-center">npm</span>
+                      <span className="flex h-[1.4em] items-center">bun</span>
+                      <span className="flex h-[1.4em] items-center">pnpm</span>
+                      <span className="flex h-[1.4em] items-center">npm</span>
+                    </span>
+                  </span>
+                  <span>install -g @dhruv2mars/offdex</span>
+                </p>
+                <p className="mt-4 text-foreground">$ offdex start</p>
+                <p className="mt-4 text-foreground">Bridge started on port 42420</p>
+                <p className="text-[#0a72ef]">Waiting for client connection...</p>
+                <p className="mt-4 text-[#27c93f]">✓ Client connected: Mobile App (iOS)</p>
+                <p className="text-muted-foreground">Synchronizing local context tree...</p>
+                <p className="text-muted-foreground">Establishing encrypted relay fallback tunnel...</p>
+                <p className="text-[#27c93f]">✓ Tunnel active</p>
+                <p className="mt-4 text-muted-foreground">Processing context snapshot...</p>
+                <div className="mt-4 flex items-center gap-2 text-muted-foreground">
+                  <span className="inline-block h-[16px] w-[10px] animate-blink bg-foreground" />
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Phone Mockup */}
+            <div className="absolute top-[80px] -right-[15%] sm:-right-[5%] md:top-[100px] md:-right-[10%] z-20 w-[260px] origin-top-right scale-[0.7] sm:scale-90 md:scale-100">
+              <div className="overflow-hidden rounded-[36px] bg-background p-[10px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.2)]">
+                <div className="relative h-[460px] w-full overflow-hidden rounded-[26px] bg-[#fafafa] shadow-border">
+                  {/* Notch */}
+                  <div className="absolute inset-x-0 -top-[1px] flex justify-center">
+                    <div className="h-6 w-24 rounded-b-[14px] border-b border-x border-[#ebebeb] bg-background" />
                   </div>
                   
-                  <div className="mt-auto space-y-3 md:space-y-4 pb-2 md:pb-4">
-                     <div className="relative h-12 md:h-14 w-[85%] overflow-hidden rounded-[10px] bg-background shadow-border">
-                        <div className="absolute inset-0 animate-pulse bg-[#0a72ef]/5" />
-                     </div>
-                     <div className="h-8 md:h-10 w-full rounded-[10px] bg-background shadow-border" />
-                     <div className="h-8 md:h-10 w-[60%] rounded-[10px] bg-background shadow-border" />
+                  {/* Phone Screen UI */}
+                  <div className="flex h-full flex-col p-5 pt-24">
+                    <div className="flex items-center justify-between rounded-[10px] bg-background p-3 shadow-border">
+                      <div>
+                        <p className="text-[13px] font-semibold text-foreground">Active Session</p>
+                        <p className="mt-1 text-[11px] font-medium text-[#27c93f]">Bridge Connected</p>
+                      </div>
+                      <div className="grid h-7 w-7 place-items-center rounded-full bg-[#fafafa] shadow-border">
+                        <div className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
+                      </div>
+                    </div>
+                    
+                    <div className="mt-auto space-y-4 pb-4">
+                       <div className="relative h-14 w-[85%] overflow-hidden rounded-[10px] bg-background shadow-border">
+                          <div className="absolute inset-0 animate-pulse bg-[#0a72ef]/5" />
+                       </div>
+                       <div className="h-10 w-full rounded-[10px] bg-background shadow-border" />
+                       <div className="h-10 w-[60%] rounded-[10px] bg-background shadow-border" />
+                    </div>
                   </div>
                 </div>
               </div>
