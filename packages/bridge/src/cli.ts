@@ -32,12 +32,12 @@ function createStartupSpinner(label: string) {
     return { stop() {} };
   }
 
-  const frames = ["-", "\\", "|", "/"];
+  const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
   let index = 0;
-  process.stdout.write(`${frames[index]} ${label}`);
+  process.stdout.write(`\u001b[38;2;10;114;239m${frames[index]}\u001b[0m ${label}`);
   const timer = setInterval(() => {
     index = (index + 1) % frames.length;
-    process.stdout.write(`\r${frames[index]} ${label}`);
+    process.stdout.write(`\r\u001b[38;2;10;114;239m${frames[index]}\u001b[0m ${label}`);
   }, 90);
 
   return {

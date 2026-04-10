@@ -18,11 +18,6 @@ export const OFFDEX_GITHUB_URL = "https://github.com/Dhruv2mars/offdex";
 export const OFFDEX_ISSUES_URL = `${OFFDEX_GITHUB_URL}/issues`;
 export const OFFDEX_CONTROL_PLANE_URL =
   "https://offdex-control-plane.dhruv-sharma10102005.workers.dev";
-const OPENAI_GREEN = "38;2;16;163;127";
-const OPENAI_MINT = "38;2;203;255;229";
-const OPENAI_MUTED = "38;2;156;163;160";
-const OPENAI_TEXT = "38;2;225;229;226";
-const OFFDEX_RED = "38;2;255;91;79";
 
 function shouldColor() {
   return Boolean(process.stdout.isTTY) &&
@@ -35,56 +30,80 @@ function paint(code: string, text: string) {
   return shouldColor() ? `\u001b[${code}m${text}\u001b[0m` : text;
 }
 
-function green(text: string) {
-  return paint(OPENAI_GREEN, text);
+function developBlue(text: string) {
+  return paint("38;2;10;114;239", text);
 }
 
-function mint(text: string) {
-  return paint(OPENAI_MINT, text);
+function previewPink(text: string) {
+  return paint("38;2;222;29;141", text);
+}
+
+function shipRed(text: string) {
+  return paint("38;2;255;91;79", text);
 }
 
 function muted(text: string) {
-  return paint(OPENAI_MUTED, text);
+  return paint("38;2;136;136;136", text);
 }
 
-function bright(text: string) {
-  return paint(OPENAI_TEXT, text);
+function white(text: string) {
+  return paint("38;2;255;255;255", text);
 }
 
 function bold(text: string) {
   return paint("1", text);
 }
 
-function red(text: string) {
-  return paint(OFFDEX_RED, text);
+function bgBlue(text: string) {
+  return paint("48;2;10;114;239;38;2;255;255;255;1", ` ${text} `);
+}
+
+function bgRed(text: string) {
+  return paint("48;2;255;91;79;38;2;255;255;255;1", ` ${text} `);
+}
+
+const S_STEP = developBlue("◆");
+const S_BAR = muted("│");
+const S_END = muted("└");
+const S_ERR = shipRed("▲");
+
+function mascotBanner() {
+  const c = "38;2;64;64;64";
+  const w = "38;2;255;255;255";
+  return [
+    paint(c, "    ▄▄██████▄▄    "),
+    paint(c, "  ▄████████████▄  "),
+    paint(c, "  ████") + paint(w, "██") + paint(c, "██") + paint(w, "██") + paint(c, "████  "),
+    paint(c, "  ████") + paint(w, "██") + paint(c, "██") + paint(w, "██") + paint(c, "████  "),
+    ""
+  ].join("\n");
 }
 
 function title(text: string) {
-  return `${muted("==")} ${bold(green(text))} ${muted("==")}`;
+  return `${S_STEP} ${bold(text)}`;
 }
 
 function alertTitle(text: string) {
-  return `${red("!")} ${bold(text)}`;
+  return `${S_ERR} ${bold(text)}`;
 }
 
 function section(text: string) {
-  return `${green("->")} ${bold(text)}`;
+  return `${S_BAR}\n${developBlue("◇")} ${bold(text)}`;
 }
 
 function row(label: string, value: string) {
-  return `  ${muted(label.padEnd(8))} ${value}`;
+  return `${S_BAR} ${muted(label.padEnd(8))} ${white(value)}`;
 }
 
 function commandRow(commandText: string, description: string) {
-  return `  ${bright(commandText.padEnd(28))} ${muted(description)}`;
+  return `${S_BAR} ${developBlue(commandText.padEnd(28))} ${muted(description)}`;
 }
 
 function optionRow(option: string, description: string) {
   if (!description) {
-    return `  ${bright(option)}`;
+    return `${S_BAR}   ${developBlue(option)}`;
   }
-
-  return `  ${bright(option.padEnd(36))} ${muted(description)}`;
+  return `${S_BAR}   ${developBlue(option.padEnd(34))} ${muted(description)}`;
 }
 
 export type BridgeRunStateView = {
@@ -142,55 +161,49 @@ export function createDaemonLaunchPlan(input: {
 
 export function usage() {
   return [
-    title("Offdex help"),
-    muted("Codex mobile app."),
-    "",
+    mascotBanner(),
+    `${S_STEP} ${bgBlue("OFFDEX HELP")}`,
+    `${S_BAR} Use Codex from your phone.`,
     section("Commands"),
     commandRow("offdex", "Open the Offdex home screen."),
     commandRow("offdex help", "Show commands, docs, and support links."),
     commandRow("offdex start [options]", "Start the bridge and show the pairing QR."),
     commandRow("offdex status [options]", "Show bridge, Codex, client, and remote status."),
     commandRow("offdex stop [options]", "Stop the local bridge started by Offdex."),
-    "",
     section("Start options"),
     optionRow("--host <host>", "Default: 0.0.0.0"),
     optionRow("--port <port>", "Default: 42420"),
     optionRow("--mode <codex|demo>", "Default: codex"),
     optionRow("--control-plane-url <url>", "Override managed remote pairing."),
-    "",
     section("Environment fallbacks"),
     optionRow("OFFDEX_BRIDGE_HOST", ""),
     optionRow("OFFDEX_BRIDGE_PORT", ""),
     optionRow("OFFDEX_BRIDGE_MODE", ""),
     optionRow("OFFDEX_CONTROL_PLANE_URL", `Default: ${OFFDEX_CONTROL_PLANE_URL}`),
-    "",
-    section("Links"),
-    row("Docs", mint(OFFDEX_WEB_URL)),
-    row("GitHub", mint(OFFDEX_GITHUB_URL)),
-    row("Feedback", mint(OFFDEX_ISSUES_URL)),
+    `${S_BAR}`,
+    `${S_BAR} Docs:     ${previewPink(OFFDEX_WEB_URL)}`,
+    `${S_BAR} GitHub:   ${previewPink(OFFDEX_GITHUB_URL)}`,
+    `${S_END} Feedback: ${previewPink(OFFDEX_ISSUES_URL)}`,
   ].join("\n");
 }
 
 export function onboarding() {
   return [
-    title("Offdex"),
-    muted("Codex mobile app."),
-    "",
-    "Use Codex from your phone while the real Codex session keeps running on this Mac.",
-    "",
+    mascotBanner(),
+    `${S_STEP} ${bgBlue("OFFDEX")}`,
+    `${S_BAR} Use Codex from your phone.`,
     section("Get started"),
-    `  ${muted("[1]")} ${bright("offdex start")}        Start the bridge on this Mac.`,
-    `  ${muted("[2]")} Open Offdex on your phone.`,
-    `  ${muted("[3]")} Scan the QR from this terminal.`,
-    `  ${muted("[4]")} Send a prompt and watch Codex reply live.`,
-    "",
+    `${S_BAR} ${muted("1.")} ${developBlue("offdex start")}        Start the bridge on this Mac.`,
+    `${S_BAR} ${muted("2.")} Open Offdex on your phone.`,
+    `${S_BAR} ${muted("3.")} Scan the QR from this terminal.`,
+    `${S_BAR} ${muted("4.")} Send a prompt and watch Codex reply live.`,
     section("Core commands"),
     commandRow("offdex help", "Commands, docs, GitHub, feedback."),
     commandRow("offdex start", "Start the bridge and show the QR."),
     commandRow("offdex status", "Show bridge, Codex, and client status."),
     commandRow("offdex stop", "Stop the local bridge."),
-    "",
-    row("Docs", mint(OFFDEX_WEB_URL)),
+    `${S_BAR}`,
+    `${S_END} Docs: ${previewPink(OFFDEX_WEB_URL)}`,
   ].join("\n");
 }
 
@@ -212,35 +225,39 @@ export function formatBridgeStatus(input: {
     : "local network only";
 
   return [
-    title("Offdex is running"),
-    row("Bridge", mint(input.baseUrl)),
+    `${S_STEP} ${bgBlue("OFFDEX IS RUNNING")}`,
+    row("Bridge", previewPink(input.baseUrl)),
     input.health.macName ? row("Machine", input.health.macName) : null,
     row("Runtime", input.health.bridgeMode ?? "codex"),
     row("Codex", codexLine.replace(/^Codex: /, "")),
     row("Clients", `${clientCount} live`),
     row("Remote", remoteLine),
     input.state?.startedAt ? row("Started", input.state.startedAt) : null,
+    `${S_END}`
   ].filter(Boolean).join("\n");
 }
 
 export function formatOfflineStatus() {
   return [
-    alertTitle("Offdex is not running"),
-    row("Next", bright("offdex start")),
+    `${S_ERR} ${bgRed("OFFDEX IS NOT RUNNING")}`,
+    row("Next", developBlue("offdex start")),
+    `${S_END}`
   ].join("\n");
 }
 
 export function formatStoppedStatus(baseUrl: string) {
   return [
-    title("Offdex stopped"),
-    row("Bridge", mint(baseUrl)),
+    `${S_STEP} ${bgBlue("OFFDEX STOPPED")}`,
+    row("Bridge", previewPink(baseUrl)),
+    `${S_END}`
   ].join("\n");
 }
 
 export function formatStaleStatus() {
   return [
-    alertTitle("Offdex was not running"),
+    `${S_ERR} ${bgRed("OFFDEX WAS NOT RUNNING")}`,
     row("State", "removed stale local state"),
+    `${S_END}`
   ].join("\n");
 }
 
