@@ -389,7 +389,7 @@ export function createBridgeStateStore(options?: {
   };
 }
 
-import { MASCOT_IDLE } from "./mascot";
+import { MASCOT_GRID, renderMascot } from "./mascot";
 
 export async function createTerminalPairingOutput(pairingUri: string) {
   const qr = await QRCode.toString(pairingUri, {
@@ -397,7 +397,8 @@ export async function createTerminalPairingOutput(pairingUri: string) {
     margin: 0,
   });
 
-  const paddedMascot = MASCOT_IDLE.split('\n')
+  const mascotStr = renderMascot(MASCOT_GRID, false); // No ANSI for plain pairing output in tests and default
+  const paddedMascot = mascotStr.split('\n')
     .filter(line => line.trim() !== '')
     .map(line => `  ${line}`).join("\n");
   const indentedQr = qr.split("\n").map(line => `  ${line}`).join("\n");

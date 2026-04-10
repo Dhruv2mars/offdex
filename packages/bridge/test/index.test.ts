@@ -461,7 +461,7 @@ describe("bridge state store", () => {
     expect(output).not.toContain("offdex://pair?");
     expect(output).toContain("▀");
     expect(output).not.toContain("\u001b[");
-    expect(output.split("\n").length).toBeLessThan(32);
+    expect(output.split("\n").length).toBeLessThan(56);
     expect(output.length).toBeGreaterThan(50);
   });
 

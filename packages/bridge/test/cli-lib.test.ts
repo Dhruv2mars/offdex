@@ -150,30 +150,18 @@ describe("bridge cli daemon launcher", () => {
 
 describe("bridge cli copy", () => {
   const expectedMascotGrid = [
-    "........................",
-    "........................",
-    "........................",
-    "........................",
-    "........#######.........",
-    "......###########.......",
-    ".....#############......",
-    "....###############.....",
-    "...#################....",
-    "...############..###....",
-    "..#####...###..######...",
-    "..#####...###..######...",
-    "..######.#####..#####...",
-    "..###################...",
-    "..###################...",
-    "..###################...",
-    "..#####.........#####...",
-    "..#####.........#####...",
-    "..#####.........#####...",
-    "..#####.........#####...",
-    "........................",
-    "........................",
-    "........................",
-    "........................",
+    ".......##########.......",
+    "......############......",
+    ".....##############.....",
+    "....############.###....",
+    "...####...####..#####...",
+    "...####...##..#######...",
+    "...####...####..#####...",
+    "...#############.####...",
+    "...##################...",
+    "...##################...",
+    "...####..........####...",
+    "...####..........####...",
   ];
 
   function gridFromMascotLines(lines: string[]) {
@@ -183,9 +171,9 @@ describe("bridge cli copy", () => {
     });
   }
 
-  test("renders the mascot as a 24 by 24 grid silhouette", () => {
-    expect(gridFromMascotLines(onboarding().split("\n").slice(0, 24))).toEqual(expectedMascotGrid);
-    expect(gridFromMascotLines(usage().split("\n").slice(0, 24))).toEqual(expectedMascotGrid);
+  test("renders the mascot as a 12 by 24 grid silhouette", () => {
+    expect(gridFromMascotLines(onboarding().split("\n").slice(1, 13))).toEqual(expectedMascotGrid);
+    expect(gridFromMascotLines(usage().split("\n").slice(1, 13))).toEqual(expectedMascotGrid);
   });
 
   test("onboarding is a polished static home screen, not the help screen", () => {

@@ -27,14 +27,16 @@ function shouldAnimate() {
     process.env.NO_COLOR !== "true";
 }
 
-import { MASCOT_IDLE, MASCOT_BLINK } from "./mascot";
+import { MASCOT_GRID, MASCOT_BLINK_GRID, renderMascot } from "./mascot";
 
 function createStartupSpinner(label: string) {
   if (!shouldAnimate()) {
     return { stop() {} };
   }
 
-  const frames = [MASCOT_IDLE, MASCOT_IDLE, MASCOT_IDLE, MASCOT_BLINK];
+  const idleFrame = renderMascot(MASCOT_GRID) + "\n";
+  const blinkFrame = renderMascot(MASCOT_BLINK_GRID) + "\n";
+  const frames = [idleFrame, idleFrame, idleFrame, blinkFrame];
   let index = 0;
   
   const renderFrame = (frameStr: string) => {
