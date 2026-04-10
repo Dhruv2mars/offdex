@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "2acb46f221d7",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "apps/web/app/changelog/page.tsx",
+    "apps/web/app/changelog/releases.ts",
+    "apps/web/app/docs/page.tsx",
+    "apps/web/app/download/page.tsx",
+    "apps/web/app/globals.css",
+    "apps/web/app/layout.tsx",
+    "apps/web/app/page.tsx",
+    "apps/web/app/webui/page.tsx",
+    "apps/web/app/webui/web-app-client.tsx",
+    "apps/web/app/webui/web-transport.ts",
+    "apps/web/test/changelog-releases.test.ts",
+    "apps/web/test/design-system.test.ts",
+    "apps/web/test/public-pages.test.ts",
+    "apps/web/test/web-routes.test.ts",
+    "apps/web/test/web-transport.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/2a/cb46f221d7/0/metadata.json",
+      "transcript": "/2a/cb46f221d7/0/full.jsonl",
+      "content_hash": "/2a/cb46f221d7/0/content_hash.txt",
+      "prompt": "/2a/cb46f221d7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 16308,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 79,
+    "api_call_count": 1
+  }
+}

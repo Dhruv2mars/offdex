@@ -1,0 +1,58 @@
+last time, we redesigned the landing page from scratch and by the grace of you, it became the best looking and feeling part of our proejct. the frontend of that is the best in the world. and you are the reason for it.
+
+---
+
+now we have to completely redo the /webui page. but before that, you first have to checkout the entire codebase, and how the internals of the app are working to understand fully and have the complete context. 
+
+right now, our ultimate goal is to make the best of the best frontend for the webUI. 
+
+if you have any questions, need more context. ask me!
+
+---
+
+[Image 1] - this is how the codex desktop app looks like. other than the search, plugin, automation, i think ours should be much similar. considering the vision behind our app. 
+
+basically, this is not a simple webUI, its a replica of the mobile apps in terms of functionality and usage. most probably, this webUI will be turned as a pwa so that ios users can use the offdex app since i dont have an apple developer account. 
+
+1. what would be the overall structure of the repo then? will it impact anything else? whats your final call.
+2. whatever is according to our brand identity. which you can look at our web landing page for reference. thats our most well designed part of the project.
+
+---
+
+ok, pwa is future, not right now. currently your goal should be to just focus on making sure that the web experience of /webui remains topmost. think from exactly this perspective, not distracting yourself with pwa. 
+
+if you have any questions, need more context, have doubts about functionality/features/etc , ask me.
+
+---
+
+1. not yet. 
+2. not that data, but i feel the exact data that the desktop app has, should be good for our webUI as well. 
+3. yes. 
+
+see, your complete focus should be on making the best frontend possible. it has to have the best ux ever made.
+
+---
+
+all is good. just that the bottom statusbar will be containing the same content as the desktop, we dont have to reengineer that. just that, we dont intake that data for now. so that would be just cosmetic for now. but thats exactly what we actually want in that status bar. 
+
+other than that, everything is fine. you can go ahead and implement it! hail google, hail gemini!!!
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+bro what the hell. just use agent browser skill and see yourself what u did to the actual landing page and webUI.
+
+---
+
+go do it. make no mistakes. it has to be perfect.
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+have you done all the fixes. made sure that the whole landing page incl all the subpages are in exact shape that they were before?
