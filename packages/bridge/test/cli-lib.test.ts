@@ -12,6 +12,7 @@ import {
   parsePort,
   usage,
 } from "../src/cli-lib";
+import { MASCOT_GRID, renderMascot, shouldRenderAnsiMascot } from "../src/mascot";
 
 describe("bridge cli parser", () => {
   test("shows onboarding when no command is provided", () => {
@@ -174,6 +175,12 @@ describe("bridge cli copy", () => {
   test("renders the mascot as a 12 by 24 grid silhouette", () => {
     expect(gridFromMascotLines(onboarding().split("\n").slice(1, 13))).toEqual(expectedMascotGrid);
     expect(gridFromMascotLines(usage().split("\n").slice(1, 13))).toEqual(expectedMascotGrid);
+  });
+
+  test("keeps the mascot plain when terminal colors are disabled", () => {
+    expect(shouldRenderAnsiMascot({ NO_COLOR: "1", TERM: "xterm-256color" }, true)).toBe(false);
+    expect(shouldRenderAnsiMascot({ TERM: "dumb" }, true)).toBe(false);
+    expect(renderMascot(MASCOT_GRID, false)).not.toContain("\u001b[");
   });
 
   test("onboarding is a polished static home screen, not the help screen", () => {

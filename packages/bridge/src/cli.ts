@@ -17,17 +17,14 @@ import {
   type CliOptions,
 } from "./cli-lib";
 import { createBridgeStartupOutput, startBridgeServer, type BridgePairingPayload } from "./index";
+import { MASCOT_BLINK_GRID, MASCOT_GRID, renderMascot, shouldRenderAnsiMascot } from "./mascot";
 
 const DAEMON_CHILD_ENV = "OFFDEX_BRIDGE_DAEMON_CHILD";
 
 function shouldAnimate() {
-  return Boolean(process.stdout.isTTY) &&
-    process.env.CI !== "true" &&
-    process.env.NO_COLOR !== "1" &&
-    process.env.NO_COLOR !== "true";
+  return shouldRenderAnsiMascot() &&
+    process.env.CI !== "true";
 }
-
-import { MASCOT_GRID, MASCOT_BLINK_GRID, renderMascot } from "./mascot";
 
 function createStartupSpinner(label: string) {
   if (!shouldAnimate()) {
