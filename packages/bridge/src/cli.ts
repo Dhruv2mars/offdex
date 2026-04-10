@@ -17,58 +17,45 @@ import {
   type CliOptions,
 } from "./cli-lib";
 import { createBridgeStartupOutput, startBridgeServer, type BridgePairingPayload } from "./index";
-import { MASCOT_BLINK_GRID, MASCOT_GRID, renderMascot, shouldRenderAnsiMascot } from "./mascot";
 
 const DAEMON_CHILD_ENV = "OFFDEX_BRIDGE_DAEMON_CHILD";
 
-function shouldAnimate() {
-  return shouldRenderAnsiMascot() &&
-    process.env.CI !== "true";
+function shouldAnimateStartupSpinner() {
+  return Boolean(process.stdout.isTTY) &&
+    process.env.CI !== "true" &&
+    process.env.NO_COLOR !== "1" &&
+    process.env.NO_COLOR !== "true" &&
+    process.env.TERM !== "dumb";
 }
 
 function createStartupSpinner(label: string) {
-  if (!shouldAnimate()) {
+  if (!shouldAnimateStartupSpinner()) {
     return { stop() {} };
   }
 
-  const idleFrame = renderMascot(MASCOT_GRID) + "\n";
-  const blinkFrame = renderMascot(MASCOT_BLINK_GRID) + "\n";
-  const frames = [idleFrame, idleFrame, idleFrame, blinkFrame];
   const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-  let index = 0;
   let spinnerIndex = 0;
   
-  const renderFrame = (frameStr: string, spinnerGlyph: string) => {
-    const lines = frameStr.split("\n");
-    lines.forEach(line => process.stdout.write(line + "\n"));
-    process.stdout.write(`\u001b[38;2;10;114;239m${spinnerGlyph}\u001b[0m ${label}\n`);
+  const renderFrame = (spinnerGlyph: string) => {
+    process.stdout.write(`\u001b[38;2;136;136;136m${spinnerGlyph}\u001b[0m ${label}\n`);
   };
 
-  const clearFrame = (frameStr: string) => {
-    const lines = frameStr.split("\n");
-    // Move cursor up by the number of lines + 1 (for the label)
-    process.stdout.write(`\u001b[${lines.length + 1}A`);
-    // Clear lines
-    for (let i = 0; i < lines.length + 1; i++) {
-      process.stdout.write(`\u001b[2K\n`);
-    }
-    // Move cursor back up
-    process.stdout.write(`\u001b[${lines.length + 1}A`);
+  const clearFrame = () => {
+    process.stdout.write(`\u001b[1A\u001b[2K`);
   };
 
-  renderFrame(frames[index], spinnerFrames[spinnerIndex]);
+  renderFrame(spinnerFrames[spinnerIndex]);
 
   const timer = setInterval(() => {
-    clearFrame(frames[index]);
-    index = (index + 1) % frames.length;
+    clearFrame();
     spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
-    renderFrame(frames[index], spinnerFrames[spinnerIndex]);
-  }, 400);
+    renderFrame(spinnerFrames[spinnerIndex]);
+  }, 100);
 
   return {
     stop() {
       clearInterval(timer);
-      clearFrame(frames[index]);
+      clearFrame();
     },
   };
 }

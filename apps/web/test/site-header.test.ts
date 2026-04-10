@@ -9,7 +9,7 @@ function readComponentFile(path: string) {
 }
 
 describe("site header sizing", () => {
-  test("sizes the wordmark and GitHub icon to visually balance the mascot", () => {
+  test("sizes the wordmark and GitHub icon to visually balance the logo", () => {
     const header = readComponentFile("site-header.tsx");
 
     expect(header).toContain("text-[20px] leading-[20px]");

@@ -84,8 +84,9 @@ test("npm installer skip message uses the polished terminal layout", () => {
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /== Offdex setup ==/);
+  assert.match(result.stdout, /◆ Offdex setup/);
   assert.match(result.stdout, /Runtime  workspace checkout; native install skipped/);
+  assert.match(result.stdout, /└/);
 });
 
 test("npm installer can be explicitly skipped by environment", () => {
