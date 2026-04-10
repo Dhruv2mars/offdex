@@ -149,6 +149,45 @@ describe("bridge cli daemon launcher", () => {
 });
 
 describe("bridge cli copy", () => {
+  const expectedMascotGrid = [
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+    "........#######.........",
+    "......###########.......",
+    ".....#############......",
+    "....###############.....",
+    "...#################....",
+    "...############..###....",
+    "..#####...###..######...",
+    "..#####...###..######...",
+    "..######.#####..#####...",
+    "..###################...",
+    "..###################...",
+    "..###################...",
+    "..#####.........#####...",
+    "..#####.........#####...",
+    "..#####.........#####...",
+    "..#####.........#####...",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+  ];
+
+  function gridFromMascotLines(lines: string[]) {
+    return lines.map((line) => {
+      expect(line.length).toBe(48);
+      return line.match(/.{2}/g)?.map((cell) => (cell === "██" ? "#" : ".")).join("");
+    });
+  }
+
+  test("renders the mascot as a 24 by 24 grid silhouette", () => {
+    expect(gridFromMascotLines(onboarding().split("\n").slice(0, 24))).toEqual(expectedMascotGrid);
+    expect(gridFromMascotLines(usage().split("\n").slice(0, 24))).toEqual(expectedMascotGrid);
+  });
+
   test("onboarding is a polished static home screen, not the help screen", () => {
     expect(onboarding()).toContain("OFFDEX");
     expect(onboarding()).toContain("Use Codex from your phone");
