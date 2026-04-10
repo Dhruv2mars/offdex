@@ -389,14 +389,25 @@ export function createBridgeStateStore(options?: {
   };
 }
 
+import { MASCOT_IDLE } from "./mascot";
+
 export async function createTerminalPairingOutput(pairingUri: string) {
   const qr = await QRCode.toString(pairingUri, {
     type: "utf8",
     margin: 0,
   });
 
+  const paddedMascot = MASCOT_IDLE.split('\n')
+    .filter(line => line.trim() !== '')
+    .map(line => `  ${line}`).join("\n");
   const indentedQr = qr.split("\n").map(line => `  ${line}`).join("\n");
-  return [terminalSection("Pair with your phone"), `  ${developBlue("Scan with Offdex")}`, indentedQr, ""].join("\n");
+  return [
+    terminalSection("Pair with your phone"), 
+    `  ${developBlue("Scan with Offdex")}`, 
+    paddedMascot, 
+    indentedQr, 
+    ""
+  ].join("\n");
 }
 
 export async function createBridgeStartupOutput(input: {

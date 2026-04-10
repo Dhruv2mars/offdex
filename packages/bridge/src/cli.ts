@@ -27,23 +27,46 @@ function shouldAnimate() {
     process.env.NO_COLOR !== "true";
 }
 
+import { MASCOT_IDLE, MASCOT_BLINK } from "./mascot";
+
 function createStartupSpinner(label: string) {
   if (!shouldAnimate()) {
     return { stop() {} };
   }
 
-  const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+  const frames = [MASCOT_IDLE, MASCOT_IDLE, MASCOT_IDLE, MASCOT_BLINK];
   let index = 0;
-  process.stdout.write(`\u001b[38;2;10;114;239m${frames[index]}\u001b[0m ${label}`);
+  
+  const renderFrame = (frameStr: string) => {
+    const lines = frameStr.split("\n");
+    lines.forEach(line => process.stdout.write(line + "\n"));
+    process.stdout.write(`\u001b[38;2;10;114;239m⠋\u001b[0m ${label}\n`);
+  };
+
+  const clearFrame = (frameStr: string) => {
+    const lines = frameStr.split("\n");
+    // Move cursor up by the number of lines + 1 (for the label)
+    process.stdout.write(`\u001b[${lines.length + 1}A`);
+    // Clear lines
+    for (let i = 0; i < lines.length + 1; i++) {
+      process.stdout.write(`\u001b[2K\n`);
+    }
+    // Move cursor back up
+    process.stdout.write(`\u001b[${lines.length + 1}A`);
+  };
+
+  renderFrame(frames[index]);
+
   const timer = setInterval(() => {
+    clearFrame(frames[index]);
     index = (index + 1) % frames.length;
-    process.stdout.write(`\r\u001b[38;2;10;114;239m${frames[index]}\u001b[0m ${label}`);
-  }, 90);
+    renderFrame(frames[index]);
+  }, 400);
 
   return {
     stop() {
       clearInterval(timer);
-      process.stdout.write("\r\u001b[2K");
+      clearFrame(frames[index]);
     },
   };
 }
