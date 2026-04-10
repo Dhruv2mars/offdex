@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "ccfd6eb70e19",
+  "strategy": "manual-commit",
+  "branch": "fix/cli-grid-mascot",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/src/cli-lib.ts",
+    "packages/bridge/test/cli-lib.test.ts",
+    "packages/npm/bin/offdex.js",
+    "packages/npm/test/offdex-lib.test.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cc/fd6eb70e19/0/metadata.json",
+      "transcript": "/cc/fd6eb70e19/0/full.jsonl",
+      "content_hash": "/cc/fd6eb70e19/0/content_hash.txt",
+      "prompt": "/cc/fd6eb70e19/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1758960,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1619712,
+    "output_tokens": 23916,
+    "api_call_count": 27
+  }
+}
