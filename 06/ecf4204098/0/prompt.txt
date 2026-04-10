@@ -1,5 +1,1 @@
-basically, i added the mascot in the CLI as well. during start, aside of the qr code, etc. and added animations to it. check if all of that part of the CLI is good or not
-
----
-
 but does the mascot look good? are the animations working? arae things looking good and perfect to the eyes? focus on that part
