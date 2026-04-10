@@ -37,7 +37,7 @@ export default function Home() {
         </div>
 
         {/* Visual / Art Component */}
-        <div className="animate-fade-in-delay relative mx-auto mt-16 w-full max-w-[1000px] h-[420px] md:mt-24 md:h-[540px] pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]">
+        <div className="animate-fade-in-delay relative z-20 mx-auto mt-16 w-full max-w-[1000px] h-[420px] md:mt-24 md:h-[540px] pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]">
           
           {/* Mac Terminal Window */}
           <div className="absolute left-1/2 top-0 z-10 w-[95%] max-w-[760px] -translate-x-1/2 overflow-hidden rounded-[16px] bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_40px_80px_-20px_rgba(0,0,0,0.15)] text-left">
