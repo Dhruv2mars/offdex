@@ -146,14 +146,20 @@ What distinguishes Vercel from other monochrome design systems is its shadow-as-
 - Focus outline: `2px solid var(--ds-focus-color)` — consistent blue focus ring
 - Border: via shadow technique, not traditional border
 
-### Navigation
-- Clean horizontal nav on white, sticky
-- Vercel logotype left-aligned, 262x52px
-- Links: Geist 14px weight 500, `#171717` text
-- Active: weight 600 or underline
-- CTA: dark pill buttons ("Start Deploying", "Contact Sales")
-- Mobile: hamburger menu collapse
-- Product dropdowns with multi-level menus
+### Navigation & Footer
+- Header height: `h-14` (56px) sticky on white. Footer mirrors this height.
+- Logo: Monochromatic (near-black dome, white features), cropped tightly.
+- Icon/Logo Sizing: Scaled strictly to `h-5` (20px) to balance perfectly with 16px body text.
+- Links: Geist 14px weight 500, `#171717` text.
+- Active: weight 600 or underline.
+- CTAs: Dark pills/buttons (`#171717`) aligned to the right.
+
+### Hero & Interactive Background
+- **Grid:** A subtle dotted/lined background (`bg-[size:24px_24px]`) using `#8080800a` overlay to break the void.
+- **Spotlight:** Large (1200px radius) radial gradient tracking the cursor. Fluid movement is achieved via JS lerping (`requestAnimationFrame`), not rigid CSS transitions.
+- **Ambient Colors:** The spotlight uses extremely diffuse brand colors at low opacity (`rgba(10,114,239,0.06)` for Develop Blue, `rgba(222,29,141,0.04)` for Preview Pink, `rgba(255,91,79,0.02)` for Ship Red).
+- **Masking:** Backgrounds use a top-down radial mask (`[mask-image:radial-gradient(100%_100%_at_50%_0%,black_0%,transparent_70%)]`) so the effect fades out naturally without distorted or hard edges.
+- **Stacking Context:** Visual components (terminal, phones) are explicitly placed on a higher `z-index` (e.g. `z-20`) to prevent the background gradient from bleeding over transparent elements.
 
 ### Image Treatment
 - Product screenshots with `1px solid #ebebeb` border
@@ -224,9 +230,10 @@ What distinguishes Vercel from other monochrome design systems is its shadow-as-
 **Shadow Philosophy**: Vercel has arguably the most sophisticated shadow system in modern web design. Rather than using shadows for elevation in the traditional Material Design sense, Vercel uses multi-value shadow stacks where each layer has a distinct architectural purpose: one creates the "border" (0px spread, 1px), another adds ambient softness (2px blur), another handles depth at distance (8px blur with negative spread), and an inner ring (`#fafafa`) creates the subtle highlight that makes the card "glow" from within. This layered approach means cards feel built, not floating.
 
 ### Decorative Depth
-- Hero gradient: soft, pastel multi-color gradient wash behind hero content (barely visible, atmospheric)
-- Section borders: `1px solid #171717` (full dark line) between major sections
-- No background color variation — depth comes entirely from shadow layering and border contrast
+- Hero gradient: soft, pastel multi-color gradient wash behind hero content (barely visible, atmospheric).
+- Interactive Spotlight: Mouse-tracking radial gradient (1200px radius) trailing via lerped JavaScript over a 24x24px dotted grid overlay, masked by a smooth 100% top-down fade.
+- Section borders: `1px solid #171717` (full dark line) or `border-[#ebebeb]` between major sections.
+- Background color variation: Minimal. Depth is generated entirely from shadow layering, border contrast, and extremely soft interactive glows (0.02 - 0.06 opacity).
 
 ## 7. Do's and Don'ts
 
@@ -307,6 +314,7 @@ What distinguishes Vercel from other monochrome design systems is its shadow-as-
 1. Always use shadow-as-border instead of CSS border — `0px 0px 0px 1px rgba(0,0,0,0.08)` is the foundation
 2. Letter-spacing scales with font size: -2.4px at 48px, -1.28px at 32px, -0.96px at 24px, normal at 14px
 3. Three weights only: 400 (read), 500 (interact), 600 (announce)
-4. Color is functional, never decorative — workflow colors (Red/Pink/Blue) mark pipeline stages only
+4. Color is functional, never decorative — workflow colors (Red/Pink/Blue) mark pipeline stages and provide highly subtle (0.02 - 0.06 opacity) interactive glow effects.
 5. The inner `#fafafa` ring in card shadows is what gives Vercel cards their subtle inner glow
 6. Geist Mono uppercase for technical labels, Geist Sans for everything else
+7. Header/Footer logos and icons should be strictly `h-5` to balance with `16px` text. Always use monochromatic representations.
