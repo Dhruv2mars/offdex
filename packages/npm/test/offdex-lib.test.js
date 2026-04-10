@@ -8,27 +8,6 @@ import { join } from "node:path";
 import { resolveWorkspaceBridgeCli } from "../bin/offdex-lib.js";
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..");
-const expectedMascotGrid = [
-  ".......##########.......",
-  "......############......",
-  ".....##############.....",
-  "....############.###....",
-  "...####...####..#####...",
-  "...####...##..#######...",
-  "...####...####..#####...",
-  "...#############.####...",
-  "...##################...",
-  "...##################...",
-  "...####..........####...",
-  "...####..........####...",
-];
-
-function gridFromMascotOutput(stdout) {
-  return stdout.split("\n").slice(1, 13).map((line) => {
-    assert.equal(line.length, 48);
-    return line.match(/.{2}/g).map((cell) => cell === "██" ? "#" : ".").join("");
-  });
-}
 
 test("npm wrapper falls back to the source bridge CLI inside a workspace checkout", () => {
   const bridgeCli = resolveWorkspaceBridgeCli(
@@ -79,13 +58,13 @@ test("npm wrapper shows onboarding for bare offdex without downloading runtime",
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(gridFromMascotOutput(result.stdout), expectedMascotGrid);
   assert.match(result.stdout, /OFFDEX/);
   assert.match(result.stdout, /Use Codex from your phone/);
   assert.match(result.stdout, /1\. offdex start/);
   assert.match(result.stdout, /offdex start/);
   assert.match(result.stdout, /Scan the QR/);
   assert.doesNotMatch(result.stdout, /Usage:/);
+  assert.doesNotMatch(result.stdout, /██/);
   assert.doesNotMatch(result.stderr, /setting up native runtime/);
 });
 

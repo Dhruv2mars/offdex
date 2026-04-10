@@ -18,25 +18,30 @@ const colorEnabled =
   process.env.NO_COLOR !== "true" &&
   process.env.TERM !== "dumb";
 const paint = (code, text) => colorEnabled ? `\u001b[${code}m${text}\u001b[0m` : text;
-const green = (text) => paint("38;2;16;163;127", text);
-const muted = (text) => paint("38;2;156;163;160", text);
-const red = (text) => paint("38;2;255;91;79", text);
+const shipRed = (text) => paint("38;2;255;91;79", text);
+const muted = (text) => paint("38;2;136;136;136", text);
+const white = (text) => paint("38;2;255;255;255", text);
 const bold = (text) => paint("1", text);
 
+const S_STEP = bold("◆");
+const S_BAR = muted("│");
+const S_END = muted("└");
+const S_ERR = shipRed("▲");
+
 function title(text) {
-  return `${muted("==")} ${bold(green(text))} ${muted("==")}`;
+  return `${S_STEP} ${bold(white(text))}`;
 }
 
 function alertTitle(text) {
-  return `${red("!")} ${bold(text)}`;
+  return `${S_ERR} ${bold(shipRed(text))}`;
 }
 
 function row(label, value) {
-  return `  ${muted(label.padEnd(8))} ${value}`;
+  return `${S_BAR} ${muted(label.padEnd(8))} ${white(value)}`;
 }
 
 if (shouldSkipPackageInstall({ env: process.env, packageRoot })) {
-  console.log([title("Offdex setup"), row("Runtime", "workspace checkout; native install skipped")].join("\n"));
+  console.log([title("Offdex setup"), row("Runtime", "workspace checkout; native install skipped"), `${S_END}`].join("\n"));
   process.exit(0);
 }
 
@@ -56,7 +61,7 @@ installRuntime({
   },
 })
   .then(({ installBin }) => {
-    console.log([title("Offdex installed"), row("Runtime", installBin)].join("\n"));
+    console.log([title("Offdex installed"), row("Runtime", installBin), `${S_END}`].join("\n"));
   })
   .catch((error) => {
     const message = error instanceof Error ? error.message : "unknown";
@@ -64,5 +69,6 @@ installRuntime({
     if (typeof message === "string" && message.startsWith("unsupported_platform:")) {
       console.error(row("Targets", supportedPlatformList().join(", ")));
     }
+    console.error(`${S_END}`);
     process.exit(1);
   });

@@ -19,62 +19,29 @@ const colorEnabled =
   process.env.NO_COLOR !== "true" &&
   process.env.TERM !== "dumb";
 const paint = (code, text) => colorEnabled ? `\u001b[${code}m${text}\u001b[0m` : text;
-const developBlue = (text) => paint("38;2;10;114;239", text);
-const previewPink = (text) => paint("38;2;222;29;141", text);
 const shipRed = (text) => paint("38;2;255;91;79", text);
 const muted = (text) => paint("38;2;136;136;136", text);
 const white = (text) => paint("38;2;255;255;255", text);
 const bold = (text) => paint("1", text);
-const bgBlue = (text) => paint("48;2;10;114;239;38;2;255;255;255;1", ` ${text} `);
-const bgRed = (text) => paint("48;2;255;91;79;38;2;255;255;255;1", ` ${text} `);
+const underline = (text) => paint("4", text);
 
-const S_STEP = developBlue("◆");
+const S_STEP = bold("◆");
 const S_BAR = muted("│");
 const S_END = muted("└");
 const S_ERR = shipRed("▲");
 
 const controlPlaneUrl = "https://offdex-control-plane.dhruv-sharma10102005.workers.dev";
 
-const mascotGrid = [
-  ".......##########.......",
-  "......############......",
-  ".....##############.....",
-  "....############W###....",
-  "...####WWW####WW#####...",
-  "...####WWW##WW#######...",
-  "...####WWW####WW#####...",
-  "...#############W####...",
-  "...##################...",
-  "...##################...",
-  "...####..........####...",
-  "...####..........####...",
-];
-
-function mascotBanner() {
-  return [
-    "",
-    ...mascotGrid.map((row) =>
-      [...row].map((cell) => {
-        if (cell === ".") return "  ";
-        if (!colorEnabled) return cell === "W" ? "  " : "██";
-        const bg = cell === "#" ? "48;2;64;64;64" : "48;2;255;255;255";
-        return `\x1b[${bg}m  \x1b[0m`;
-      }).join("")
-    ),
-    ""
-  ].join("\n");
-}
-
 function title(text) {
-  return `${S_STEP} ${bold(text)}`;
+  return `${S_STEP} ${bold(white(text))}`;
 }
 
 function alertTitle(text) {
-  return `${S_ERR} ${bold(text)}`;
+  return `${S_ERR} ${bold(shipRed(text))}`;
 }
 
 function section(text) {
-  return `${S_BAR}\n${developBlue("◇")} ${bold(text)}`;
+  return `${S_BAR}\n${muted("◇")} ${bold(white(text))}`;
 }
 
 function row(label, value) {
@@ -82,23 +49,22 @@ function row(label, value) {
 }
 
 function commandRow(commandText, description) {
-  return `${S_BAR} ${developBlue(commandText.padEnd(28))} ${muted(description)}`;
+  return `${S_BAR} ${bold(white(commandText.padEnd(28)))} ${muted(description)}`;
 }
 
 function optionRow(option, description) {
   if (!description) {
-    return `${S_BAR}   ${developBlue(option)}`;
+    return `${S_BAR}   ${white(option)}`;
   }
-  return `${S_BAR}   ${developBlue(option.padEnd(34))} ${muted(description)}`;
+  return `${S_BAR}   ${white(option.padEnd(34))} ${muted(description)}`;
 }
 
 function onboardingText() {
   return [
-    mascotBanner(),
-    `${S_STEP} ${bgBlue("OFFDEX")}`,
+    title("OFFDEX"),
     `${S_BAR} Use Codex from your phone.`,
     section("Get started"),
-    `${S_BAR} ${muted("1.")} ${developBlue("offdex start")}        Start the bridge on this Mac.`,
+    `${S_BAR} ${muted("1.")} ${bold(white("offdex start"))}        Start the bridge on this Mac.`,
     `${S_BAR} ${muted("2.")} Open Offdex on your phone.`,
     `${S_BAR} ${muted("3.")} Scan the QR from this terminal.`,
     `${S_BAR} ${muted("4.")} Send a prompt and watch Codex reply live.`,
@@ -108,13 +74,13 @@ function onboardingText() {
     commandRow("offdex status", "Show bridge, Codex, and client status."),
     commandRow("offdex stop", "Stop the local bridge."),
     `${S_BAR}`,
-    `${S_END} Docs: ${previewPink("https://offdexapp.vercel.app")}`,
+    `${S_END} Docs: ${underline("https://offdexapp.vercel.app")}`,
   ].join("\n");
 }
 
 function helpText() {
   return [
-    `${S_STEP} ${bgBlue("OFFDEX HELP")}`,
+    title("OFFDEX HELP"),
     `${S_BAR} Use Codex from your phone.`,
     section("Commands"),
     commandRow("offdex", "Open the Offdex home screen."),
@@ -133,16 +99,16 @@ function helpText() {
     optionRow("OFFDEX_BRIDGE_MODE", ""),
     optionRow("OFFDEX_CONTROL_PLANE_URL", `Default: ${controlPlaneUrl}`),
     `${S_BAR}`,
-    `${S_BAR} Docs:     ${previewPink("https://offdexapp.vercel.app")}`,
-    `${S_BAR} GitHub:   ${previewPink("https://github.com/Dhruv2mars/offdex")}`,
-    `${S_END} Feedback: ${previewPink("https://github.com/Dhruv2mars/offdex/issues")}`,
+    `${S_BAR} Docs:     ${underline("https://offdexapp.vercel.app")}`,
+    `${S_BAR} GitHub:   ${underline("https://github.com/Dhruv2mars/offdex")}`,
+    `${S_END} Feedback: ${underline("https://github.com/Dhruv2mars/offdex/issues")}`,
   ].join("\n");
 }
 
 function offlineText() {
   return [
-    `${S_ERR} ${bgRed("OFFDEX IS NOT RUNNING")}`,
-    row("Next", developBlue("offdex start")),
+    alertTitle("OFFDEX IS NOT RUNNING"),
+    row("Next", bold(white("offdex start"))),
     `${S_END}`
   ].join("\n");
 }

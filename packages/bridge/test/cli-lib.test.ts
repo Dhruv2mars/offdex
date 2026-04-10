@@ -12,7 +12,6 @@ import {
   parsePort,
   usage,
 } from "../src/cli-lib";
-import { MASCOT_GRID, renderMascot, shouldRenderAnsiMascot } from "../src/mascot";
 
 describe("bridge cli parser", () => {
   test("shows onboarding when no command is provided", () => {
@@ -150,38 +149,6 @@ describe("bridge cli daemon launcher", () => {
 });
 
 describe("bridge cli copy", () => {
-  const expectedMascotGrid = [
-    ".......##########.......",
-    "......############......",
-    ".....##############.....",
-    "....############.###....",
-    "...####...####..#####...",
-    "...####...##..#######...",
-    "...####...####..#####...",
-    "...#############.####...",
-    "...##################...",
-    "...##################...",
-    "...####..........####...",
-    "...####..........####...",
-  ];
-
-  function gridFromMascotLines(lines: string[]) {
-    return lines.map((line) => {
-      expect(line.length).toBe(48);
-      return line.match(/.{2}/g)?.map((cell) => (cell === "██" ? "#" : ".")).join("");
-    });
-  }
-
-  test("renders the mascot as a 12 by 24 grid silhouette", () => {
-    expect(gridFromMascotLines(onboarding().split("\n").slice(1, 13))).toEqual(expectedMascotGrid);
-  });
-
-  test("keeps the mascot plain when terminal colors are disabled", () => {
-    expect(shouldRenderAnsiMascot({ NO_COLOR: "1", TERM: "xterm-256color" }, true)).toBe(false);
-    expect(shouldRenderAnsiMascot({ TERM: "dumb" }, true)).toBe(false);
-    expect(renderMascot(MASCOT_GRID, false)).not.toContain("\u001b[");
-  });
-
   test("onboarding is a polished static home screen, not the help screen", () => {
     expect(onboarding()).toContain("OFFDEX");
     expect(onboarding()).toContain("Use Codex from your phone");
@@ -191,6 +158,7 @@ describe("bridge cli copy", () => {
     expect(onboarding()).toContain("Scan the QR");
     expect(onboarding()).toContain("offdex status");
     expect(onboarding()).not.toContain("Usage:");
+    expect(onboarding()).not.toContain("██");
   });
 
   test("usage exposes the five public commands and project links", () => {

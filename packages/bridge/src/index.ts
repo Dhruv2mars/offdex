@@ -172,8 +172,12 @@ function developBlue(text: string) {
   return paintTerminal("38;2;10;114;239", text);
 }
 
-function previewPink(text: string) {
-  return paintTerminal("38;2;222;29;141", text);
+function successGreen(text: string) {
+  return paintTerminal("38;2;39;201;63", text);
+}
+
+function shipRed(text: string) {
+  return paintTerminal("38;2;255;91;79", text);
 }
 
 function muted(text: string) {
@@ -184,24 +188,24 @@ function white(text: string) {
   return paintTerminal("38;2;255;255;255", text);
 }
 
-function bgBlue(text: string) {
-  return paintTerminal("48;2;10;114;239;38;2;255;255;255;1", ` ${text} `);
-}
-
 function terminalBold(text: string) {
   return paintTerminal("1", text);
 }
 
-const S_STEP = developBlue("◆");
+function terminalUnderline(text: string) {
+  return paintTerminal("4", text);
+}
+
+const S_STEP = terminalBold("◆");
 const S_BAR = muted("│");
 const S_END = muted("└");
 
 function terminalTitle(text: string) {
-  return `${S_STEP} ${bgBlue(text.toUpperCase())}`;
+  return `${S_STEP} ${terminalBold(white(text.toUpperCase()))}`;
 }
 
 function terminalSection(text: string) {
-  return `${S_BAR}\n${developBlue("◇")} ${terminalBold(text)}`;
+  return `${S_BAR}\n${muted("◇")} ${terminalBold(white(text))}`;
 }
 
 function terminalRow(label: string, value: string) {
@@ -401,8 +405,6 @@ export function createBridgeStateStore(options?: {
   };
 }
 
-import { MASCOT_GRID, renderMascot } from "./mascot";
-
 export async function createTerminalPairingOutput(pairingUri: string) {
   const qr = await QRCode.toString(pairingUri, {
     type: "utf8",
@@ -411,10 +413,10 @@ export async function createTerminalPairingOutput(pairingUri: string) {
 
   const indentedQr = qr.split("\n").map(line => `  ${line}`).join("\n");
   return [
-    terminalSection("Pair with your phone"), 
-    `  ${developBlue("Scan with Offdex")}`, 
+    terminalSection("Pair with your phone"),
+    `  ${muted("Scan with Offdex")}`,
     "",
-    indentedQr, 
+    indentedQr,
     ""
   ].join("\n");
 }
@@ -427,9 +429,9 @@ export async function createBridgeStartupOutput(input: {
   const lines = [
     terminalTitle("Offdex is running"),
     `${S_BAR} Scan the QR in the mobile app.`,
-    terminalRow("Bridge", previewPink(input.payload.bridgeUrl)),
-    terminalRow("Web UI", previewPink(createBridgeWebUiUrl(input.payload.bridgeUrl, undefined, input.payload.pairingUri))),
-    terminalRow("Remote", input.relayUrl ? "connected" : "local network only"),
+    terminalRow("Bridge", terminalUnderline(input.payload.bridgeUrl)),
+    terminalRow("Web UI", terminalUnderline(createBridgeWebUiUrl(input.payload.bridgeUrl, undefined, input.payload.pairingUri))),
+    terminalRow("Remote", input.relayUrl ? successGreen("connected") : "local network only"),
     terminalRow("Manage", "offdex status | offdex stop"),
     "",
     qrOutput.trimEnd(),
