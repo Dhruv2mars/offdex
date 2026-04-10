@@ -1,0 +1,10 @@
+i have made few changes: (frontend design revamp and improvements)
+
+- updated web landing page (not the webUI)
+- updated the CLI 
+
+you need to push the web changes to vercel prod. and run/test the CLI to be sure that everything is perfectly fine, runs fine without any issues and bugs.
+
+---
+
+then do it. all of it!

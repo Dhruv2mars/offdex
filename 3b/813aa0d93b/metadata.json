@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "3b813aa0d93b",
+  "strategy": "manual-commit",
+  "branch": "fix/cli-redesign-tests",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/test/cli-lib.test.ts",
+    "packages/bridge/test/index.test.ts",
+    "packages/npm/test/offdex-lib.test.js",
+    "scripts/smoke-install.mjs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/3b/813aa0d93b/0/metadata.json",
+      "transcript": "/3b/813aa0d93b/0/full.jsonl",
+      "content_hash": "/3b/813aa0d93b/0/content_hash.txt",
+      "prompt": "/3b/813aa0d93b/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3663205,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3526400,
+    "output_tokens": 19183,
+    "api_call_count": 51
+  }
+}
