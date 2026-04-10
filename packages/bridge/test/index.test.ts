@@ -477,8 +477,7 @@ describe("bridge state store", () => {
       relayUrl: "wss://relay.example.com",
     });
 
-    expect(output).toContain("Offdex is running");
-    expect(output).toContain("== Offdex is running ==");
+    expect(output).toContain("OFFDEX IS RUNNING");
     expect(output).toContain("Scan the QR");
     expect(output).toContain("Bridge   http://127.0.0.1:42420");
     expect(output).toContain("Web UI   https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420");
