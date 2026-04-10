@@ -7,7 +7,7 @@ export const revalidate = 3600;
 function cleanReleaseBody(body: string) {
   if (!body) return "No release notes provided.";
 
-  let cleaned = body
+  const cleaned = body
     // Remove "Full Changelog" section completely
     .replace(/\*\*Full Changelog\*\*:[\s\S]*$/i, "")
     // Remove "What's Changed" heading as it is redundant
@@ -213,7 +213,7 @@ export default async function ChangelogPage() {
               Release feed unavailable
             </h3>
             <p className="mt-3 text-[15px] text-muted-foreground">
-              We couldn't load the releases from GitHub. You can still view them directly.
+              We couldn&apos;t load the releases from GitHub. You can still view them directly.
             </p>
             <a
               href={githubReleasesUrl}

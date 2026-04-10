@@ -1,10 +1,6 @@
-import Link from "next/link";
 import {
-  androidApkDownloadUrl,
   bridgeStartCommand,
   cliInstallCommand,
-  githubReleasesUrl,
-  webAppUrl,
 } from "../site-content";
 import { TerminalBlock } from "../../components/terminal-block";
 
