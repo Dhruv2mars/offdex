@@ -150,11 +150,10 @@ describe("bridge cli daemon launcher", () => {
 
 describe("bridge cli copy", () => {
   test("onboarding is a polished static home screen, not the help screen", () => {
-    expect(onboarding()).toContain("Offdex");
-    expect(onboarding()).toContain("Codex mobile app");
-    expect(onboarding()).toContain("== Offdex ==");
-    expect(onboarding()).toContain("[1] offdex start");
-    expect(onboarding()).toContain("-> Get started");
+    expect(onboarding()).toContain("OFFDEX");
+    expect(onboarding()).toContain("Use Codex from your phone");
+    expect(onboarding()).toContain("1. offdex start");
+    expect(onboarding()).toContain("Get started");
     expect(onboarding()).toContain("offdex start");
     expect(onboarding()).toContain("Scan the QR");
     expect(onboarding()).toContain("offdex status");
@@ -162,7 +161,8 @@ describe("bridge cli copy", () => {
   });
 
   test("usage exposes the five public commands and project links", () => {
-    expect(usage()).toContain("== Offdex help ==");
+    expect(usage()).toContain("OFFDEX HELP");
+    expect(usage()).toContain("Use Codex from your phone");
     expect(usage()).toContain("Commands");
     expect(usage()).toContain("offdex start [options]");
     expect(usage()).toContain("Start options");
@@ -206,8 +206,7 @@ describe("bridge cli copy", () => {
   });
 
   test("offline status gives the next command", () => {
-    expect(formatOfflineStatus()).toContain("! Offdex is not running");
-    expect(formatOfflineStatus()).toContain("Offdex is not running");
+    expect(formatOfflineStatus()).toContain("OFFDEX IS NOT RUNNING");
     expect(formatOfflineStatus()).toContain("offdex start");
   });
 });

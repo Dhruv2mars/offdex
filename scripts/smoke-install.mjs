@@ -138,7 +138,7 @@ try {
     cwd: repoRoot,
     env: tarballEnv,
   });
-  if (!help.stdout.includes("Offdex help") || !help.stdout.includes("offdex start")) {
+  if (!help.stdout.includes("OFFDEX HELP") || !help.stdout.includes("offdex start")) {
     fail(`help output was not clear\n${help.stdout}\n${help.stderr}`);
   }
 
@@ -161,7 +161,7 @@ try {
     return response.ok;
   }, 10000);
 
-  if (!bridgeStart.stdout.includes("Offdex is running") || !bridgeStart.stdout.includes("Scan with Offdex")) {
+  if (!bridgeStart.stdout.includes("OFFDEX IS RUNNING") || !bridgeStart.stdout.includes("Scan with Offdex")) {
     fail(`bridge startup output missing expected details\n${bridgeStart.stdout}\n${bridgeStart.stderr}`);
   }
 } finally {
