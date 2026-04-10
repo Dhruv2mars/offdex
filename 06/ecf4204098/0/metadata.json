@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "06ecf4204098",
+  "session_id": "019d768a-1034-75c3-bf38-1aca475d2932",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-10T08:53:24.776607Z",
+  "branch": "fix/cli-start-spinner-animation",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/src/cli.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "ccb3285289f3",
+  "checkpoint_transcript_start": 605,
+  "transcript_lines_at_start": 605,
+  "token_usage": {
+    "input_tokens": 3356554,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3238656,
+    "output_tokens": 11702,
+    "api_call_count": 23
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-10T08:53:24.4173Z",
+    "agent_lines": 7,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 7,
+    "agent_percentage": 100
+  }
+}
