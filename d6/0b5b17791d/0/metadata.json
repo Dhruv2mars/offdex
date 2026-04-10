@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "d60b5b17791d",
+  "session_id": "019d768a-1034-75c3-bf38-1aca475d2932",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-10T08:58:59.117625Z",
+  "branch": "chore/release-v0.0.12-cleanup",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".gitignore",
+    "apps/mobile/src/app-config.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "a9d2bd0d23d6",
+  "checkpoint_transcript_start": 752,
+  "transcript_lines_at_start": 752,
+  "token_usage": {
+    "input_tokens": 6491051,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6418048,
+    "output_tokens": 8752,
+    "api_call_count": 36
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-10T08:58:58.6544Z",
+    "agent_lines": 3,
+    "human_added": 4,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 7,
+    "agent_percentage": 42.857142857142854
+  }
+}
