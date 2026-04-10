@@ -1,4 +1,4 @@
-import { githubReleasesUrl } from "../site-content";
+import { githubReleasesUrl } from "../../site-content";
 import { fetchGitHubReleases, formatReleaseDate } from "./releases";
 import ReactMarkdown from "react-markdown";
 

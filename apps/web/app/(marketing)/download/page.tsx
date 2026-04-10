@@ -2,8 +2,8 @@ import {
   androidApkDownloadUrl,
   githubRepoUrl,
   githubReleasesUrl,
-} from "../site-content";
-import { PackageManagerTerminal } from "../../components/package-manager-terminal";
+} from "../../site-content";
+import { PackageManagerTerminal } from "../../../components/package-manager-terminal";
 
 export default function DownloadPage() {
   return (

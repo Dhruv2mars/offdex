@@ -1,8 +1,8 @@
 import {
   bridgeStartCommand,
   cliInstallCommand,
-} from "../site-content";
-import { TerminalBlock } from "../../components/terminal-block";
+} from "../../site-content";
+import { TerminalBlock } from "../../../components/terminal-block";
 
 const docsSections = [
   {

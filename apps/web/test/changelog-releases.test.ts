@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatReleaseDate, normalizeGitHubRelease } from "../app/changelog/releases";
+import { formatReleaseDate, normalizeGitHubRelease } from "../app/(marketing)/changelog/releases";
 
 describe("changelog release helpers", () => {
   test("normalizes GitHub release payloads for the changelog", () => {

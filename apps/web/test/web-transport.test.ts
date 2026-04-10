@@ -4,7 +4,7 @@ import {
   extractPairingUri,
   parseManagedSession,
   serializeManagedSession,
-} from "../app/webui/web-transport";
+} from "../app/(app)/webui/web-transport";
 
 describe("web transport", () => {
   test("decodes managed machine pairing links from the terminal", () => {

@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 const appRoot = join(import.meta.dir, "..", "app");
 
 function readAppFile(path: string) {
-  return readFileSync(join(appRoot, path), "utf8");
+  return readFileSync(join(appRoot, "(marketing)", path), "utf8");
 }
 
 describe("public content pages", () => {

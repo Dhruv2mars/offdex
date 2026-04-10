@@ -24,9 +24,9 @@ describe("web DESIGN.md system", () => {
   test("does not keep the previous dark green theme", () => {
     const files = [
       readAppFile("globals.css"),
-      readAppFile("page.tsx"),
-      readAppFile("webui/page.tsx"),
-      readAppFile("webui/web-app-client.tsx"),
+      readAppFile("(marketing)/page.tsx"),
+      readAppFile("(app)/webui/page.tsx"),
+      readAppFile("(app)/webui/web-app-client.tsx"),
     ].join("\n");
 
     expect(files).not.toContain("#070807");
@@ -37,24 +37,24 @@ describe("web DESIGN.md system", () => {
   });
 
   test("applies the card shadow-border system across public web surfaces", () => {
-    expect(readAppFile("page.tsx")).toContain("shadow-card");
-    expect(readAppFile("webui/web-app-client.tsx")).toContain("shadow-card");
+    expect(readAppFile("(marketing)/page.tsx")).toContain("shadow-card");
+    expect(readAppFile("(app)/webui/web-app-client.tsx")).toContain("shadow-card");
   });
 
   test("keeps the current landing page structure without restoring the removed architecture route", () => {
-    const home = readAppFile("page.tsx");
-    const webui = readAppFile("webui/web-app-client.tsx");
+    const home = readAppFile("(marketing)/page.tsx");
+    const webui = readAppFile("(app)/webui/web-app-client.tsx");
 
     expect(home).toContain("The Codex");
     expect(home).toContain("Install Offdex CLI");
     expect(home).toContain("Put authority in the bridge.");
     expect(home).not.toContain("href=\"#architecture\"");
-    expect(webui).toContain("What do you want Codex to do?");
+    expect(webui).toContain("Let's build");
   });
 
   test("uses a ChatGPT-style web UI sidebar shell", () => {
-    const page = readAppFile("webui/page.tsx");
-    const webui = readAppFile("webui/web-app-client.tsx");
+    const page = readAppFile("(app)/webui/page.tsx");
+    const webui = readAppFile("(app)/webui/web-app-client.tsx");
 
     expect(page).not.toContain("sticky top-0");
     expect(webui).toContain("data-webui-sidebar");
