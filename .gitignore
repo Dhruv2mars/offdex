@@ -8,6 +8,7 @@ node_modules/
 dist/
 **/dist/
 coverage/
+.lighthouseci/
 
 apps/web/.next/
 apps/web/.vercel/
