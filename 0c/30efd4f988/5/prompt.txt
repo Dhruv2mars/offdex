@@ -1,0 +1,1 @@
+Run pwd in the workspace and tell me the output.
