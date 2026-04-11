@@ -1,1 +1,1 @@
-whats the status of our webUI development? see the uncommited and unreleased/unpushed changes. whats the status of that, and what is our next move.
+yeah, you should switch to that branch. but do you know the context behind this webUI devlopment, you might need to get that. once that is clear, you should go ahead with your next moves. in the meantime you should push the docs seperately.
