@@ -31,6 +31,7 @@ describe("protocol demo snapshot", () => {
     expect(snapshot.pairing.bridgeUrl).toBe("http://127.0.0.1:42420");
     expect(snapshot.pairing.bridgeHints).toContain("http://127.0.0.1:42420");
     expect(snapshot.threads.length).toBeGreaterThan(0);
+    expect(snapshot.archivedThreads).toEqual([]);
     expect(snapshot.capabilityMatrix.runtimes).toEqual(["cli"]);
   });
 
@@ -95,6 +96,21 @@ describe("workspace snapshot store", () => {
     expect(snapshot.pairing.bridgeUrl).toBe("http://192.168.1.8:42420");
     expect(snapshot.pairing.macName).toBe("studio-macbook");
     expect(snapshot.threads.length).toBeGreaterThan(0);
+  });
+
+  test("tracks archived threads separately from the live thread list", () => {
+    const store = new WorkspaceSnapshotStore();
+    const archivedThread = {
+      ...store.getSnapshot().threads[0]!,
+      id: "thread-archived",
+      title: "Archived thread",
+    };
+
+    store.setArchivedThreads([archivedThread]);
+
+    const snapshot = store.getSnapshot();
+    expect(snapshot.archivedThreads[0]?.id).toBe("thread-archived");
+    expect(snapshot.threads.some((thread) => thread.id === "thread-archived")).toBe(false);
   });
 });
 

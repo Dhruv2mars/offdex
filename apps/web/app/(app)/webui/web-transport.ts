@@ -1,53 +1,55 @@
 import nacl from "tweetnacl";
 import { decodeUTF8, encodeBase64, decodeBase64, encodeUTF8 } from "tweetnacl-util";
+import {
+  OFFDEX_NEW_THREAD_ID as PROTOCOL_OFFDEX_NEW_THREAD_ID,
+  type OffdexAppRecord,
+  type OffdexAutomationRecord,
+  type OffdexConfigSummary,
+  type OffdexExperimentalFeatureRecord,
+  type OffdexInputItem,
+  type OffdexMcpServerRecord,
+  type OffdexModelRecord,
+  type OffdexPermissionReview,
+  type OffdexPluginRecord,
+  type OffdexRateLimitsSummary,
+  type OffdexRemoteFileEntry,
+  type OffdexRemoteFileMatch,
+  type RuntimeTarget,
+  type OffdexApprovalRequest,
+  type OffdexRuntimeAccount,
+  type OffdexSkillRecord,
+  type OffdexThread,
+  type OffdexTimelineItem,
+  type OffdexTurn,
+  type OffdexWorkbenchInventory,
+  type OffdexWorkspaceSnapshot,
+} from "@offdex/protocol";
+export const OFFDEX_NEW_THREAD_ID = PROTOCOL_OFFDEX_NEW_THREAD_ID;
+export type {
+  OffdexAppRecord,
+  RuntimeTarget,
+  OffdexAutomationRecord,
+  OffdexApprovalRequest,
+  OffdexConfigSummary,
+  OffdexExperimentalFeatureRecord,
+  OffdexInputItem,
+  OffdexMcpServerRecord,
+  OffdexModelRecord,
+  OffdexPermissionReview,
+  OffdexPluginRecord,
+  OffdexRateLimitsSummary,
+  OffdexRemoteFileEntry,
+  OffdexRemoteFileMatch,
+  OffdexRuntimeAccount,
+  OffdexSkillRecord,
+  OffdexThread,
+  OffdexTimelineItem,
+  OffdexTurn,
+  OffdexWorkbenchInventory,
+  OffdexWorkspaceSnapshot,
+} from "@offdex/protocol";
 
-export type RuntimeTarget = "cli" | "desktop";
-export type TurnState = "idle" | "running" | "completed" | "failed";
 export type ConnectionTransport = "local" | "relay";
-export const OFFDEX_NEW_THREAD_ID = "offdex-new-thread";
-
-export type OffdexMessage = {
-  id: string;
-  role: "user" | "assistant" | "system";
-  body: string;
-  createdAt: string;
-};
-
-export type OffdexThread = {
-  id: string;
-  title: string;
-  projectLabel: string;
-  runtimeTarget: RuntimeTarget;
-  state: TurnState;
-  unreadCount: number;
-  updatedAt: string;
-  messages: OffdexMessage[];
-};
-
-export type OffdexWorkspaceSnapshot = {
-  pairing: {
-    bridgeUrl: string;
-    bridgeHints: string[];
-    macName: string;
-    state: "unpaired" | "paired" | "reconnecting";
-    lastSeenAt: string;
-    runtimeTarget: RuntimeTarget;
-  };
-  capabilityMatrix: {
-    mobile: "expo";
-    web: "next";
-    runtimes: RuntimeTarget[];
-  };
-  threads: OffdexThread[];
-};
-
-export type OffdexRuntimeAccount = {
-  id: string | null;
-  email: string | null;
-  name: string | null;
-  planType: string | null;
-  isAuthenticated: boolean;
-};
 
 export type BridgeHealth = {
   ok?: boolean;
@@ -292,7 +294,31 @@ async function fetchWithTimeout(input: string, init?: RequestInit, timeoutMs = L
 
 async function sendRelayRequest<T>(
   target: RelayTarget,
-  request: { id: string; action: "health" | "snapshot" | "turn"; threadId?: string; body?: string }
+  request:
+    | { id: string; action: "health" | "snapshot" | "inventory" }
+    | { id: string; action: "config/write"; keyPath: string; value: unknown; filePath?: string | null }
+    | { id: string; action: "skills/config/write"; name?: string | null; path?: string | null; enabled: boolean }
+    | { id: string; action: "plugin/install"; marketplacePath: string; pluginName: string }
+    | { id: string; action: "plugin/uninstall"; pluginId: string }
+    | { id: string; action: "files/list"; path: string }
+    | { id: string; action: "files/search"; query: string; roots: string[] }
+    | { id: string; action: "runtime"; preferredTarget: RuntimeTarget }
+    | { id: string; action: "turn"; threadId?: string; body?: string; inputs?: OffdexInputItem[] }
+    | { id: string; action: "interrupt"; threadId?: string }
+    | { id: string; action: "thread/rename"; threadId: string; name: string }
+    | { id: string; action: "thread/fork"; threadId: string }
+    | { id: string; action: "thread/archive"; threadId: string }
+    | { id: string; action: "thread/unarchive"; threadId: string }
+    | { id: string; action: "thread/compact"; threadId: string }
+    | { id: string; action: "review/start"; threadId: string }
+    | { id: string; action: "mcp/oauth/login"; name: string }
+    | {
+        id: string;
+        action: "approval";
+        approvalId: string;
+        approve: boolean;
+        answers?: Record<string, string>;
+      }
 ) {
   const proxyUrl = new URL(toRelayProxyUrl(target.relayUrl, target.roomId));
   proxyUrl.searchParams.set("token", createRelayAuthToken(target.secret, target.roomId));
@@ -368,7 +394,149 @@ export async function fetchBridgeSnapshot(target: string) {
   return fetchJson<OffdexWorkspaceSnapshot>(`${target}/snapshot`);
 }
 
-export async function sendBridgeTurn(target: string, threadId: string, body: string) {
+export async function fetchBridgeInventory(target: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<OffdexWorkbenchInventory>(relayTarget, {
+      id: `inventory-${Date.now()}`,
+      action: "inventory",
+    });
+  }
+  return fetchJson<OffdexWorkbenchInventory>(`${target}/inventory`);
+}
+
+export async function sendBridgeConfigWrite(
+  target: string,
+  input: { keyPath: string; value: unknown; filePath?: string | null }
+) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ inventory: OffdexWorkbenchInventory }>(relayTarget, {
+      id: `config-write-${Date.now()}`,
+      action: "config/write",
+      keyPath: input.keyPath,
+      value: input.value,
+      filePath: input.filePath ?? null,
+    });
+  }
+  return fetchJson<{ inventory: OffdexWorkbenchInventory }>(`${target}/config`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function sendBridgeSkillConfigWrite(
+  target: string,
+  input: { name?: string | null; path?: string | null; enabled: boolean }
+) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ inventory: OffdexWorkbenchInventory }>(relayTarget, {
+      id: `skills-write-${Date.now()}`,
+      action: "skills/config/write",
+      name: input.name ?? null,
+      path: input.path ?? null,
+      enabled: input.enabled,
+    });
+  }
+  return fetchJson<{ inventory: OffdexWorkbenchInventory }>(`${target}/skills`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function sendBridgePluginInstall(
+  target: string,
+  input: { marketplacePath: string; pluginName: string }
+) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ inventory: OffdexWorkbenchInventory }>(relayTarget, {
+      id: `plugin-install-${Date.now()}`,
+      action: "plugin/install",
+      marketplacePath: input.marketplacePath,
+      pluginName: input.pluginName,
+    });
+  }
+  return fetchJson<{ inventory: OffdexWorkbenchInventory }>(`${target}/plugin/install`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function sendBridgePluginUninstall(target: string, pluginId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ inventory: OffdexWorkbenchInventory }>(relayTarget, {
+      id: `plugin-uninstall-${Date.now()}`,
+      action: "plugin/uninstall",
+      pluginId,
+    });
+  }
+  return fetchJson<{ inventory: OffdexWorkbenchInventory }>(`${target}/plugin/uninstall`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ pluginId }),
+  });
+}
+
+export async function fetchBridgeFiles(target: string, path: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ entries: OffdexRemoteFileEntry[] }>(relayTarget, {
+      id: `files-${Date.now()}`,
+      action: "files/list",
+      path,
+    });
+  }
+  const url = new URL(`${target}/files`);
+  url.searchParams.set("path", path);
+  return fetchJson<{ entries: OffdexRemoteFileEntry[] }>(url.toString());
+}
+
+export async function searchBridgeFiles(target: string, query: string, roots: string[]) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ files: OffdexRemoteFileMatch[] }>(relayTarget, {
+      id: `file-search-${Date.now()}`,
+      action: "files/search",
+      query,
+      roots,
+    });
+  }
+  const url = new URL(`${target}/file-search`);
+  url.searchParams.set("query", query);
+  for (const root of roots) {
+    url.searchParams.append("root", root);
+  }
+  return fetchJson<{ files: OffdexRemoteFileMatch[] }>(url.toString());
+}
+
+export async function sendBridgeRuntime(target: string, preferredTarget: RuntimeTarget) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `runtime-${Date.now()}`,
+      action: "runtime",
+      preferredTarget,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/runtime`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ preferredTarget }),
+  });
+}
+
+export async function sendBridgeTurn(
+  target: string,
+  threadId: string,
+  body: string,
+  inputs?: OffdexInputItem[]
+) {
   const relayTarget = decodeRelayConnectionTarget(target);
   if (relayTarget) {
     return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
@@ -376,12 +544,168 @@ export async function sendBridgeTurn(target: string, threadId: string, body: str
       action: "turn",
       threadId,
       body,
+      inputs,
     });
   }
   return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/turn`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ threadId, body }),
+    body: JSON.stringify({ threadId, body, inputs }),
+  });
+}
+
+export async function sendBridgeInterrupt(target: string, threadId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `interrupt-${Date.now()}`,
+      action: "interrupt",
+      threadId,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/interrupt`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId }),
+  });
+}
+
+export async function sendBridgeApproval(
+  target: string,
+  approval: Pick<OffdexApprovalRequest, "id">,
+  input: { approve: boolean; answers?: Record<string, string> }
+) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `approval-${Date.now()}`,
+      action: "approval",
+      approvalId: approval.id,
+      approve: input.approve,
+      answers: input.answers,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/approval`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      approvalId: approval.id,
+      approve: input.approve,
+      answers: input.answers,
+    }),
+  });
+}
+
+export async function sendBridgeThreadRename(target: string, threadId: string, name: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `thread-rename-${Date.now()}`,
+      action: "thread/rename",
+      threadId,
+      name,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/thread/rename`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId, name }),
+  });
+}
+
+export async function sendBridgeThreadFork(target: string, threadId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `thread-fork-${Date.now()}`,
+      action: "thread/fork",
+      threadId,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/thread/fork`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId }),
+  });
+}
+
+export async function sendBridgeThreadArchive(target: string, threadId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `thread-archive-${Date.now()}`,
+      action: "thread/archive",
+      threadId,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/thread/archive`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId }),
+  });
+}
+
+export async function sendBridgeThreadUnarchive(target: string, threadId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `thread-unarchive-${Date.now()}`,
+      action: "thread/unarchive",
+      threadId,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/thread/unarchive`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId }),
+  });
+}
+
+export async function sendBridgeThreadCompact(target: string, threadId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `thread-compact-${Date.now()}`,
+      action: "thread/compact",
+      threadId,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/thread/compact`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId }),
+  });
+}
+
+export async function sendBridgeReview(target: string, threadId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `review-${Date.now()}`,
+      action: "review/start",
+      threadId,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/review`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId }),
+  });
+}
+
+export async function sendBridgeMcpOauthLogin(target: string, name: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ authorizationUrl: string }>(relayTarget, {
+      id: `mcp-oauth-${Date.now()}`,
+      action: "mcp/oauth/login",
+      name,
+    });
+  }
+  return fetchJson<{ authorizationUrl: string }>(`${target}/mcp/oauth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name }),
   });
 }
 

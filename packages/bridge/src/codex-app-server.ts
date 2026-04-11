@@ -3,7 +3,25 @@ import { basename } from "node:path";
 import { createServer } from "node:net";
 import {
   OFFDEX_NEW_THREAD_ID,
+  type OffdexApprovalRequest,
+  type OffdexAppRecord,
+  type OffdexConfigSummary,
+  type OffdexGitInfo,
+  type OffdexExperimentalFeatureRecord,
+  type OffdexInputItem,
+  type OffdexMcpServerRecord,
+  type OffdexRateLimitsSummary,
+  type OffdexRateLimitWindow,
+  type OffdexModelRecord,
+  type OffdexPermissionReview,
+  type OffdexPluginRecord,
+  type OffdexRemoteFileEntry,
+  type OffdexRemoteFileMatch,
+  type OffdexSkillRecord,
+  type OffdexTimelineItem,
   type OffdexRuntimeAccount,
+  type OffdexTurn,
+  type OffdexWorkbenchInventory,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   type OffdexMessage,
@@ -33,7 +51,7 @@ type CodexUserInput =
   | { type: "skill"; name: string; path: string }
   | { type: "mention"; name: string; path: string };
 
-type CodexThreadItem =
+type CodexKnownThreadItem =
   | { type: "userMessage"; id: string; content: ReadonlyArray<CodexUserInput> }
   | {
       type: "agentMessage";
@@ -49,7 +67,28 @@ type CodexThreadItem =
       content: ReadonlyArray<string>;
     }
   | { type: "plan"; id: string; text: string }
-  | { type: "other"; id: string };
+  | {
+      type: "commandExecution";
+      id: string;
+      command: string;
+      cwd?: string | null;
+      processId?: string | null;
+      source?: string | null;
+      status?: string | null;
+      commandActions?: ReadonlyArray<{
+        type?: string;
+        command?: string;
+        name?: string;
+        path?: string;
+      }>;
+      aggregatedOutput?: string | null;
+      exitCode?: number | null;
+      durationMs?: number | null;
+    };
+
+type CodexUnknownThreadItem = { type: string; id: string; [key: string]: unknown };
+
+type CodexThreadItem = CodexKnownThreadItem | CodexUnknownThreadItem;
 
 type CodexTurnStatus = "inProgress" | "completed" | "failed" | "interrupted";
 
@@ -84,6 +123,7 @@ export type CodexServerNotification =
   | { method: "thread/status/changed"; params: { threadId: string; status: CodexThreadStatus } }
   | { method: "turn/started"; params: { threadId: string; turn: CodexTurn } }
   | { method: "turn/completed"; params: { threadId: string; turn: CodexTurn } }
+  | { method: "turn/diff/updated"; params: { threadId: string; turnId: string; diff: string } }
   | { method: "item/started"; params: { threadId: string; turnId: string; item: CodexThreadItem } }
   | { method: "item/completed"; params: { threadId: string; turnId: string; item: CodexThreadItem } }
   | {
@@ -103,6 +143,10 @@ type ThreadStatusChangedNotification = Extract<
 >;
 type TurnStartedNotification = Extract<CodexServerNotification, { method: "turn/started" }>;
 type TurnCompletedNotification = Extract<CodexServerNotification, { method: "turn/completed" }>;
+type TurnDiffUpdatedNotification = Extract<
+  CodexServerNotification,
+  { method: "turn/diff/updated" }
+>;
 type ItemStartedNotification = Extract<CodexServerNotification, { method: "item/started" }>;
 type ItemCompletedNotification = Extract<CodexServerNotification, { method: "item/completed" }>;
 type AgentDeltaNotification = Extract<
@@ -122,13 +166,191 @@ type JsonRpcNotification = {
   params?: unknown;
 };
 
-type JsonRpcServerRequest = {
+export type CodexServerRequest = {
   id: number | string;
   method: string;
   params?: unknown;
 };
 
+type CodexAppInfo = {
+  id: string;
+  name: string;
+  description?: string | null;
+  distributionChannel?: string | null;
+  installUrl?: string | null;
+  isAccessible?: boolean;
+  isEnabled?: boolean;
+  logoUrl?: string | null;
+  logoUrlDark?: string | null;
+  labels?: Record<string, string> | null;
+  branding?: {
+    developer?: string | null;
+    website?: string | null;
+    category?: string | null;
+  } | null;
+};
+
+type CodexModelInfo = {
+  id: string;
+  model: string;
+  displayName: string;
+  description: string;
+  defaultReasoningEffort: string;
+  supportedReasoningEfforts: Array<{ reasoningEffort?: string | null; description?: string | null } | string>;
+  inputModalities?: string[];
+  isDefault: boolean;
+  hidden: boolean;
+};
+
+type CodexSkillListEntry = {
+  cwd: string;
+  errors: Array<{ message: string; path: string }>;
+  skills: Array<{
+    name: string;
+    description: string;
+    enabled: boolean;
+    path: string;
+    scope: "user" | "repo" | "system" | "admin";
+    shortDescription?: string | null;
+  }>;
+};
+
+type CodexPluginSummary = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  installed: boolean;
+  installPolicy: string;
+  authPolicy: string;
+  interface?: {
+    category?: string | null;
+    developerName?: string | null;
+    displayName?: string | null;
+    shortDescription?: string | null;
+    longDescription?: string | null;
+    websiteUrl?: string | null;
+    capabilities?: string[];
+  } | null;
+  source?: {
+    type: "local";
+    path: string;
+  } | null;
+};
+
+type CodexPluginMarketplace = {
+  name: string;
+  path: string;
+  plugins: CodexPluginSummary[];
+};
+
+type CodexMcpServerStatus = {
+  name: string;
+  tools?: Record<string, unknown>;
+  resources?: unknown[];
+  resourceTemplates?: unknown[];
+  authStatus?: string;
+};
+
+type CodexRateLimitWindow = {
+  usedPercent?: number | null;
+  windowDurationMins?: number | null;
+  resetsAt?: number | null;
+};
+
+type CodexRateLimits = {
+  limitId?: string | null;
+  limitName?: string | null;
+  planType?: string | null;
+  primary?: CodexRateLimitWindow | null;
+  secondary?: CodexRateLimitWindow | null;
+  credits?: {
+    hasCredits?: boolean;
+    unlimited?: boolean;
+    balance?: string | null;
+  } | null;
+};
+
+type CodexExperimentalFeature = {
+  name: string;
+  stage?: string | null;
+  displayName?: string | null;
+  description?: string | null;
+  announcement?: string | null;
+  enabled?: boolean;
+  defaultEnabled?: boolean;
+};
+
+type CodexConfig = {
+  model?: string | null;
+  model_provider?: string | null;
+  model_reasoning_effort?: string | null;
+  sandbox_mode?: string | null;
+  approval_policy?: string | null;
+  web_search?: string | null;
+};
+
+type CodexApprovalPolicy =
+  | "untrusted"
+  | "on-failure"
+  | "on-request"
+  | "never"
+  | {
+      granular: {
+        mcp_elicitations: boolean;
+        request_permissions: boolean;
+        rules: boolean;
+        sandbox_approval: boolean;
+        skill_approval: boolean;
+      };
+    };
+
+type CodexFsReadDirectoryEntry = {
+  fileName: string;
+  isDirectory: boolean;
+  isFile: boolean;
+};
+
+type CodexFuzzyFileMatch = {
+  file_name: string;
+  path: string;
+  root: string;
+  match_type: "file" | "directory";
+  score: number;
+};
+
 export type CodexAccountSummary = OffdexRuntimeAccount;
+
+function codexApprovalPolicyFromConfig(config: CodexConfig | null): CodexApprovalPolicy | null {
+  const policy = config?.approval_policy?.trim() ?? null;
+  if (!policy) {
+    return null;
+  }
+
+  if (policy === "on-request") {
+    return {
+      granular: {
+        mcp_elicitations: true,
+        request_permissions: true,
+        rules: true,
+        sandbox_approval: true,
+        skill_approval: true,
+      },
+    };
+  }
+
+  if (policy === "untrusted" || policy === "on-failure" || policy === "never") {
+    return policy;
+  }
+
+  return policy as CodexApprovalPolicy;
+}
+
+function codexSandboxFromConfig(config: CodexConfig | null) {
+  const sandbox = config?.sandbox_mode?.trim() ?? null;
+  return sandbox === "read-only" || sandbox === "workspace-write" || sandbox === "danger-full-access"
+    ? sandbox
+    : null;
+}
 
 function readStringField(record: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
@@ -165,6 +387,50 @@ export function parseCodexAccountSummary(value: unknown): CodexAccountSummary {
   };
 }
 
+function toIsoFromUnixSeconds(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? new Date(value * 1000).toISOString() : null;
+}
+
+function mapRateLimitWindow(window: CodexRateLimitWindow | null | undefined): OffdexRateLimitWindow | null {
+  if (!window) {
+    return null;
+  }
+
+  return {
+    usedPercent: typeof window.usedPercent === "number" ? window.usedPercent : null,
+    windowDurationMins: typeof window.windowDurationMins === "number" ? window.windowDurationMins : null,
+    resetsAt: toIsoFromUnixSeconds(window.resetsAt),
+  };
+}
+
+function parseCodexRateLimits(value: unknown): OffdexRateLimitsSummary | null {
+  const record =
+    value && typeof value === "object" && "rateLimits" in (value as Record<string, unknown>)
+      ? ((value as Record<string, unknown>).rateLimits as CodexRateLimits | null) ?? null
+      : value && typeof value === "object"
+        ? (value as CodexRateLimits)
+        : null;
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    limitId: typeof record.limitId === "string" ? record.limitId : null,
+    limitName: typeof record.limitName === "string" ? record.limitName : null,
+    planType: typeof record.planType === "string" ? record.planType : null,
+    primary: mapRateLimitWindow(record.primary),
+    secondary: mapRateLimitWindow(record.secondary),
+    credits: record.credits
+      ? {
+          hasCredits: record.credits.hasCredits === true,
+          unlimited: record.credits.unlimited === true,
+          balance: typeof record.credits.balance === "string" ? record.credits.balance : null,
+        }
+      : null,
+  };
+}
+
 function formatUpdatedAt(unixSeconds: number) {
   const deltaSeconds = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
   if (deltaSeconds < 60) {
@@ -195,6 +461,19 @@ function isMissingThreadError(error: unknown) {
 
 function projectLabelFromThread(thread: CodexThread) {
   return basename(thread.cwd) || "workspace";
+}
+
+function parseGitInfo(value: unknown): OffdexGitInfo | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    sha: typeof record.sha === "string" ? record.sha : null,
+    branch: typeof record.branch === "string" ? record.branch : null,
+    originUrl: typeof record.originUrl === "string" ? record.originUrl : null,
+  };
 }
 
 function turnStatusToState(status: CodexTurnStatus): OffdexThread["state"] {
@@ -232,6 +511,40 @@ function threadStatusToState(
   return "completed";
 }
 
+function isUserMessageItem(
+  item: CodexThreadItem
+): item is Extract<CodexKnownThreadItem, { type: "userMessage" }> {
+  return item.type === "userMessage" && Array.isArray((item as { content?: unknown }).content);
+}
+
+function isAgentMessageItem(
+  item: CodexThreadItem
+): item is Extract<CodexKnownThreadItem, { type: "agentMessage" }> {
+  return item.type === "agentMessage" && typeof (item as { text?: unknown }).text === "string";
+}
+
+function isReasoningItem(
+  item: CodexThreadItem
+): item is Extract<CodexKnownThreadItem, { type: "reasoning" }> {
+  return (
+    item.type === "reasoning" &&
+    Array.isArray((item as { summary?: unknown }).summary) &&
+    Array.isArray((item as { content?: unknown }).content)
+  );
+}
+
+function isPlanItem(
+  item: CodexThreadItem
+): item is Extract<CodexKnownThreadItem, { type: "plan" }> {
+  return item.type === "plan" && typeof (item as { text?: unknown }).text === "string";
+}
+
+function isCommandExecutionItem(
+  item: CodexThreadItem
+): item is Extract<CodexKnownThreadItem, { type: "commandExecution" }> {
+  return item.type === "commandExecution" && typeof (item as { command?: unknown }).command === "string";
+}
+
 function userInputToText(input: CodexUserInput) {
   switch (input.type) {
     case "text":
@@ -251,7 +564,7 @@ function threadItemToMessage(
   item: CodexThreadItem,
   updatedAtLabel: string
 ): OffdexMessage | null {
-  if (item.type === "userMessage") {
+  if (isUserMessageItem(item)) {
     const body = item.content.map(userInputToText).join("\n").trim();
     if (!body) {
       return null;
@@ -265,7 +578,7 @@ function threadItemToMessage(
     };
   }
 
-  if (item.type === "agentMessage") {
+  if (isAgentMessageItem(item)) {
     return {
       id: item.id,
       role: "assistant",
@@ -275,6 +588,119 @@ function threadItemToMessage(
   }
 
   return null;
+}
+
+function threadItemToTimelineItem(item: CodexThreadItem): OffdexTimelineItem {
+  if (isUserMessageItem(item)) {
+    return {
+      type: "userMessage",
+      id: item.id,
+      content: item.content.map((entry) => {
+        switch (entry.type) {
+          case "text":
+            return { type: "text", text: entry.text };
+          case "image":
+            return { type: "image", url: entry.url };
+          case "localImage":
+            return { type: "localImage", path: entry.path };
+          case "skill":
+            return { type: "skill", name: entry.name, path: entry.path };
+          case "mention":
+            return { type: "mention", name: entry.name, path: entry.path };
+        }
+      }),
+    };
+  }
+
+  if (isAgentMessageItem(item)) {
+    return {
+      type: "agentMessage",
+      id: item.id,
+      text: item.text,
+      phase: item.phase ?? null,
+    };
+  }
+
+  if (isReasoningItem(item)) {
+    return {
+      type: "reasoning",
+      id: item.id,
+      summary: [...item.summary],
+      content: [...item.content],
+    };
+  }
+
+  if (isPlanItem(item)) {
+    return {
+      type: "plan",
+      id: item.id,
+      text: item.text,
+    };
+  }
+
+  if (isCommandExecutionItem(item)) {
+    return {
+      type: "commandExecution",
+      id: item.id,
+      command: item.command,
+      cwd: item.cwd ?? null,
+      status:
+        item.status === "completed" ||
+        item.status === "failed" ||
+        item.status === "interrupted" ||
+        item.status === "pending"
+          ? item.status
+          : "in_progress",
+      aggregatedOutput: item.aggregatedOutput ?? "",
+      exitCode: item.exitCode ?? null,
+      durationMs: item.durationMs ?? null,
+      source: item.source ?? null,
+      processId: item.processId ?? null,
+      actions: (item.commandActions ?? []).map((action) => ({
+        type: action.type ?? "unknown",
+        command: action.command,
+        name: action.name,
+        path: action.path,
+      })),
+    };
+  }
+
+  return {
+    type: "unknown",
+    id: item.id,
+    label: item.type,
+    data: JSON.stringify(item, null, 2),
+  };
+}
+
+function codexTurnToOffdexTurn(turn: CodexTurn): OffdexTurn {
+  return {
+    id: turn.id,
+    status: turn.status,
+    errorMessage:
+      turn.error instanceof Error
+        ? turn.error.message
+        : typeof turn.error === "string"
+          ? turn.error
+          : turn.error
+            ? JSON.stringify(turn.error)
+            : null,
+    items: turn.items.map(threadItemToTimelineItem),
+    diff: null,
+  };
+}
+
+function existingTurnDiff(
+  snapshot: OffdexWorkspaceSnapshot,
+  threadId: string,
+  turnId: string
+) {
+  return (
+    snapshot.threads
+      .find((thread) => thread.id === threadId)
+      ?.turns.find((turn) => turn.id === turnId)
+      ?.diff ?? null
+  );
 }
 
 function sortThreadsByUpdatedAt(threads: CodexThread[]) {
@@ -294,15 +720,28 @@ function makePlaceholderThread(runtimeTarget: RuntimeTarget): OffdexThread {
     state: "idle",
     unreadCount: 0,
     updatedAt: "Ready",
+    path: null,
+    cwd: null,
+    cliVersion: null,
+    source: "bridge",
+    agentNickname: null,
+    agentRole: null,
+    gitInfo: null,
     messages: [],
+    turns: [],
   };
 }
 
 export function mapCodexThreadToOffdexThread(
   thread: CodexThread,
-  runtimeTarget: RuntimeTarget
+  runtimeTarget: RuntimeTarget,
+  seedSnapshot?: OffdexWorkspaceSnapshot
 ): OffdexThread {
   const updatedAtLabel = formatUpdatedAt(thread.updatedAt);
+  const turns = thread.turns.map((turn) => ({
+    ...codexTurnToOffdexTurn(turn),
+    diff: seedSnapshot ? existingTurnDiff(seedSnapshot, thread.id, turn.id) : null,
+  }));
   const messages = thread.turns.flatMap((turn) =>
     turn.items
       .map((item) => threadItemToMessage(item, updatedAtLabel))
@@ -321,17 +760,29 @@ export function mapCodexThreadToOffdexThread(
     state,
     unreadCount: 0,
     updatedAt: updatedAtLabel,
+    path: thread.path,
+    cwd: thread.cwd,
+    cliVersion: thread.cliVersion,
+    source: thread.source,
+    agentNickname: thread.agentNickname,
+    agentRole: thread.agentRole,
+    gitInfo: parseGitInfo(thread.gitInfo),
     messages,
+    turns,
   };
 }
 
 export function createCodexSnapshot(
   runtimeTarget: RuntimeTarget,
   threads: CodexThread[],
+  archivedThreads: CodexThread[] = [],
   seedSnapshot: OffdexWorkspaceSnapshot = makeDemoWorkspaceSnapshot(runtimeTarget)
 ): OffdexWorkspaceSnapshot {
   const mappedThreads = sortThreadsByUpdatedAt(threads).map((thread) =>
-    mapCodexThreadToOffdexThread(thread, runtimeTarget)
+    mapCodexThreadToOffdexThread(thread, runtimeTarget, seedSnapshot)
+  );
+  const mappedArchivedThreads = sortThreadsByUpdatedAt(archivedThreads).map((thread) =>
+    mapCodexThreadToOffdexThread(thread, runtimeTarget, seedSnapshot)
   );
 
   return {
@@ -346,6 +797,7 @@ export function createCodexSnapshot(
       ...seedSnapshot.capabilityMatrix,
       runtimes: ["cli"],
     },
+    archivedThreads: mappedArchivedThreads,
     threads: mappedThreads.length > 0 ? mappedThreads : [makePlaceholderThread(runtimeTarget)],
   };
 }
@@ -368,7 +820,15 @@ function ensureThread(
     state: "idle",
     unreadCount: 0,
     updatedAt: "Now",
+    path: null,
+    cwd: null,
+    cliVersion: null,
+    source: "bridge",
+    agentNickname: null,
+    agentRole: null,
+    gitInfo: null,
     messages: [],
+    turns: [],
   };
   snapshot.threads = snapshot.threads.filter((entry) => entry.id !== NEW_THREAD_ID);
   snapshot.threads.unshift(thread);
@@ -392,46 +852,90 @@ function upsertMessage(thread: OffdexThread, message: OffdexMessage) {
   thread.messages.push(message);
 }
 
+function ensureTurn(thread: OffdexThread, turnId: string) {
+  const existing = thread.turns.find((turn) => turn.id === turnId);
+  if (existing) {
+    return existing;
+  }
+
+  const turn: OffdexTurn = {
+    id: turnId,
+    status: "inProgress",
+    errorMessage: null,
+    items: [],
+    diff: null,
+  };
+  thread.turns.push(turn);
+  return turn;
+}
+
+function upsertTimelineItem(turn: OffdexTurn, item: OffdexTimelineItem) {
+  const existingIndex = turn.items.findIndex((entry) => entry.id === item.id);
+  if (existingIndex >= 0) {
+    turn.items[existingIndex] = item;
+    return;
+  }
+
+  turn.items.push(item);
+}
+
 function mergeAgentDelta(
   snapshot: OffdexWorkspaceSnapshot,
   threadId: string,
+  turnId: string,
   itemId: string,
   delta: string,
   runtimeTarget: RuntimeTarget
 ) {
   const thread = ensureThread(snapshot, threadId, runtimeTarget);
+  const turn = ensureTurn(thread, turnId);
   thread.state = "running";
   thread.updatedAt = "Now";
   const existing = thread.messages.find((message) => message.id === itemId);
 
   if (existing) {
     existing.body += delta;
+  } else {
+    thread.messages.push({
+      id: itemId,
+      role: "assistant",
+      body: delta,
+      createdAt: "Now",
+    });
+  }
+
+  const existingTimelineItem = turn.items.find((item) => item.id === itemId);
+  if (existingTimelineItem?.type === "agentMessage") {
+    existingTimelineItem.text += delta;
     return;
   }
 
-  thread.messages.push({
+  upsertTimelineItem(turn, {
+    type: "agentMessage",
     id: itemId,
-    role: "assistant",
-    body: delta,
-    createdAt: "Now",
+    text: delta,
+    phase: "commentary",
   });
 }
 
 function applyItemUpdate(
   snapshot: OffdexWorkspaceSnapshot,
   threadId: string,
+  turnId: string,
   item: CodexThreadItem,
   runtimeTarget: RuntimeTarget
 ) {
   const thread = ensureThread(snapshot, threadId, runtimeTarget);
+  const turn = ensureTurn(thread, turnId);
   const message = threadItemToMessage(item, "Now");
-  if (!message) {
-    return;
+  const timelineItem = threadItemToTimelineItem(item);
+  upsertTimelineItem(turn, timelineItem);
+  if (message) {
+    upsertMessage(thread, message);
   }
 
   thread.state = item.type === "agentMessage" ? "running" : thread.state;
   thread.updatedAt = "Now";
-  upsertMessage(thread, message);
 }
 
 export function applyCodexNotification(
@@ -451,6 +955,58 @@ export function applyCodexNotification(
         )
       );
       return next;
+    case "thread/archived": {
+      const paramsRecord =
+        notification.params && typeof notification.params === "object"
+          ? (notification.params as Record<string, unknown>)
+          : {};
+      const threadRecord =
+        paramsRecord.thread && typeof paramsRecord.thread === "object"
+          ? (paramsRecord.thread as CodexThread)
+          : null;
+      const threadId =
+        threadRecord?.id ?? (typeof paramsRecord.threadId === "string" ? paramsRecord.threadId : null);
+      if (!threadId) {
+        return next;
+      }
+
+      const archivedThread =
+        threadRecord ??
+        next.threads.find((thread) => thread.id === threadId) ??
+        next.archivedThreads.find((thread) => thread.id === threadId);
+      if (!archivedThread) {
+        return next;
+      }
+
+      const mapped =
+        "preview" in archivedThread
+          ? mapCodexThreadToOffdexThread(archivedThread as CodexThread, runtimeTarget, next)
+          : { ...(archivedThread as OffdexThread), updatedAt: "Now" };
+      next.threads = next.threads.filter((thread) => thread.id !== threadId);
+      next.archivedThreads = [mapped, ...next.archivedThreads.filter((thread) => thread.id !== threadId)].slice(0, 24);
+      return next;
+    }
+    case "thread/unarchived": {
+      const paramsRecord =
+        notification.params && typeof notification.params === "object"
+          ? (notification.params as Record<string, unknown>)
+          : {};
+      const threadRecord =
+        paramsRecord.thread && typeof paramsRecord.thread === "object"
+          ? (paramsRecord.thread as CodexThread)
+          : null;
+      const threadId =
+        threadRecord?.id ?? (typeof paramsRecord.threadId === "string" ? paramsRecord.threadId : null);
+      if (!threadId) {
+        return next;
+      }
+
+      next.archivedThreads = next.archivedThreads.filter((thread) => thread.id !== threadId);
+      if (threadRecord) {
+        upsertThread(next, mapCodexThreadToOffdexThread(threadRecord, runtimeTarget, next));
+      }
+      return next;
+    }
     case "thread/status/changed": {
       const payload = (notification as ThreadStatusChangedNotification).params;
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
@@ -458,11 +1014,27 @@ export function applyCodexNotification(
       thread.updatedAt = "Now";
       return next;
     }
+    case "thread/compacted": {
+      const paramsRecord =
+        notification.params && typeof notification.params === "object"
+          ? (notification.params as Record<string, unknown>)
+          : {};
+      const threadId = typeof paramsRecord.threadId === "string" ? paramsRecord.threadId : null;
+      if (!threadId) {
+        return next;
+      }
+
+      const thread = ensureThread(next, threadId, runtimeTarget);
+      thread.updatedAt = "Now";
+      return next;
+    }
     case "turn/started": {
       const payload = (notification as TurnStartedNotification).params;
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
+      const turn = ensureTurn(thread, payload.turn.id);
       thread.state = "running";
       thread.updatedAt = "Now";
+      turn.status = payload.turn.status;
       return next;
     }
     case "turn/completed": {
@@ -470,16 +1042,74 @@ export function applyCodexNotification(
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
       thread.state = turnStatusToState(payload.turn.status);
       thread.updatedAt = "Now";
+      const turn = ensureTurn(thread, payload.turn.id);
+      turn.status = payload.turn.status;
+      turn.errorMessage =
+        payload.turn.error instanceof Error
+          ? payload.turn.error.message
+          : typeof payload.turn.error === "string"
+            ? payload.turn.error
+            : payload.turn.error
+              ? JSON.stringify(payload.turn.error)
+              : null;
+      return next;
+    }
+    case "turn/diff/updated": {
+      const payload = (notification as TurnDiffUpdatedNotification).params;
+      const thread = ensureThread(next, payload.threadId, runtimeTarget);
+      const turn = ensureTurn(thread, payload.turnId);
+      turn.diff = payload.diff;
+      thread.updatedAt = "Now";
       return next;
     }
     case "item/started": {
       const payload = (notification as ItemStartedNotification).params;
-      applyItemUpdate(next, payload.threadId, payload.item, runtimeTarget);
+      applyItemUpdate(next, payload.threadId, payload.turnId, payload.item, runtimeTarget);
       return next;
     }
     case "item/completed": {
       const payload = (notification as ItemCompletedNotification).params;
-      applyItemUpdate(next, payload.threadId, payload.item, runtimeTarget);
+      applyItemUpdate(next, payload.threadId, payload.turnId, payload.item, runtimeTarget);
+      return next;
+    }
+    case "item/autoApprovalReview/started": {
+      const review = permissionReviewFromNotification(notification, "running");
+      if (!review) {
+        return next;
+      }
+
+      upsertPermissionReviewSnapshot(next, review);
+      if (review.threadId && review.turnId) {
+        const thread = ensureThread(next, review.threadId, runtimeTarget);
+        const turn = ensureTurn(thread, review.turnId);
+        thread.updatedAt = "Now";
+        upsertTimelineItem(turn, {
+          type: "unknown",
+          id: review.id,
+          label: "permission review",
+          data: review.detail,
+        });
+      }
+      return next;
+    }
+    case "item/autoApprovalReview/completed": {
+      const review = permissionReviewFromNotification(notification, "completed");
+      if (!review) {
+        return next;
+      }
+
+      upsertPermissionReviewSnapshot(next, review);
+      if (review.threadId && review.turnId) {
+        const thread = ensureThread(next, review.threadId, runtimeTarget);
+        const turn = ensureTurn(thread, review.turnId);
+        thread.updatedAt = "Now";
+        upsertTimelineItem(turn, {
+          type: "unknown",
+          id: review.id,
+          label: "permission review",
+          data: review.outcome ? `${review.detail}\n\nOutcome: ${review.outcome}` : review.detail,
+        });
+      }
       return next;
     }
     case "item/agentMessage/delta": {
@@ -487,22 +1117,58 @@ export function applyCodexNotification(
       mergeAgentDelta(
         next,
         payload.threadId,
+        payload.turnId,
         payload.itemId,
         payload.delta,
         runtimeTarget
       );
       return next;
     }
+    case "serverRequest/resolved": {
+      const paramsRecord =
+        notification.params && typeof notification.params === "object"
+          ? (notification.params as Record<string, unknown>)
+          : null;
+      const requestId = paramsRecord ? readStringField(paramsRecord, ["requestId", "serverRequestId", "id"]) : null;
+      if (!requestId) {
+        return next;
+      }
+
+      const resolutionSource =
+        paramsRecord?.result ??
+        paramsRecord?.response ??
+        paramsRecord?.resolution ??
+        paramsRecord?.status ??
+        paramsRecord;
+      applyApprovalResolution(next, requestId, approvalStatusFromValue(resolutionSource));
+      return next;
+    }
     case "error": {
       const payload = (notification as ErrorNotification).params;
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
+      const turn = ensureTurn(thread, payload.turnId);
       thread.state = payload.willRetry ? "running" : "failed";
       thread.updatedAt = "Now";
+      turn.status = payload.willRetry ? "inProgress" : "failed";
+      turn.errorMessage =
+        payload.error instanceof Error
+          ? payload.error.message
+          : typeof payload.error === "string"
+            ? payload.error
+            : payload.error
+              ? JSON.stringify(payload.error)
+              : "Codex hit an error on this turn.";
       thread.messages.push({
         id: `${payload.turnId}-error`,
         role: "system",
         body: "Codex hit an error on this turn.",
         createdAt: "Now",
+      });
+      upsertTimelineItem(turn, {
+        type: "unknown",
+        id: `${payload.turnId}-error`,
+        label: "error",
+        data: turn.errorMessage,
       });
       return next;
     }
@@ -517,6 +1183,322 @@ function wait(ms: number) {
 
 function unique(values: ReadonlyArray<string>) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function prettyJson(value: unknown) {
+  return JSON.stringify(value, null, 2);
+}
+
+function readRecordField(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+  }
+
+  return null;
+}
+
+function approvalStatusFromValue(value: unknown): "approved" | "declined" {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (
+      normalized.includes("declin") ||
+      normalized.includes("denied") ||
+      normalized.includes("reject") ||
+      normalized.includes("cancel")
+    ) {
+      return "declined";
+    }
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const nestedStatus =
+      readStringField(record, ["status", "decision", "action", "resolution", "outcome"]) ??
+      readStringField(readRecordField(record, ["result", "response", "resolution"]) ?? {}, [
+        "status",
+        "decision",
+        "action",
+        "resolution",
+        "outcome",
+      ]);
+    if (nestedStatus) {
+      return approvalStatusFromValue(nestedStatus);
+    }
+  }
+
+  return "approved";
+}
+
+function applyApprovalResolution(
+  snapshot: OffdexWorkspaceSnapshot,
+  requestId: string,
+  status: "approved" | "declined"
+) {
+  snapshot.pendingApprovals = snapshot.pendingApprovals.map((approval) =>
+    approval.id === requestId ? { ...approval, status } : approval
+  );
+}
+
+function reviewOutcomeFromValue(value: unknown): OffdexPermissionReview["outcome"] {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (
+      normalized.includes("declin") ||
+      normalized.includes("denied") ||
+      normalized.includes("reject") ||
+      normalized.includes("block") ||
+      normalized.includes("cancel")
+    ) {
+      return "declined";
+    }
+    if (
+      normalized.includes("approv") ||
+      normalized.includes("accept") ||
+      normalized.includes("allow") ||
+      normalized.includes("pass") ||
+      normalized.includes("success") ||
+      normalized.includes("complete")
+    ) {
+      return "approved";
+    }
+    return "unknown";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "approved" : "declined";
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const nestedStatus =
+      readStringField(record, ["status", "decision", "action", "resolution", "outcome"]) ??
+      readStringField(readRecordField(record, ["result", "review", "response"]) ?? {}, [
+        "status",
+        "decision",
+        "action",
+        "resolution",
+        "outcome",
+      ]);
+    return nestedStatus ? reviewOutcomeFromValue(nestedStatus) : "unknown";
+  }
+
+  return null;
+}
+
+function upsertPermissionReviewSnapshot(
+  snapshot: OffdexWorkspaceSnapshot,
+  review: OffdexPermissionReview
+) {
+  const existingIndex = snapshot.permissionReviews.findIndex((entry) => entry.id === review.id);
+  if (existingIndex >= 0) {
+    snapshot.permissionReviews[existingIndex] = review;
+  } else {
+    snapshot.permissionReviews.unshift(review);
+    snapshot.permissionReviews = snapshot.permissionReviews.slice(0, 8);
+  }
+}
+
+function permissionReviewFromNotification(
+  notification: CodexServerNotification,
+  status: OffdexPermissionReview["status"]
+) {
+  if (!notification.params || typeof notification.params !== "object") {
+    return null;
+  }
+
+  const paramsRecord = notification.params as Record<string, unknown>;
+  const threadId = readStringField(paramsRecord, ["threadId", "conversationId"]);
+  const turnId = readStringField(paramsRecord, ["turnId"]);
+  const itemId = readStringField(paramsRecord, ["itemId", "reviewId", "id", "requestId"]);
+  const id = itemId ?? [threadId ?? "thread", turnId ?? "turn", notification.method].join(":");
+  const summary =
+    readStringField(paramsRecord, ["summary", "message", "detail", "reason", "statusMessage"]) ??
+    (status === "running"
+      ? "Codex is reviewing whether this permission request can be auto-approved."
+      : "Codex completed its permission review.");
+
+  return {
+    id,
+    threadId,
+    turnId,
+    title: status === "running" ? "Permission review in progress" : "Permission review completed",
+    detail: summary,
+    status,
+    outcome:
+      status === "completed"
+        ? reviewOutcomeFromValue(
+            readRecordField(paramsRecord, ["result", "review", "response"]) ??
+              readStringField(paramsRecord, ["status", "decision", "action", "outcome"]) ??
+              paramsRecord
+          )
+        : null,
+    updatedAt: new Date().toISOString(),
+  } satisfies OffdexPermissionReview;
+}
+
+function formatServerRequestDetail(method: string, paramsRecord: Record<string, unknown>) {
+  if (method === "item/commandExecution/requestApproval") {
+    const lines = [
+      typeof paramsRecord.reason === "string" && paramsRecord.reason.trim()
+        ? `Reason: ${paramsRecord.reason.trim()}`
+        : null,
+      typeof paramsRecord.command === "string" && paramsRecord.command.trim()
+        ? `Command: ${paramsRecord.command.trim()}`
+        : null,
+      typeof paramsRecord.cwd === "string" && paramsRecord.cwd.trim()
+        ? `Working directory: ${paramsRecord.cwd.trim()}`
+        : null,
+    ].filter((entry): entry is string => Boolean(entry));
+
+    const networkContext = paramsRecord.networkApprovalContext;
+    if (networkContext) {
+      lines.push(`Network context:\n${prettyJson(networkContext)}`);
+    }
+
+    const commandActions = paramsRecord.commandActions;
+    if (commandActions) {
+      lines.push(`Command actions:\n${prettyJson(commandActions)}`);
+    }
+
+    return lines.join("\n\n") || prettyJson(paramsRecord);
+  }
+
+  if (method === "execCommandApproval") {
+    const command =
+      Array.isArray(paramsRecord.command) && paramsRecord.command.every((entry) => typeof entry === "string")
+        ? (paramsRecord.command as string[]).join(" ")
+        : null;
+    const lines = [
+      typeof paramsRecord.reason === "string" && paramsRecord.reason.trim()
+        ? `Reason: ${paramsRecord.reason.trim()}`
+        : null,
+      command ? `Command: ${command}` : null,
+      typeof paramsRecord.cwd === "string" && paramsRecord.cwd.trim()
+        ? `Working directory: ${paramsRecord.cwd.trim()}`
+        : null,
+      paramsRecord.parsedCmd ? `Command actions:\n${prettyJson(paramsRecord.parsedCmd)}` : null,
+    ].filter((entry): entry is string => Boolean(entry));
+
+    return lines.join("\n\n") || prettyJson(paramsRecord);
+  }
+
+  if (method === "item/fileChange/requestApproval") {
+    const lines = [
+      typeof paramsRecord.reason === "string" && paramsRecord.reason.trim()
+        ? `Reason: ${paramsRecord.reason.trim()}`
+        : null,
+      typeof paramsRecord.grantRoot === "string" && paramsRecord.grantRoot.trim()
+        ? `Requested write root: ${paramsRecord.grantRoot.trim()}`
+        : null,
+    ].filter((entry): entry is string => Boolean(entry));
+
+    return lines.join("\n\n") || prettyJson(paramsRecord);
+  }
+
+  if (method === "applyPatchApproval") {
+    const lines = [
+      typeof paramsRecord.reason === "string" && paramsRecord.reason.trim()
+        ? `Reason: ${paramsRecord.reason.trim()}`
+        : null,
+      typeof paramsRecord.grantRoot === "string" && paramsRecord.grantRoot.trim()
+        ? `Requested write root: ${paramsRecord.grantRoot.trim()}`
+        : null,
+      paramsRecord.fileChanges ? `Requested file changes:\n${prettyJson(paramsRecord.fileChanges)}` : null,
+    ].filter((entry): entry is string => Boolean(entry));
+
+    return lines.join("\n\n") || prettyJson(paramsRecord);
+  }
+
+  if (method === "item/permissions/requestApproval") {
+    const lines = [
+      typeof paramsRecord.reason === "string" && paramsRecord.reason.trim()
+        ? `Reason: ${paramsRecord.reason.trim()}`
+        : null,
+      paramsRecord.permissions ? `Requested permissions:\n${prettyJson(paramsRecord.permissions)}` : null,
+    ].filter((entry): entry is string => Boolean(entry));
+
+    return lines.join("\n\n") || prettyJson(paramsRecord);
+  }
+
+  if (method === "item/tool/requestUserInput") {
+    const lines = [
+      Array.isArray(paramsRecord.questions)
+        ? `Questions:\n${prettyJson(paramsRecord.questions)}`
+        : null,
+    ].filter((entry): entry is string => Boolean(entry));
+    return lines.join("\n\n") || prettyJson(paramsRecord);
+  }
+
+  if (method === "mcpServer/elicitation/request") {
+    const lines = [
+      typeof paramsRecord.serverName === "string" && paramsRecord.serverName.trim()
+        ? `Connector: ${paramsRecord.serverName.trim()}`
+        : null,
+      typeof paramsRecord.message === "string" && paramsRecord.message.trim()
+        ? `Message: ${paramsRecord.message.trim()}`
+        : null,
+      typeof paramsRecord.mode === "string" && paramsRecord.mode.trim()
+        ? `Mode: ${paramsRecord.mode.trim()}`
+        : null,
+      paramsRecord.requestedSchema ? `Requested input:\n${prettyJson(paramsRecord.requestedSchema)}` : null,
+      typeof paramsRecord.url === "string" && paramsRecord.url.trim()
+        ? `Open URL: ${paramsRecord.url.trim()}`
+        : null,
+    ].filter((entry): entry is string => Boolean(entry));
+    return lines.join("\n\n") || prettyJson(paramsRecord);
+  }
+
+  return prettyJson(paramsRecord);
+}
+
+function serverRequestToApproval(request: CodexServerRequest): OffdexApprovalRequest {
+  const paramsRecord =
+    request.params && typeof request.params === "object"
+      ? (request.params as Record<string, unknown>)
+      : {};
+  const threadId =
+    typeof paramsRecord.threadId === "string"
+      ? paramsRecord.threadId
+      : typeof paramsRecord.conversationId === "string"
+        ? paramsRecord.conversationId
+        : null;
+  const turnId = typeof paramsRecord.turnId === "string" ? paramsRecord.turnId : null;
+  const title =
+    request.method === "item/commandExecution/requestApproval"
+      ? "Command permission"
+      : request.method === "execCommandApproval"
+        ? "Command permission"
+      : request.method === "item/fileChange/requestApproval"
+        ? "File permission"
+        : request.method === "applyPatchApproval"
+          ? "File permission"
+        : request.method === "item/permissions/requestApproval"
+          ? "Permissions required"
+          : request.method === "item/tool/requestUserInput"
+            ? "Tool input required"
+            : request.method === "mcpServer/elicitation/request"
+              ? "Connector input required"
+              : "Action required";
+
+  return {
+    id: String(request.id),
+    method: request.method,
+    title,
+    detail: formatServerRequestDetail(request.method, paramsRecord),
+    threadId,
+    turnId,
+    createdAt: new Date().toISOString(),
+    status: "pending",
+    inputSchema:
+      request.method === "item/tool/requestUserInput" ||
+      request.method === "mcpServer/elicitation/request"
+        ? "answers"
+        : "decision",
+    rawParams: prettyJson(paramsRecord),
+  };
 }
 
 export function buildCodexExecutableCandidates(
@@ -610,6 +1592,7 @@ export class CodexAppServerClient {
   #socket: WebSocket | null = null;
   #connectPromise: Promise<void> | null = null;
   #listeners = new Set<(notification: CodexServerNotification) => void>();
+  #serverRequestListeners = new Set<(request: CodexServerRequest) => void>();
   #pending = new Map<
     number,
     {
@@ -635,6 +1618,13 @@ export class CodexAppServerClient {
     };
   }
 
+  subscribeToServerRequests(listener: (request: CodexServerRequest) => void) {
+    this.#serverRequestListeners.add(listener);
+    return () => {
+      this.#serverRequestListeners.delete(listener);
+    };
+  }
+
   async ensureConnected() {
     if (this.isConnected) {
       return;
@@ -650,11 +1640,11 @@ export class CodexAppServerClient {
     return this.#connectPromise;
   }
 
-  async listThreads(cwd: string) {
+  async listThreads(cwd: string, options?: { archived?: boolean; limit?: number }) {
     const response = (await this.request("thread/list", {
       cwd,
-      archived: false,
-      limit: 12,
+      archived: options?.archived === true,
+      limit: options?.limit ?? 12,
     })) as { data: CodexThread[] };
     return response.data;
   }
@@ -667,22 +1657,43 @@ export class CodexAppServerClient {
     return response.thread;
   }
 
-  async startThread(cwd: string) {
+  async resumeThread(threadId: string) {
+    const response = (await this.request("thread/resume", {
+      threadId,
+    })) as { thread: CodexThread };
+    return response.thread;
+  }
+
+  async startThread(cwd: string, config?: CodexConfig | null) {
     const response = (await this.request("thread/start", {
       cwd,
-      approvalPolicy: "on-request",
-      sandbox: "workspace-write",
+      approvalPolicy: codexApprovalPolicyFromConfig(config ?? null),
+      sandbox: codexSandboxFromConfig(config ?? null),
       experimentalRawEvents: false,
       persistExtendedHistory: true,
     })) as { thread: CodexThread };
     return response.thread;
   }
 
-  async startTurn(threadId: string, body: string, cwd: string) {
+  async startTurn(
+    threadId: string,
+    body: string,
+    cwd: string,
+    inputs?: OffdexInputItem[],
+    config?: CodexConfig | null
+  ) {
     return this.request("turn/start", {
       threadId,
       cwd,
-      input: [{ type: "text", text: body, text_elements: [] }],
+      approvalPolicy: codexApprovalPolicyFromConfig(config ?? null),
+      input:
+        inputs && inputs.length > 0
+          ? inputs.map((input) =>
+              input.type === "text"
+                ? { type: "text", text: input.text, text_elements: [] }
+                : input
+            )
+          : [{ type: "text", text: body, text_elements: [] }],
     });
   }
 
@@ -690,8 +1701,161 @@ export class CodexAppServerClient {
     return this.request("turn/interrupt", { threadId, turnId });
   }
 
+  async listApps(threadId?: string) {
+    const response = (await this.request("app/list", {
+      threadId: threadId ?? null,
+      forceRefetch: false,
+      limit: 100,
+    })) as { data?: CodexAppInfo[] };
+    return response.data ?? [];
+  }
+
+  async listModels() {
+    const response = (await this.request("model/list", {
+      limit: 100,
+    })) as { data?: CodexModelInfo[] };
+    return response.data ?? [];
+  }
+
+  async readConfig(cwd?: string) {
+    const response = (await this.request("config/read", {
+      cwd: cwd ?? null,
+      includeLayers: false,
+    })) as { config?: CodexConfig | null };
+    return response.config ?? null;
+  }
+
+  async writeConfigValue(keyPath: string, value: unknown, filePath?: string | null) {
+    const response = (await this.request("config/value/write", {
+      keyPath,
+      mergeStrategy: "upsert",
+      value,
+      filePath: filePath ?? null,
+    })) as { filePath: string; status: string; version: string };
+    return response;
+  }
+
+  async readDirectory(path: string) {
+    const response = (await this.request("fs/readDirectory", {
+      path,
+    })) as { entries?: CodexFsReadDirectoryEntry[] };
+    return response.entries ?? [];
+  }
+
+  async searchFiles(query: string, roots: string[]) {
+    const response = (await this.request("fuzzyFileSearch", {
+      query,
+      roots,
+    })) as { files?: CodexFuzzyFileMatch[] };
+    return response.files ?? [];
+  }
+
+  async listSkills(cwd: string) {
+    const response = (await this.request("skills/list", {
+      cwds: [cwd],
+      forceReload: false,
+    })) as { data?: CodexSkillListEntry[] };
+    return response.data ?? [];
+  }
+
+  async writeSkillConfig(input: { name?: string | null; path?: string | null; enabled: boolean }) {
+    const selector =
+      input.path?.trim()
+        ? { path: input.path.trim(), name: null }
+        : input.name?.trim()
+          ? { name: input.name.trim(), path: null }
+          : { name: null, path: null };
+    const response = (await this.request("skills/config/write", {
+      name: selector.name,
+      path: selector.path,
+      enabled: input.enabled,
+    })) as { effectiveEnabled: boolean };
+    return response;
+  }
+
+  async listPlugins(cwd: string) {
+    const response = (await this.request("plugin/list", {
+      cwds: [cwd],
+      forceRemoteSync: false,
+    })) as { marketplaces?: CodexPluginMarketplace[] };
+    return response.marketplaces ?? [];
+  }
+
+  async installPlugin(marketplacePath: string, pluginName: string) {
+    return this.request("plugin/install", {
+      marketplacePath,
+      pluginName,
+    });
+  }
+
+  async uninstallPlugin(pluginId: string) {
+    return this.request("plugin/uninstall", {
+      pluginId,
+    });
+  }
+
+  async listMcpServers() {
+    const response = (await this.request("mcpServerStatus/list", {
+      cursor: null,
+      limit: 100,
+    })) as { data?: CodexMcpServerStatus[] };
+    return response.data ?? [];
+  }
+
+  async startMcpOauthLogin(name: string) {
+    const response = (await this.request("mcpServer/oauth/login", {
+      name,
+    })) as { authorizationUrl: string };
+    return response.authorizationUrl;
+  }
+
+  async startReview(threadId: string) {
+    const response = (await this.request("review/start", {
+      threadId,
+      target: { type: "uncommittedChanges" },
+      delivery: "inline",
+    })) as { turn: CodexTurn; reviewThreadId: string };
+    return response;
+  }
+
+  async setThreadName(threadId: string, name: string) {
+    await this.request("thread/setName", { threadId, name });
+  }
+
+  async forkThread(threadId: string) {
+    const response = (await this.request("thread/fork", {
+      threadId,
+      ephemeral: false,
+    })) as { thread: CodexThread };
+    return response.thread;
+  }
+
+  async archiveThread(threadId: string) {
+    await this.request("thread/archive", { threadId });
+  }
+
+  async unarchiveThread(threadId: string) {
+    const response = (await this.request("thread/unarchive", { threadId })) as { thread?: CodexThread };
+    return response.thread ?? null;
+  }
+
+  async compactThread(threadId: string) {
+    return this.request("thread/compact/start", { threadId });
+  }
+
   async readAccount() {
     return parseCodexAccountSummary(await this.request("account/read", {}));
+  }
+
+  async readRateLimits() {
+    return parseCodexRateLimits(await this.request("account/rateLimits/read", {}));
+  }
+
+  async listExperimentalFeatures() {
+    const response = (await this.request("experimentalFeature/list", {
+      limit: 100,
+    })) as { data?: CodexExperimentalFeature[] };
+    return response.data ?? [];
   }
 
   async close() {
@@ -780,7 +1944,7 @@ export class CodexAppServerClient {
       return;
     }
 
-    const message = JSON.parse(text) as JsonRpcResponse | JsonRpcNotification | JsonRpcServerRequest;
+    const message = JSON.parse(text) as JsonRpcResponse | JsonRpcNotification | CodexServerRequest;
 
     if ("id" in message && !("method" in message)) {
       const pending = this.#pending.get(Number(message.id));
@@ -810,16 +1974,29 @@ export class CodexAppServerClient {
     }
   }
 
-  #handleServerRequest(message: JsonRpcServerRequest) {
+  #handleServerRequest(message: CodexServerRequest) {
+    if (this.#serverRequestListeners.size > 0) {
+      for (const listener of this.#serverRequestListeners) {
+        listener(message);
+      }
+      return;
+    }
+
     const rejectDecision =
       message.method === "item/fileChange/requestApproval"
         ? { decision: "decline" }
         : message.method === "item/commandExecution/requestApproval"
           ? { decision: "decline" }
+          : message.method === "applyPatchApproval"
+            ? { decision: "denied" }
+            : message.method === "execCommandApproval"
+              ? { decision: "denied" }
           : message.method === "item/permissions/requestApproval"
             ? { decision: "decline" }
             : message.method === "item/tool/requestUserInput"
               ? { answers: {} }
+              : message.method === "mcpServer/elicitation/request"
+                ? { action: "cancel" }
               : null;
 
     if (rejectDecision) {
@@ -831,6 +2008,19 @@ export class CodexAppServerClient {
       JSON.stringify({
         id: message.id,
         error: { code: -32601, message: `Unsupported server request: ${message.method}` },
+      })
+    );
+  }
+
+  respondToServerRequest(id: number | string, result: unknown) {
+    this.#socket?.send(JSON.stringify({ id, result }));
+  }
+
+  rejectServerRequest(id: number | string, message: string) {
+    this.#socket?.send(
+      JSON.stringify({
+        id,
+        error: { code: -32601, message },
       })
     );
   }
@@ -858,8 +2048,10 @@ export interface CodexBridgeRuntimeOptions {
 
 export class CodexBridgeRuntime {
   #unsubscribe: (() => void) | null = null;
+  #unsubscribeServerRequests: (() => void) | null = null;
   #runtimeTarget: RuntimeTarget;
   #activeTurnIdByThread = new Map<string, string>();
+  #pendingServerRequests = new Map<string, CodexServerRequest>();
   readonly client = new CodexAppServerClient();
 
   constructor(
@@ -874,8 +2066,12 @@ export class CodexBridgeRuntime {
 
   async refreshSnapshot() {
     await this.#ensureClient();
-    const listed = await this.client.listThreads(this.options.cwd);
+    const [listed, archivedListed] = await Promise.all([
+      this.client.listThreads(this.options.cwd),
+      this.client.listThreads(this.options.cwd, { archived: true, limit: 24 }).catch(() => []),
+    ]);
     const threads = await Promise.all(listed.map((thread) => this.client.readThread(thread.id)));
+    const account = await this.client.readAccount().catch(() => null);
     this.#activeTurnIdByThread = new Map(
       threads
         .map((thread) => [thread.id, findActiveTurnId(thread)] as const)
@@ -884,15 +2080,19 @@ export class CodexBridgeRuntime {
     const snapshot = createCodexSnapshot(
       this.#runtimeTarget,
       threads,
+      archivedListed,
       this.options.workspaceStore.getSnapshot()
     );
+    snapshot.account = account;
     this.options.workspaceStore.replaceSnapshot(snapshot);
     return snapshot;
   }
 
   async readAccountSummary() {
     await this.#ensureClient();
-    return this.client.readAccount();
+    const account = await this.client.readAccount();
+    this.options.workspaceStore.updateAccount(account);
+    return account;
   }
 
   async setRuntimeTarget(runtimeTarget: RuntimeTarget) {
@@ -908,28 +2108,29 @@ export class CodexBridgeRuntime {
     return this.refreshSnapshot();
   }
 
-  async sendTurn(threadId: string, body: string) {
+  async sendTurn(threadId: string, body: string, inputs?: OffdexInputItem[]) {
     const trimmed = body.trim();
-    if (!trimmed) {
+    if (!trimmed && (!inputs || inputs.length === 0)) {
       return this.options.workspaceStore.getSnapshot();
     }
 
     await this.#ensureClient();
+    const runtimeConfig = await this.client.readConfig(this.options.cwd).catch(() => null);
     const snapshot = this.options.workspaceStore.getSnapshot();
     const needsNewThread =
       threadId === NEW_THREAD_ID || !snapshot.threads.some((thread) => thread.id === threadId);
     let targetThreadId = needsNewThread
-      ? (await this.client.startThread(this.options.cwd)).id
+      ? (await this.client.startThread(this.options.cwd, runtimeConfig)).id
       : threadId;
     let replacedStaleThread = false;
 
     try {
-      await this.client.startTurn(targetThreadId, trimmed, this.options.cwd);
+      await this.client.startTurn(targetThreadId, trimmed, this.options.cwd, inputs, runtimeConfig);
     } catch (error) {
       if (!needsNewThread && isMissingThreadError(error)) {
-        targetThreadId = (await this.client.startThread(this.options.cwd)).id;
+        targetThreadId = (await this.client.startThread(this.options.cwd, runtimeConfig)).id;
         replacedStaleThread = true;
-        await this.client.startTurn(targetThreadId, trimmed, this.options.cwd);
+        await this.client.startTurn(targetThreadId, trimmed, this.options.cwd, inputs, runtimeConfig);
       } else {
         throw error;
       }
@@ -942,7 +2143,7 @@ export class CodexBridgeRuntime {
     const thread = ensureThread(nextSnapshot, targetThreadId, this.#runtimeTarget);
 
     if ((needsNewThread || replacedStaleThread) && thread.messages.length === 0) {
-      thread.title = trimmed;
+      thread.title = trimmed || "New attachment thread";
       thread.projectLabel = basename(this.options.cwd) || "workspace";
     }
 
@@ -969,9 +2170,267 @@ export class CodexBridgeRuntime {
     return this.options.workspaceStore.getSnapshot();
   }
 
+  async resolveApproval(id: string, input: { approve: boolean; answers?: Record<string, string> }) {
+    await this.#ensureClient();
+    const request = this.#pendingServerRequests.get(id);
+    if (!request) {
+      throw new Error("Approval request not found.");
+    }
+
+    if (request.method === "item/tool/requestUserInput") {
+      this.client.respondToServerRequest(request.id, { answers: input.answers ?? {} });
+    } else if (request.method === "mcpServer/elicitation/request") {
+      this.client.respondToServerRequest(request.id, {
+        action: input.approve ? "accept" : "decline",
+        content: input.approve ? (input.answers ?? {}) : undefined,
+      });
+    } else if (
+      request.method === "item/commandExecution/requestApproval" ||
+      request.method === "execCommandApproval" ||
+      request.method === "item/fileChange/requestApproval" ||
+      request.method === "applyPatchApproval" ||
+      request.method === "item/permissions/requestApproval"
+    ) {
+      this.client.respondToServerRequest(request.id, {
+        decision:
+          request.method === "execCommandApproval" || request.method === "applyPatchApproval"
+            ? input.approve ? "approved" : "denied"
+            : input.approve ? "accept" : "decline",
+      });
+    } else {
+      this.client.rejectServerRequest(request.id, `Unsupported server request: ${request.method}`);
+    }
+
+    this.#pendingServerRequests.delete(id);
+    this.options.workspaceStore.resolveApproval(id, input.approve ? "approved" : "declined");
+    this.options.workspaceStore.clearResolvedApprovals();
+    return this.options.workspaceStore.getSnapshot();
+  }
+
+  async readWorkbenchInventory(): Promise<OffdexWorkbenchInventory> {
+    await this.#ensureClient();
+    const snapshot = this.options.workspaceStore.getSnapshot();
+    const selectedThreadId = snapshot.threads.find((thread) => thread.id !== NEW_THREAD_ID)?.id ?? null;
+    const [apps, models, config, plugins, skills, mcpServers, rateLimits, experimentalFeatures] = await Promise.all([
+      this.client.listApps(selectedThreadId ?? undefined).catch(() => []),
+      this.client.listModels().catch(() => []),
+      this.client.readConfig(this.options.cwd).catch(() => null),
+      this.client.listPlugins(this.options.cwd).catch(() => []),
+      this.client.listSkills(this.options.cwd).catch(() => []),
+      this.client.listMcpServers().catch(() => []),
+      this.client.readRateLimits().catch(() => null),
+      this.client.listExperimentalFeatures().catch(() => []),
+    ]);
+
+    return {
+      codeHome: process.env.CODEX_HOME?.trim() || "",
+      plugins: plugins.flatMap((marketplace) =>
+        marketplace.plugins.map<OffdexPluginRecord>((plugin) => ({
+          id: plugin.id,
+          name: plugin.interface?.displayName ?? plugin.name,
+          pluginName: plugin.name,
+          marketplacePath: marketplace.path,
+          path: plugin.source?.path ?? marketplace.path,
+          source: plugin.source?.type === "local" ? "local" : "cache",
+          enabled: plugin.enabled,
+          installed: plugin.installed,
+          installPolicy: plugin.installPolicy,
+          authPolicy: plugin.authPolicy,
+          category: plugin.interface?.category ?? null,
+          description:
+            plugin.interface?.shortDescription ??
+            plugin.interface?.longDescription ??
+            null,
+          developer: plugin.interface?.developerName ?? null,
+          websiteUrl: plugin.interface?.websiteUrl ?? null,
+          capabilities: plugin.interface?.capabilities ?? [],
+        }))
+      ),
+      skills: skills.flatMap((entry) =>
+        entry.skills.map<OffdexSkillRecord>((skill) => ({
+          id: `${skill.scope}:${skill.name}`,
+          name: skill.name,
+          path: skill.path,
+          source: skill.path.includes("/plugins/") ? "plugin" : skill.path.includes("/.agents/") ? "agents" : "codex",
+          enabled: skill.enabled,
+          scope: skill.scope,
+          description: skill.description,
+          shortDescription: skill.shortDescription ?? null,
+          cwd: entry.cwd,
+        }))
+      ),
+      mcpServers: mcpServers.map<OffdexMcpServerRecord>((server) => ({
+        name: server.name,
+        authStatus: server.authStatus ?? "unsupported",
+        toolCount: Object.keys(server.tools ?? {}).length,
+        resourceCount: Array.isArray(server.resources) ? server.resources.length : 0,
+        resourceTemplateCount: Array.isArray(server.resourceTemplates)
+          ? server.resourceTemplates.length
+          : 0,
+      })),
+      automations: [],
+      apps: apps.map<OffdexAppRecord>((app) => ({
+        id: app.id,
+        name: app.name,
+        description: app.description ?? null,
+        developer: app.branding?.developer ?? null,
+        category: app.branding?.category ?? null,
+        distributionChannel: app.distributionChannel ?? null,
+        installUrl: app.installUrl ?? null,
+        websiteUrl: app.branding?.website ?? null,
+        isAccessible: app.isAccessible === true,
+        isEnabled: app.isEnabled !== false,
+        logoUrl: app.logoUrl ?? null,
+        logoUrlDark: app.logoUrlDark ?? null,
+        labels: app.labels ?? {},
+      })),
+      models: models.map<OffdexModelRecord>((model) => ({
+        id: model.id,
+        model: model.model,
+        displayName: model.displayName,
+        description: model.description,
+        defaultReasoningEffort: model.defaultReasoningEffort,
+        reasoningEfforts: model.supportedReasoningEfforts.map((entry) =>
+          typeof entry === "string" ? entry : entry.reasoningEffort ?? "medium"
+        ),
+        inputModalities: model.inputModalities ?? ["text", "image"],
+        isDefault: model.isDefault,
+        hidden: model.hidden,
+      })),
+      config: config
+        ? ({
+            model: config.model ?? null,
+            modelProvider: config.model_provider ?? null,
+            reasoningEffort: config.model_reasoning_effort ?? null,
+            sandboxMode: config.sandbox_mode ?? null,
+            approvalPolicy: config.approval_policy ?? null,
+            webSearch: config.web_search ?? null,
+          } satisfies OffdexConfigSummary)
+        : null,
+      rateLimits,
+      experimentalFeatures: experimentalFeatures.map<OffdexExperimentalFeatureRecord>((feature) => ({
+        name: feature.name,
+        stage: feature.stage ?? null,
+        displayName: feature.displayName ?? null,
+        description: feature.description ?? null,
+        announcement: feature.announcement ?? null,
+        enabled: feature.enabled === true,
+        defaultEnabled: feature.defaultEnabled === true,
+      })),
+    };
+  }
+
+  async writeConfigValue(keyPath: string, value: unknown, filePath?: string | null) {
+    await this.#ensureClient();
+    await this.client.writeConfigValue(keyPath, value, filePath);
+    return this.readWorkbenchInventory();
+  }
+
+  async setSkillEnabled(input: { name?: string | null; path?: string | null; enabled: boolean }) {
+    await this.#ensureClient();
+    await this.client.writeSkillConfig(input);
+    return this.readWorkbenchInventory();
+  }
+
+  async installPlugin(input: { marketplacePath: string; pluginName: string }) {
+    await this.#ensureClient();
+    await this.client.installPlugin(input.marketplacePath, input.pluginName);
+    return this.readWorkbenchInventory();
+  }
+
+  async uninstallPlugin(pluginId: string) {
+    await this.#ensureClient();
+    await this.client.uninstallPlugin(pluginId);
+    return this.readWorkbenchInventory();
+  }
+
+  async readRemoteDirectory(path: string): Promise<OffdexRemoteFileEntry[]> {
+    await this.#ensureClient();
+    const entries = await this.client.readDirectory(path);
+    return entries.map((entry) => ({
+      name: entry.fileName,
+      path: `${path.replace(/\/+$/, "")}/${entry.fileName}`.replace(/^\/\//, "/"),
+      isDirectory: entry.isDirectory,
+      isFile: entry.isFile,
+    }));
+  }
+
+  async searchRemoteFiles(query: string, roots: string[]): Promise<OffdexRemoteFileMatch[]> {
+    await this.#ensureClient();
+    const matches = await this.client.searchFiles(query, roots);
+    return matches.map((match) => ({
+      name: match.file_name,
+      path: match.path,
+      root: match.root,
+      kind: match.match_type,
+      score: match.score,
+    }));
+  }
+
+  async renameThread(threadId: string, name: string) {
+    await this.#ensureClient();
+    await this.client.setThreadName(threadId, name);
+    return this.refreshSnapshot();
+  }
+
+  async forkThread(threadId: string) {
+    await this.#ensureClient();
+    await this.client.forkThread(threadId);
+    return this.refreshSnapshot();
+  }
+
+  async archiveThread(threadId: string) {
+    await this.#ensureClient();
+    await this.client.archiveThread(threadId);
+    return this.refreshSnapshot();
+  }
+
+  async unarchiveThread(threadId: string) {
+    await this.#ensureClient();
+    await this.client.unarchiveThread(threadId);
+    return this.refreshSnapshot();
+  }
+
+  async compactThread(threadId: string) {
+    await this.#ensureClient();
+    try {
+      await this.client.compactThread(threadId);
+    } catch (error) {
+      if (!isMissingThreadError(error)) {
+        throw error;
+      }
+      await this.client.resumeThread(threadId);
+      await this.client.compactThread(threadId);
+    }
+    return this.refreshSnapshot();
+  }
+
+  async startReview(threadId: string) {
+    await this.#ensureClient();
+    let response;
+    try {
+      response = await this.client.startReview(threadId);
+    } catch (error) {
+      if (!isMissingThreadError(error)) {
+        throw error;
+      }
+      await this.client.resumeThread(threadId);
+      response = await this.client.startReview(threadId);
+    }
+    this.#activeTurnIdByThread.set(response.reviewThreadId, response.turn.id);
+    return this.refreshSnapshot();
+  }
+
+  async startMcpOauthLogin(name: string) {
+    await this.#ensureClient();
+    return this.client.startMcpOauthLogin(name);
+  }
+
   async close() {
     this.#unsubscribe?.();
     this.#unsubscribe = null;
+    this.#unsubscribeServerRequests?.();
+    this.#unsubscribeServerRequests = null;
     await this.client.close();
   }
 
@@ -981,6 +2440,11 @@ export class CodexBridgeRuntime {
     if (this.#unsubscribe) {
       return;
     }
+
+    this.#unsubscribeServerRequests = this.client.subscribeToServerRequests((request) => {
+      this.#pendingServerRequests.set(String(request.id), request);
+      this.options.workspaceStore.upsertApproval(serverRequestToApproval(request));
+    });
 
     this.#unsubscribe = this.client.subscribe((notification) => {
       if (notification.method === "turn/started") {

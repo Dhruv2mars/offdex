@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { hostname, networkInterfaces } from "node:os";
 import { homedir } from "node:os";
@@ -9,7 +9,15 @@ import {
   createRelayAuthToken,
   decryptRelayPayload,
   encryptRelayPayload,
+  type OffdexAutomationRecord,
+  type OffdexConfigSummary,
+  type OffdexInputItem,
+  type OffdexPluginRecord,
+  type OffdexRemoteFileEntry,
+  type OffdexRemoteFileMatch,
   type OffdexRuntimeAccount,
+  type OffdexSkillRecord,
+  type OffdexWorkbenchInventory,
   type OffdexPairingProfile,
   WorkspaceSnapshotStore,
   encodePairingUri,
@@ -63,6 +71,7 @@ export interface BridgeSession {
 export interface BridgeTurnInput {
   threadId: string;
   body: string;
+  inputs?: OffdexInputItem[];
 }
 
 export type BridgeMode = "demo" | "codex";
@@ -153,9 +162,30 @@ type BridgeAddressRecord = {
 type RelayBridgeRequest =
   | { id: string; action: "health" }
   | { id: string; action: "snapshot" }
+  | { id: string; action: "inventory" }
+  | { id: string; action: "config/write"; keyPath: string; value: unknown; filePath?: string | null }
+  | { id: string; action: "skills/config/write"; name?: string | null; path?: string | null; enabled: boolean }
+  | { id: string; action: "plugin/install"; marketplacePath: string; pluginName: string }
+  | { id: string; action: "plugin/uninstall"; pluginId: string }
+  | { id: string; action: "files/list"; path: string }
+  | { id: string; action: "files/search"; query: string; roots: string[] }
   | { id: string; action: "runtime"; preferredTarget: RuntimeTarget }
-  | { id: string; action: "turn"; threadId: string; body: string }
-  | { id: string; action: "interrupt"; threadId: string };
+  | { id: string; action: "turn"; threadId: string; body: string; inputs?: OffdexInputItem[] }
+  | { id: string; action: "interrupt"; threadId: string }
+  | { id: string; action: "thread/rename"; threadId: string; name: string }
+  | { id: string; action: "thread/fork"; threadId: string }
+  | { id: string; action: "thread/archive"; threadId: string }
+  | { id: string; action: "thread/unarchive"; threadId: string }
+  | { id: string; action: "thread/compact"; threadId: string }
+  | { id: string; action: "review/start"; threadId: string }
+  | { id: string; action: "mcp/oauth/login"; name: string }
+  | {
+      id: string;
+      action: "approval";
+      approvalId: string;
+      approve: boolean;
+      answers?: Record<string, string>;
+    };
 
 function shouldColorTerminal() {
   return Boolean(process.stdout.isTTY) &&
@@ -342,6 +372,97 @@ function readBridgeTicket(request: Request) {
   }
 
   return new URL(request.url).searchParams.get("ticket")?.trim() ?? null;
+}
+
+function codexHomePath() {
+  return process.env.CODEX_HOME?.trim() || join(homedir(), ".codex");
+}
+
+function readDirNames(path: string) {
+  try {
+    return readdirSync(path, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+}
+
+function readSkillRecords(path: string, source: OffdexSkillRecord["source"]) {
+  return readDirNames(path)
+    .filter((name) => existsSync(join(path, name, "SKILL.md")))
+    .map<OffdexSkillRecord>((name) => ({
+      id: `${source}:${name}`,
+      name,
+      path: join(path, name, "SKILL.md"),
+      source,
+    }));
+}
+
+function readPluginRecords(path: string, source: OffdexPluginRecord["source"]) {
+  return readDirNames(path)
+    .filter((name) => name !== "cache" && !name.startsWith("."))
+    .map<OffdexPluginRecord>((name) => ({
+      id: `${source}:${name}`,
+      name,
+      path: join(path, name),
+      source,
+    }));
+}
+
+function readAutomationField(contents: string, key: string) {
+  const match = contents.match(new RegExp(`^${key}\\s*=\\s*"([^"]*)"`, "m"));
+  return match?.[1]?.trim() || null;
+}
+
+function readAutomations(path: string) {
+  return readDirNames(path)
+    .map<OffdexAutomationRecord | null>((id) => {
+      const automationPath = join(path, id, "automation.toml");
+      if (!existsSync(automationPath)) {
+        return null;
+      }
+
+      let contents = "";
+      try {
+        contents = readFileSync(automationPath, "utf8");
+      } catch {
+        return null;
+      }
+
+      return {
+        id,
+        name: readAutomationField(contents, "name") || id,
+        path: automationPath,
+        status: readAutomationField(contents, "status"),
+        kind: readAutomationField(contents, "kind"),
+        schedule: readAutomationField(contents, "rrule"),
+      };
+    })
+    .filter((record): record is OffdexAutomationRecord => Boolean(record));
+}
+
+function readWorkbenchInventory(): OffdexWorkbenchInventory {
+  const codeHome = codexHomePath();
+  const pluginsPath = join(codeHome, "plugins");
+  const agentsSkillsPath = join(homedir(), ".agents", "skills");
+  const codexSkillsPath = join(codeHome, "skills");
+  const automationsPath = join(codeHome, "automations");
+
+  return {
+    codeHome,
+    plugins: [
+      ...readPluginRecords(pluginsPath, "local"),
+    ],
+    skills: [
+      ...readSkillRecords(agentsSkillsPath, "agents"),
+      ...readSkillRecords(codexSkillsPath, "codex"),
+    ],
+    mcpServers: [],
+    automations: readAutomations(automationsPath),
+    rateLimits: null,
+    experimentalFeatures: [],
+  };
 }
 
 function createBridgeSecret() {
@@ -612,6 +733,33 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     return codexRuntime.refreshSnapshot();
   };
 
+  const readInventory = async () => {
+    const localInventory = readWorkbenchInventory();
+    if (!codexRuntime) {
+      return localInventory;
+    }
+
+    const runtimeInventory = await codexRuntime.readWorkbenchInventory().catch(() => null);
+    if (!runtimeInventory) {
+      return localInventory;
+    }
+
+    return {
+      ...localInventory,
+      plugins: runtimeInventory.plugins.length > 0 ? runtimeInventory.plugins : localInventory.plugins,
+      skills: runtimeInventory.skills.length > 0 ? runtimeInventory.skills : localInventory.skills,
+      mcpServers:
+        runtimeInventory.mcpServers.length > 0 ? runtimeInventory.mcpServers : localInventory.mcpServers,
+      automations:
+        runtimeInventory.automations.length > 0 ? runtimeInventory.automations : localInventory.automations,
+      apps: runtimeInventory.apps ?? [],
+      models: runtimeInventory.models ?? [],
+      config: (runtimeInventory.config ?? null) satisfies OffdexConfigSummary | null,
+      rateLimits: runtimeInventory.rateLimits ?? localInventory.rateLimits ?? null,
+      experimentalFeatures: runtimeInventory.experimentalFeatures ?? localInventory.experimentalFeatures ?? [],
+    } satisfies OffdexWorkbenchInventory;
+  };
+
   const applyRuntimeSelection = async (preferredTarget: RuntimeTarget) => {
     const resolution = resolveRuntimeTarget({
       hostPlatform:
@@ -670,7 +818,11 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   const applyTurnRequest = async (body: Partial<BridgeTurnInput>) => {
     if (codexRuntime) {
       return {
-        snapshot: await codexRuntime.sendTurn(body.threadId ?? NEW_THREAD_ID, body.body ?? ""),
+        snapshot: await codexRuntime.sendTurn(
+          body.threadId ?? NEW_THREAD_ID,
+          body.body ?? "",
+          body.inputs
+        ),
       };
     }
 
@@ -701,6 +853,196 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
 
     return {
       snapshot: workspaceStore.getSnapshot(),
+    };
+  };
+
+  const applyApprovalRequest = async (body: {
+    approvalId?: string;
+    approve?: boolean;
+    answers?: Record<string, string>;
+  }) => {
+    if (!codexRuntime) {
+      throw new Error("Approvals are only available in codex mode.");
+    }
+
+    if (!body.approvalId) {
+      throw new Error("Approval rejected. Missing approval id.");
+    }
+
+    return {
+      snapshot: await codexRuntime.resolveApproval(body.approvalId, {
+        approve: body.approve === true,
+        answers: body.answers,
+      }),
+    };
+  };
+
+  const listRemoteFiles = async (path: string): Promise<{ entries: OffdexRemoteFileEntry[] }> => {
+    if (!codexRuntime) {
+      throw new Error("Remote workspace files are only available in codex mode.");
+    }
+
+    return {
+      entries: await codexRuntime.readRemoteDirectory(path),
+    };
+  };
+
+  const writeRuntimeConfig = async (body: {
+    keyPath?: string;
+    value?: unknown;
+    filePath?: string | null;
+  }): Promise<{ inventory: OffdexWorkbenchInventory }> => {
+    if (!codexRuntime) {
+      throw new Error("Config updates are only available in codex mode.");
+    }
+
+    if (!body.keyPath) {
+      throw new Error("Config update rejected. Missing key path.");
+    }
+
+    return {
+      inventory: await codexRuntime.writeConfigValue(body.keyPath, body.value, body.filePath ?? null),
+    };
+  };
+
+  const writeSkillConfig = async (body: {
+    name?: string | null;
+    path?: string | null;
+    enabled?: boolean;
+  }): Promise<{ inventory: OffdexWorkbenchInventory }> => {
+    if (!codexRuntime) {
+      throw new Error("Skill updates are only available in codex mode.");
+    }
+
+    if (!body.name && !body.path) {
+      throw new Error("Skill update rejected. Missing selector.");
+    }
+
+    return {
+      inventory: await codexRuntime.setSkillEnabled({
+        name: body.name ?? null,
+        path: body.path ?? null,
+        enabled: body.enabled === true,
+      }),
+    };
+  };
+
+  const installPlugin = async (body: {
+    marketplacePath?: string | null;
+    pluginName?: string | null;
+  }): Promise<{ inventory: OffdexWorkbenchInventory }> => {
+    if (!codexRuntime) {
+      throw new Error("Plugin install is only available in codex mode.");
+    }
+
+    if (!body.marketplacePath?.trim() || !body.pluginName?.trim()) {
+      throw new Error("Plugin install rejected. Missing marketplace or plugin name.");
+    }
+
+    return {
+      inventory: await codexRuntime.installPlugin({
+        marketplacePath: body.marketplacePath.trim(),
+        pluginName: body.pluginName.trim(),
+      }),
+    };
+  };
+
+  const uninstallPlugin = async (body: {
+    pluginId?: string | null;
+  }): Promise<{ inventory: OffdexWorkbenchInventory }> => {
+    if (!codexRuntime) {
+      throw new Error("Plugin uninstall is only available in codex mode.");
+    }
+
+    if (!body.pluginId?.trim()) {
+      throw new Error("Plugin uninstall rejected. Missing plugin id.");
+    }
+
+    return {
+      inventory: await codexRuntime.uninstallPlugin(body.pluginId.trim()),
+    };
+  };
+
+  const searchRemoteFiles = async (
+    query: string,
+    roots: string[]
+  ): Promise<{ files: OffdexRemoteFileMatch[] }> => {
+    if (!codexRuntime) {
+      throw new Error("Remote workspace search is only available in codex mode.");
+    }
+
+    return {
+      files: await codexRuntime.searchRemoteFiles(query, roots),
+    };
+  };
+
+  const renameThread = async (threadId: string, name: string) => {
+    if (!codexRuntime) {
+      throw new Error("Thread rename is only available in codex mode.");
+    }
+
+    return {
+      snapshot: await codexRuntime.renameThread(threadId, name),
+    };
+  };
+
+  const forkThread = async (threadId: string) => {
+    if (!codexRuntime) {
+      throw new Error("Thread fork is only available in codex mode.");
+    }
+
+    return {
+      snapshot: await codexRuntime.forkThread(threadId),
+    };
+  };
+
+  const archiveThread = async (threadId: string) => {
+    if (!codexRuntime) {
+      throw new Error("Thread archive is only available in codex mode.");
+    }
+
+    return {
+      snapshot: await codexRuntime.archiveThread(threadId),
+    };
+  };
+
+  const unarchiveThread = async (threadId: string) => {
+    if (!codexRuntime) {
+      throw new Error("Thread restore is only available in codex mode.");
+    }
+
+    return {
+      snapshot: await codexRuntime.unarchiveThread(threadId),
+    };
+  };
+
+  const compactThread = async (threadId: string) => {
+    if (!codexRuntime) {
+      throw new Error("Thread compact is only available in codex mode.");
+    }
+
+    return {
+      snapshot: await codexRuntime.compactThread(threadId),
+    };
+  };
+
+  const startReview = async (threadId: string) => {
+    if (!codexRuntime) {
+      throw new Error("Review is only available in codex mode.");
+    }
+
+    return {
+      snapshot: await codexRuntime.startReview(threadId),
+    };
+  };
+
+  const startMcpOauthLogin = async (name: string): Promise<{ authorizationUrl: string }> => {
+    if (!codexRuntime) {
+      throw new Error("Connector login is only available in codex mode.");
+    }
+
+    return {
+      authorizationUrl: await codexRuntime.startMcpOauthLogin(name),
     };
   };
 
@@ -836,6 +1178,40 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
           case "snapshot":
             response = await refreshWorkspaceSnapshot();
             break;
+          case "inventory":
+            response = await readInventory();
+            break;
+          case "config/write":
+            response = await writeRuntimeConfig({
+              keyPath: request.keyPath,
+              value: request.value,
+              filePath: request.filePath ?? null,
+            });
+            break;
+          case "skills/config/write":
+            response = await writeSkillConfig({
+              name: request.name ?? null,
+              path: request.path ?? null,
+              enabled: request.enabled,
+            });
+            break;
+          case "plugin/install":
+            response = await installPlugin({
+              marketplacePath: request.marketplacePath,
+              pluginName: request.pluginName,
+            });
+            break;
+          case "plugin/uninstall":
+            response = await uninstallPlugin({
+              pluginId: request.pluginId,
+            });
+            break;
+          case "files/list":
+            response = await listRemoteFiles(request.path);
+            break;
+          case "files/search":
+            response = await searchRemoteFiles(request.query, request.roots);
+            break;
           case "runtime":
             response = await applyRuntimeSelection(request.preferredTarget);
             break;
@@ -843,10 +1219,39 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
             response = await applyTurnRequest({
               threadId: request.threadId,
               body: request.body,
+              inputs: request.inputs,
             });
             break;
           case "interrupt":
             response = await applyInterruptRequest(request.threadId);
+            break;
+          case "thread/rename":
+            response = await renameThread(request.threadId, request.name);
+            break;
+          case "thread/fork":
+            response = await forkThread(request.threadId);
+            break;
+          case "thread/archive":
+            response = await archiveThread(request.threadId);
+            break;
+          case "thread/unarchive":
+            response = await unarchiveThread(request.threadId);
+            break;
+          case "thread/compact":
+            response = await compactThread(request.threadId);
+            break;
+          case "review/start":
+            response = await startReview(request.threadId);
+            break;
+          case "mcp/oauth/login":
+            response = await startMcpOauthLogin(request.name);
+            break;
+          case "approval":
+            response = await applyApprovalRequest({
+              approvalId: request.approvalId,
+              approve: request.approve,
+              answers: request.answers,
+            });
             break;
         }
 
@@ -930,6 +1335,161 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
               Response.json(
                 {
                   error: error instanceof Error ? error.message : "Codex snapshot failed.",
+                },
+                { status: 502 }
+              )
+            )
+          );
+      }
+
+      if (url.pathname === "/inventory") {
+        return readInventory()
+          .then((inventory) => withCors(Response.json(inventory)))
+          .catch((error) =>
+            withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Bridge inventory failed.",
+                },
+                { status: 502 }
+              )
+            )
+          );
+      }
+
+      if (url.pathname === "/config" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as {
+            keyPath?: string;
+            value?: unknown;
+            filePath?: string | null;
+          };
+          try {
+            return withCors(Response.json(await writeRuntimeConfig(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Config update failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Config update rejected. Missing key path."
+                      ? 400
+                      : 502,
+                }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/skills" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as {
+            name?: string | null;
+            path?: string | null;
+            enabled?: boolean;
+          };
+          try {
+            return withCors(Response.json(await writeSkillConfig(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Skill update failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Skill update rejected. Missing selector."
+                      ? 400
+                      : 502,
+                }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/plugin/install" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as {
+            marketplacePath?: string | null;
+            pluginName?: string | null;
+          };
+          try {
+            return withCors(Response.json(await installPlugin(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Plugin install failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/plugin/uninstall" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as {
+            pluginId?: string | null;
+          };
+          try {
+            return withCors(Response.json(await uninstallPlugin(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Plugin uninstall failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/files") {
+        const path = url.searchParams.get("path")?.trim();
+        if (!path) {
+          return withCors(Response.json({ error: "Missing path." }, { status: 400 }));
+        }
+
+        return listRemoteFiles(path)
+          .then((result) => withCors(Response.json(result)))
+          .catch((error) =>
+            withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Remote file listing failed.",
+                },
+                { status: 502 }
+              )
+            )
+          );
+      }
+
+      if (url.pathname === "/file-search") {
+        const query = url.searchParams.get("query")?.trim() ?? "";
+        const roots = url.searchParams.getAll("root").map((entry) => entry.trim()).filter(Boolean);
+        if (!query || roots.length === 0) {
+          return withCors(
+            Response.json({ error: "Missing query or root." }, { status: 400 })
+          );
+        }
+
+        return searchRemoteFiles(query, roots)
+          .then((result) => withCors(Response.json(result)))
+          .catch((error) =>
+            withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Remote file search failed.",
                 },
                 { status: 502 }
               )
@@ -1023,6 +1583,182 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
                       ? 400
                       : 502,
                 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/approval" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as {
+            approvalId?: string;
+            approve?: boolean;
+            answers?: Record<string, string>;
+          };
+          try {
+            return withCors(Response.json(await applyApprovalRequest(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error:
+                    error instanceof Error ? error.message : "Codex approval failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Approval rejected. Missing approval id."
+                      ? 400
+                      : 502,
+                }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/thread/rename" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string; name?: string };
+          if (!body.threadId || !body.name?.trim()) {
+            return withCors(Response.json({ error: "Missing thread or name." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await renameThread(body.threadId, body.name.trim())));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Thread rename failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/thread/fork" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string };
+          if (!body.threadId) {
+            return withCors(Response.json({ error: "Missing thread." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await forkThread(body.threadId)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Thread fork failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/thread/archive" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string };
+          if (!body.threadId) {
+            return withCors(Response.json({ error: "Missing thread." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await archiveThread(body.threadId)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Thread archive failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/thread/unarchive" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string };
+          if (!body.threadId) {
+            return withCors(Response.json({ error: "Missing thread." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await unarchiveThread(body.threadId)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Thread restore failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/thread/compact" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string };
+          if (!body.threadId) {
+            return withCors(Response.json({ error: "Missing thread." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await compactThread(body.threadId)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Thread compact failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/review" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string };
+          if (!body.threadId) {
+            return withCors(Response.json({ error: "Missing thread." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await startReview(body.threadId)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Review start failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/mcp/oauth/login" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { name?: string };
+          if (!body.name?.trim()) {
+            return withCors(Response.json({ error: "Missing connector." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await startMcpOauthLogin(body.name.trim())));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Connector login failed.",
+                },
+                { status: 502 }
               )
             );
           }

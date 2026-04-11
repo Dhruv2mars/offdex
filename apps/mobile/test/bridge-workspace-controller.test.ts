@@ -148,22 +148,30 @@ function createFakeClient() {
           threads:
             _threadId === OFFDEX_NEW_THREAD_ID
               ? [
-                  {
-                    id: "thread-fresh",
-                    title: "Fresh mobile chat",
-                    projectLabel: "offdex",
-                    runtimeTarget: "cli",
-                    state: "running",
-                    unreadCount: 0,
-                    updatedAt: "Now",
-                    messages: [
-                      {
+                {
+                  id: "thread-fresh",
+                  title: "Fresh mobile chat",
+                  projectLabel: "offdex",
+                  runtimeTarget: "cli",
+                  path: null,
+                  cwd: null,
+                  cliVersion: null,
+                  source: "bridge",
+                  agentNickname: null,
+                  agentRole: null,
+                  gitInfo: null,
+                  state: "running",
+                  unreadCount: 0,
+                  updatedAt: "Now",
+                  messages: [
+                    {
                         id: "bridge-user",
                         role: "user",
                         body,
                         createdAt: "Now",
                       },
                     ],
+                    turns: [],
                   },
                   ...snapshot.threads,
                 ]

@@ -61,10 +61,18 @@ function createDraftThread(
     title: "New chat",
     projectLabel: macName || "offdex",
     runtimeTarget,
+    path: null,
+    cwd: null,
+    cliVersion: null,
+    source: "mobile",
+    agentNickname: null,
+    agentRole: null,
+    gitInfo: null,
     state: "idle",
     unreadCount: 0,
     updatedAt: isAwaiting ? "Starting..." : "Ready",
     messages: [],
+    turns: [],
   };
 }
 

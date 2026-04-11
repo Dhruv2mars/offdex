@@ -31,6 +31,242 @@ export interface OffdexMessage {
   createdAt: string;
 }
 
+export interface OffdexGitInfo {
+  sha: string | null;
+  branch: string | null;
+  originUrl: string | null;
+}
+
+export interface OffdexAppRecord {
+  id: string;
+  name: string;
+  description: string | null;
+  developer: string | null;
+  category: string | null;
+  distributionChannel: string | null;
+  installUrl: string | null;
+  websiteUrl: string | null;
+  isAccessible: boolean;
+  isEnabled: boolean;
+  logoUrl: string | null;
+  logoUrlDark: string | null;
+  labels: Record<string, string>;
+}
+
+export interface OffdexModelRecord {
+  id: string;
+  model: string;
+  displayName: string;
+  description: string;
+  defaultReasoningEffort: string;
+  reasoningEfforts: string[];
+  inputModalities: string[];
+  isDefault: boolean;
+  hidden: boolean;
+}
+
+export interface OffdexConfigSummary {
+  model: string | null;
+  modelProvider: string | null;
+  reasoningEffort: string | null;
+  sandboxMode: string | null;
+  approvalPolicy: string | null;
+  webSearch: string | null;
+}
+
+export interface OffdexRateLimitWindow {
+  usedPercent: number | null;
+  windowDurationMins: number | null;
+  resetsAt: string | null;
+}
+
+export interface OffdexRateLimitCredits {
+  hasCredits: boolean;
+  unlimited: boolean;
+  balance: string | null;
+}
+
+export interface OffdexRateLimitsSummary {
+  limitId: string | null;
+  limitName: string | null;
+  planType: string | null;
+  primary: OffdexRateLimitWindow | null;
+  secondary: OffdexRateLimitWindow | null;
+  credits: OffdexRateLimitCredits | null;
+}
+
+export interface OffdexExperimentalFeatureRecord {
+  name: string;
+  stage: string | null;
+  displayName: string | null;
+  description: string | null;
+  announcement: string | null;
+  enabled: boolean;
+  defaultEnabled: boolean;
+}
+
+export interface OffdexRemoteFileEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  isFile: boolean;
+}
+
+export interface OffdexRemoteFileMatch {
+  name: string;
+  path: string;
+  root: string;
+  kind: "file" | "directory";
+  score: number;
+}
+
+export type OffdexInputItem =
+  | { type: "text"; text: string }
+  | { type: "image"; url: string }
+  | { type: "localImage"; path: string }
+  | { type: "skill"; name: string; path: string }
+  | { type: "mention"; name: string; path: string };
+
+export type OffdexTimelineItem =
+  | {
+      type: "userMessage";
+      id: string;
+      content: OffdexInputItem[];
+    }
+  | {
+      type: "agentMessage";
+      id: string;
+      text: string;
+      phase?: "commentary" | "final_answer" | null;
+    }
+  | {
+      type: "reasoning";
+      id: string;
+      summary: string[];
+      content: string[];
+    }
+  | {
+      type: "plan";
+      id: string;
+      text: string;
+    }
+  | {
+      type: "commandExecution";
+      id: string;
+      command: string;
+      cwd: string | null;
+      status: "pending" | "in_progress" | "completed" | "failed" | "interrupted";
+      aggregatedOutput: string;
+      exitCode: number | null;
+      durationMs: number | null;
+      source?: string | null;
+      processId?: string | null;
+      actions?: Array<{
+        type: string;
+        command?: string;
+        name?: string;
+        path?: string;
+      }>;
+    }
+  | {
+      type: "unknown";
+      id: string;
+      label: string;
+      data: string;
+    };
+
+export interface OffdexTurn {
+  id: string;
+  status: "inProgress" | "completed" | "failed" | "interrupted";
+  items: OffdexTimelineItem[];
+  errorMessage: string | null;
+  diff?: string | null;
+}
+
+export interface OffdexApprovalRequest {
+  id: string;
+  method: string;
+  title: string;
+  detail: string;
+  threadId: string | null;
+  turnId: string | null;
+  createdAt: string;
+  status: "pending" | "approved" | "declined";
+  inputSchema: "decision" | "answers" | "unknown";
+  rawParams: string;
+}
+
+export interface OffdexPermissionReview {
+  id: string;
+  threadId: string | null;
+  turnId: string | null;
+  title: string;
+  detail: string;
+  status: "running" | "completed";
+  outcome: "approved" | "declined" | "unknown" | null;
+  updatedAt: string;
+}
+
+export interface OffdexPluginRecord {
+  id: string;
+  name: string;
+  pluginName?: string;
+  marketplacePath?: string | null;
+  path: string;
+  source: "local" | "cache";
+  enabled?: boolean;
+  installed?: boolean;
+  installPolicy?: string | null;
+  authPolicy?: string | null;
+  category?: string | null;
+  description?: string | null;
+  developer?: string | null;
+  websiteUrl?: string | null;
+  capabilities?: string[];
+}
+
+export interface OffdexSkillRecord {
+  id: string;
+  name: string;
+  path: string;
+  source: "agents" | "codex" | "plugin";
+  enabled?: boolean;
+  scope?: string | null;
+  description?: string | null;
+  shortDescription?: string | null;
+  cwd?: string | null;
+}
+
+export interface OffdexMcpServerRecord {
+  name: string;
+  authStatus: "unsupported" | "notLoggedIn" | "bearerToken" | "oAuth" | string;
+  toolCount: number;
+  resourceCount: number;
+  resourceTemplateCount: number;
+}
+
+export interface OffdexAutomationRecord {
+  id: string;
+  name: string;
+  path: string;
+  status: string | null;
+  kind: string | null;
+  schedule: string | null;
+}
+
+export interface OffdexWorkbenchInventory {
+  codeHome: string;
+  plugins: OffdexPluginRecord[];
+  skills: OffdexSkillRecord[];
+  mcpServers: OffdexMcpServerRecord[];
+  automations: OffdexAutomationRecord[];
+  apps?: OffdexAppRecord[];
+  models?: OffdexModelRecord[];
+  config?: OffdexConfigSummary | null;
+  rateLimits?: OffdexRateLimitsSummary | null;
+  experimentalFeatures?: OffdexExperimentalFeatureRecord[];
+}
+
 export interface OffdexThread {
   id: string;
   title: string;
@@ -39,13 +275,25 @@ export interface OffdexThread {
   state: TurnState;
   unreadCount: number;
   updatedAt: string;
+  path: string | null;
+  cwd: string | null;
+  cliVersion: string | null;
+  source: string | null;
+  agentNickname: string | null;
+  agentRole: string | null;
+  gitInfo: OffdexGitInfo | null;
   messages: OffdexMessage[];
+  turns: OffdexTurn[];
 }
 
 export interface OffdexWorkspaceSnapshot {
   pairing: OffdexPairingProfile;
   capabilityMatrix: DeviceCapabilityMatrix;
+  account: OffdexRuntimeAccount | null;
+  pendingApprovals: OffdexApprovalRequest[];
+  permissionReviews: OffdexPermissionReview[];
   threads: OffdexThread[];
+  archivedThreads: OffdexThread[];
 }
 
 export interface OffdexAccountSession {
@@ -346,6 +594,34 @@ export function makeDemoWorkspaceSnapshot(
   runtimeTarget: RuntimeTarget = "cli",
   pairingProfile: Partial<OffdexPairingProfile> = {}
 ): OffdexWorkspaceSnapshot {
+  const foundationMessages = [
+    makeMessage("m1", "user", "Start the real Offdex implementation.", "09:12"),
+    makeMessage(
+      "m2",
+      "assistant",
+      "Building shared protocol, bridge core, relay core, and a stronger mobile shell first.",
+      "09:13"
+    ),
+  ];
+  const linuxMessages = [
+    makeMessage("m3", "user", "What should happen when desktop mode is unavailable?", "08:42"),
+    makeMessage(
+      "m4",
+      "assistant",
+      "The runtime picker should degrade cleanly to CLI and explain why without blocking the flow.",
+      "08:44"
+    ),
+  ];
+  const uxMessages = [
+    makeMessage("m5", "user", "Push the UI quality much further.", "07:25"),
+    makeMessage(
+      "m6",
+      "assistant",
+      "That means live truth, stable pairing, clear runtime state, and visual restraint instead of noisy widgets.",
+      "07:28"
+    ),
+  ];
+
   return {
     pairing: {
       bridgeUrl: "http://127.0.0.1:42420",
@@ -361,6 +637,10 @@ export function makeDemoWorkspaceSnapshot(
       web: "next",
       runtimes: ["cli"],
     },
+    account: null,
+    pendingApprovals: [],
+    permissionReviews: [],
+    archivedThreads: [],
     threads: [
       {
         id: "thread-foundation",
@@ -370,14 +650,33 @@ export function makeDemoWorkspaceSnapshot(
         state: "running",
         unreadCount: 0,
         updatedAt: "2m ago",
-        messages: [
-          makeMessage("m1", "user", "Start the real Offdex implementation.", "09:12"),
-          makeMessage(
-            "m2",
-            "assistant",
-            "Building shared protocol, bridge core, relay core, and a stronger mobile shell first.",
-            "09:13"
-          ),
+        path: null,
+        cwd: null,
+        cliVersion: null,
+        source: "demo",
+        agentNickname: null,
+        agentRole: null,
+        gitInfo: null,
+        messages: foundationMessages,
+        turns: [
+          {
+            id: "turn-foundation",
+            status: "inProgress",
+            errorMessage: null,
+            items: [
+              {
+                type: "userMessage",
+                id: "m1",
+                content: [{ type: "text", text: foundationMessages[0]!.body }],
+              },
+              {
+                type: "agentMessage",
+                id: "m2",
+                text: foundationMessages[1]!.body,
+                phase: "commentary",
+              },
+            ],
+          },
         ],
       },
       {
@@ -388,14 +687,33 @@ export function makeDemoWorkspaceSnapshot(
         state: "idle",
         unreadCount: 3,
         updatedAt: "21m ago",
-        messages: [
-          makeMessage("m3", "user", "What should happen when desktop mode is unavailable?", "08:42"),
-          makeMessage(
-            "m4",
-            "assistant",
-            "The runtime picker should degrade cleanly to CLI and explain why without blocking the flow.",
-            "08:44"
-          ),
+        path: null,
+        cwd: null,
+        cliVersion: null,
+        source: "demo",
+        agentNickname: null,
+        agentRole: null,
+        gitInfo: null,
+        messages: linuxMessages,
+        turns: [
+          {
+            id: "turn-linux",
+            status: "completed",
+            errorMessage: null,
+            items: [
+              {
+                type: "userMessage",
+                id: "m3",
+                content: [{ type: "text", text: linuxMessages[0]!.body }],
+              },
+              {
+                type: "agentMessage",
+                id: "m4",
+                text: linuxMessages[1]!.body,
+                phase: "final_answer",
+              },
+            ],
+          },
         ],
       },
       {
@@ -406,14 +724,33 @@ export function makeDemoWorkspaceSnapshot(
         state: "completed",
         unreadCount: 0,
         updatedAt: "1h ago",
-        messages: [
-          makeMessage("m5", "user", "Push the UI quality much further.", "07:25"),
-          makeMessage(
-            "m6",
-            "assistant",
-            "That means live truth, stable pairing, clear runtime state, and visual restraint instead of noisy widgets.",
-            "07:28"
-          ),
+        path: null,
+        cwd: null,
+        cliVersion: null,
+        source: "demo",
+        agentNickname: null,
+        agentRole: null,
+        gitInfo: null,
+        messages: uxMessages,
+        turns: [
+          {
+            id: "turn-ux",
+            status: "completed",
+            errorMessage: null,
+            items: [
+              {
+                type: "userMessage",
+                id: "m5",
+                content: [{ type: "text", text: uxMessages[0]!.body }],
+              },
+              {
+                type: "agentMessage",
+                id: "m6",
+                text: uxMessages[1]!.body,
+                phase: "final_answer",
+              },
+            ],
+          },
         ],
       },
     ],
@@ -481,6 +818,51 @@ export class WorkspaceSnapshotStore {
       ...this.#snapshot.pairing,
       ...patch,
     };
+    this.#emit();
+  }
+
+  updateAccount(account: OffdexRuntimeAccount | null) {
+    this.#snapshot.account = account;
+    this.#emit();
+  }
+
+  setArchivedThreads(threads: OffdexThread[]) {
+    this.#snapshot.archivedThreads = structuredClone(threads);
+    this.#emit();
+  }
+
+  upsertApproval(approval: OffdexApprovalRequest) {
+    const existingIndex = this.#snapshot.pendingApprovals.findIndex((entry) => entry.id === approval.id);
+    if (existingIndex >= 0) {
+      this.#snapshot.pendingApprovals[existingIndex] = approval;
+    } else {
+      this.#snapshot.pendingApprovals.unshift(approval);
+    }
+    this.#emit();
+  }
+
+  upsertPermissionReview(review: OffdexPermissionReview) {
+    const existingIndex = this.#snapshot.permissionReviews.findIndex((entry) => entry.id === review.id);
+    if (existingIndex >= 0) {
+      this.#snapshot.permissionReviews[existingIndex] = review;
+    } else {
+      this.#snapshot.permissionReviews.unshift(review);
+      this.#snapshot.permissionReviews = this.#snapshot.permissionReviews.slice(0, 8);
+    }
+    this.#emit();
+  }
+
+  resolveApproval(id: string, status: "approved" | "declined") {
+    this.#snapshot.pendingApprovals = this.#snapshot.pendingApprovals.map((approval) =>
+      approval.id === id ? { ...approval, status } : approval
+    );
+    this.#emit();
+  }
+
+  clearResolvedApprovals() {
+    this.#snapshot.pendingApprovals = this.#snapshot.pendingApprovals.filter(
+      (approval) => approval.status === "pending"
+    );
     this.#emit();
   }
 

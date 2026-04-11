@@ -49,23 +49,27 @@ describe("web DESIGN.md system", () => {
     expect(home).toContain("Install Offdex CLI");
     expect(home).toContain("Put authority in the bridge.");
     expect(home).not.toContain("href=\"#architecture\"");
-    expect(webui).toContain("Let's build");
+    expect(webui).toContain("Connect to your bridge");
+    expect(webui).toContain("Start a new Codex thread");
   });
 
-  test("uses a ChatGPT-style web UI sidebar shell", () => {
+  test("uses a codex-style web workbench shell", () => {
     const page = readAppFile("(app)/webui/page.tsx");
     const webui = readAppFile("(app)/webui/web-app-client.tsx");
 
     expect(page).not.toContain("sticky top-0");
-    expect(webui).toContain("data-webui-sidebar");
     expect(webui).toContain("aria-label=\"Toggle sidebar\"");
     expect(webui).toContain("Offdex");
     expect(webui).toContain("New chat");
+    expect(webui).toContain("History");
     expect(webui).toContain("Projects");
-    expect(webui).toContain("Threads");
-    expect(webui).toContain("data-webui-project-row");
-    expect(webui).toContain("data-webui-project-threads");
+    expect(webui).toContain("Permissions");
+    expect(webui).toContain("Compact");
+    expect(webui).toContain("Usage");
+    expect(webui).toContain("Ask Codex anything, @ to add files, / for commands, $ for skills");
+    expect(webui).toContain("Command, file, connector, and broader permission requests from Codex will appear here.");
     expect(webui).toContain("Settings");
+    expect(webui).not.toContain("Start voice input");
     expect(webui).not.toContain("Sign in on Mac");
     expect(webui).not.toContain("Session cockpit");
     expect(webui).not.toContain("Turn stack");
