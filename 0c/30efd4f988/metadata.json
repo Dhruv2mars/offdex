@@ -3,7 +3,7 @@
   "checkpoint_id": "0c30efd4f988",
   "strategy": "manual-commit",
   "branch": "feat/webui-production-workbench",
-  "checkpoints_count": 15,
+  "checkpoints_count": 16,
   "files_touched": [
     "apps/mobile/lib/store.ts",
     "apps/mobile/src/demo-workspace-controller.ts",
@@ -71,13 +71,19 @@
       "transcript": "/0c/30efd4f988/8/full.jsonl",
       "content_hash": "/0c/30efd4f988/8/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/0c/30efd4f988/9/metadata.json",
+      "transcript": "/0c/30efd4f988/9/full.jsonl",
+      "content_hash": "/0c/30efd4f988/9/content_hash.txt",
+      "prompt": "/0c/30efd4f988/9/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 126189209,
+    "input_tokens": 129829682,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 120667264,
-    "output_tokens": 393476,
-    "api_call_count": 891
+    "cache_read_tokens": 124176768,
+    "output_tokens": 421361,
+    "api_call_count": 935
   }
 }
