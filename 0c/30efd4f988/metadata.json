@@ -3,11 +3,18 @@
   "checkpoint_id": "0c30efd4f988",
   "strategy": "manual-commit",
   "branch": "feat/webui-production-workbench",
-  "checkpoints_count": 1,
+  "checkpoints_count": 9,
   "files_touched": [
+    "apps/mobile/lib/store.ts",
     "apps/mobile/src/demo-workspace-controller.ts",
+    "apps/mobile/test/bridge-workspace-controller.test.ts",
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/web/app/(app)/webui/web-transport.ts",
+    "apps/web/test/design-system.test.ts",
     "packages/bridge/src/codex-app-server.ts",
-    "packages/bridge/test/codex-app-server.test.ts"
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/protocol/src/index.ts"
   ],
   "sessions": [
     {
@@ -15,6 +22,19 @@
       "transcript": "/0c/30efd4f988/0/full.jsonl",
       "content_hash": "/0c/30efd4f988/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/0c/30efd4f988/1/metadata.json",
+      "transcript": "/0c/30efd4f988/1/full.jsonl",
+      "content_hash": "/0c/30efd4f988/1/content_hash.txt",
+      "prompt": "/0c/30efd4f988/1/prompt.txt"
     }
-  ]
+  ],
+  "token_usage": {
+    "input_tokens": 125578486,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 120236288,
+    "output_tokens": 382108,
+    "api_call_count": 873
+  }
 }

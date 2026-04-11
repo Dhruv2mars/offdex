@@ -1,0 +1,51 @@
+our target: build the fully functional webUI which works perfectly like how we want it. functionality, features, implementation wise. 
+
+i have a full detailed report about how the codex desktop app works. you can find that in the /dev/github folder: codex-desktop-clean-room-report.md
+
+check that out completely, and based on that, lets tinker through about making the webUI fully functional and usable.
+
+---
+
+do you actually know what is offdex and what was the thought, vision, and process behind making it? based on the plan you gave. what actually you suggest should happen? like, whats your direction
+
+---
+
+okay, so there is no v1 or any version, we make it like its the final production version ready for public release. 
+
+regarding what capability and ux should be there in the webUI: 
+- our goal with offdex is very clear -> codex mobile/web app, use codex from wherever you want. 
+
+basically, to a normal user, it should be like, there is no difference in user experience from desktop codex app, or our webUI. 
+
+so based on that, we need to make sure that the webui is fully functional. and the complete user flow is working as we intend it to. you should refer to the codex-report md file if you wanna know implementation or technical details about certain funcitonality or feature.
+
+---
+
+if you still have any questions, doubts, need more context, ask me!
+
+---
+
+1. what do you suggest? is it the best architectural and design decision focused on the best user experience. 
+2. yes
+3. yes
+4. what do you mean by that. as far as i understood, the sign in happens for the connection b/w ui layer - bridge - codex app server. 
+5. all of them. including others that you might have missed. everything has to be done, fully , completely, and perfectly. 
+6. structure and layout like codex, but styling and design choices like brand identity, design asthetics of offdex, as in design.md. 
+
+any more?
+
+---
+
+i dont understand that file upload/paste thing. if a user is on webui and wants to paste something or upload somethign, then yes it should be able to do. i dont get wym with bridge driven?
+
+---
+
+yeah. go ahead. do the complete implementation. 
+
+dont stop until you can say with 100% confidence that it is ready for public user. a normal user can now use the webui and they wont notice that its something different from codex desktop app. everything should work completely and fully. it should be final, ready for production public use. 
+
+go ahead mate!!!!!
+
+---
+
+then continue and complete the unfinished work.
