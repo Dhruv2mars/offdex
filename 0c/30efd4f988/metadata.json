@@ -14,7 +14,8 @@
     "packages/bridge/src/codex-app-server.ts",
     "packages/bridge/src/index.ts",
     "packages/bridge/test/codex-app-server.test.ts",
-    "packages/protocol/src/index.ts"
+    "packages/protocol/src/index.ts",
+    "packages/protocol/test/index.test.ts"
   ],
   "sessions": [
     {
@@ -28,6 +29,12 @@
       "transcript": "/0c/30efd4f988/1/full.jsonl",
       "content_hash": "/0c/30efd4f988/1/content_hash.txt",
       "prompt": "/0c/30efd4f988/1/prompt.txt"
+    },
+    {
+      "metadata": "/0c/30efd4f988/2/metadata.json",
+      "transcript": "/0c/30efd4f988/2/full.jsonl",
+      "content_hash": "/0c/30efd4f988/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
