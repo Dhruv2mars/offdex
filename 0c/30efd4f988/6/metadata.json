@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "0c30efd4f988",
+  "session_id": "019d7af5-0522-72c2-b6c4-440803a640b1",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-11T20:49:09.752716Z",
+  "branch": "feat/webui-production-workbench",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/test/design-system.test.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/protocol/src/index.ts",
+    "packages/protocol/test/index.test.ts",
+    "apps/mobile/lib/store.ts",
+    "apps/mobile/src/demo-workspace-controller.ts",
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/bridge/src/index.ts",
+    "apps/mobile/test/bridge-workspace-controller.test.ts",
+    "apps/web/app/(app)/webui/web-transport.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "544ae2442e59",
+  "initial_attribution": {
+    "calculated_at": "2026-04-11T20:49:09.751322Z",
+    "agent_lines": 5825,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 5825,
+    "agent_percentage": 100
+  }
+}
