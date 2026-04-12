@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "450fed098ad2",
+  "session_id": "019d7e43-4785-71f0-b5ba-e003acc5f6e5",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-12T06:48:30.659836Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/prompt.md",
+    "docs/plans.md",
+    "docs/implement.md",
+    "docs/documentation.md",
+    "packages/protocol/src/index.ts",
+    "packages/bridge/src/codex-app-server.ts",
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/mobile/lib/store.ts",
+    "apps/mobile/src/demo-workspace-controller.ts",
+    "apps/mobile/test/bridge-workspace-controller.test.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/protocol/test/index.test.ts",
+    "apps/mobile/components/chat/thread-item.tsx"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "8505f959129e",
+  "checkpoint_transcript_start": 2036,
+  "transcript_lines_at_start": 2036,
+  "token_usage": {
+    "input_tokens": 9408455,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 9116416,
+    "output_tokens": 37460,
+    "api_call_count": 67
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-12T06:48:29.122092Z",
+    "agent_lines": 607,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 607,
+    "agent_percentage": 100
+  }
+}

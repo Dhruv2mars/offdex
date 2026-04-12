@@ -5,10 +5,19 @@
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
+    "apps/mobile/components/chat/thread-item.tsx",
+    "apps/mobile/lib/store.ts",
+    "apps/mobile/src/demo-workspace-controller.ts",
+    "apps/mobile/test/bridge-workspace-controller.test.ts",
+    "apps/web/app/(app)/webui/web-app-client.tsx",
     "docs/documentation.md",
     "docs/implement.md",
     "docs/plans.md",
-    "docs/prompt.md"
+    "docs/prompt.md",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/protocol/src/index.ts",
+    "packages/protocol/test/index.test.ts"
   ],
   "sessions": [
     {
@@ -16,13 +25,19 @@
       "transcript": "/45/0fed098ad2/0/full.jsonl",
       "content_hash": "/45/0fed098ad2/0/content_hash.txt",
       "prompt": "/45/0fed098ad2/0/prompt.txt"
+    },
+    {
+      "metadata": "/45/0fed098ad2/1/metadata.json",
+      "transcript": "/45/0fed098ad2/1/full.jsonl",
+      "content_hash": "/45/0fed098ad2/1/content_hash.txt",
+      "prompt": "/45/0fed098ad2/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 407310,
+    "input_tokens": 9815765,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 366720,
-    "output_tokens": 11095,
-    "api_call_count": 14
+    "cache_read_tokens": 9483136,
+    "output_tokens": 48555,
+    "api_call_count": 81
   }
 }
