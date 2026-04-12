@@ -1,9 +1,15 @@
 # Implement
-- Read `prompt.md` and `plans.md` before substantial work.
+- Read `docs/prompt.md` and `docs/plans.md` before substantial work.
+- Treat them as the source of truth for the active parity effort.
 - Work one milestone at a time.
+- Prefer bridge/protocol changes before client-specific UX changes whenever the behavior is shareable.
 - Keep diffs scoped to the current milestone.
-- Validate each milestone before moving on.
-- If validation fails, fix the issue before continuing.
-- Update `documentation.md` after major progress, validation, or scope changes.
+- After each milestone:
+  - run the listed validation
+  - fix failures immediately
+  - update `docs/plans.md` status/decisions if scope or direction changed
+  - update `docs/documentation.md` so it matches reality
+- For visible web changes, run a local browser smoke with `agent-browser` when practical.
+- Avoid landing generator-only churn such as `next-env.d.ts` unless it is part of the intended change.
 - Prefer repo-observed facts over chat assumptions.
-- When scope changes, update `prompt.md`, adjust `plans.md`, and record the change in `documentation.md`.
+- When scope changes, update `docs/prompt.md`, adjust `docs/plans.md`, and record the change in `docs/documentation.md` before continuing.

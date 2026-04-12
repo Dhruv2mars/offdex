@@ -105,6 +105,17 @@ describe("codex snapshot adapter", () => {
     expect(mapped.projectLabel).toBe("offdex");
     expect(mapped.state).toBe("completed");
     expect(mapped.messages.map((message) => message.body)).toEqual(["Ship it.", "Done."]);
+    expect(mapped.summary).toMatchObject({
+      messageCount: 2,
+      commandCount: 0,
+      toolActivityCount: 0,
+      reasoningCount: 1,
+      diffTurnCount: 0,
+      latestAssistantText: "Done.",
+      pendingApprovalCount: 0,
+      activePermissionReviewCount: 0,
+      failedTurnCount: 0,
+    });
   });
 
   test("maps task, tool, file, and usage runtime items into typed timeline rows", () => {
@@ -426,6 +437,7 @@ describe("codex snapshot adapter", () => {
 
     const diffThread = withDiff.threads.find((entry) => entry.id === "thread-diff");
     expect(diffThread?.turns[0]?.diff).toContain("+hello");
+    expect(diffThread?.summary.diffTurnCount).toBe(1);
   });
 
   test("normalizes live tool activity notifications into typed rows", () => {
@@ -547,6 +559,7 @@ describe("codex snapshot adapter", () => {
 
     expect(reviewing.permissionReviews[0]?.status).toBe("running");
     expect(reviewing.permissionReviews[0]?.detail).toContain("network access");
+    expect(reviewing.threads.find((entry) => entry.id === "thread-review")?.summary.activePermissionReviewCount).toBe(1);
 
     const completed = applyCodexNotification(
       reviewing,
@@ -565,10 +578,34 @@ describe("codex snapshot adapter", () => {
 
     expect(completed.permissionReviews[0]?.status).toBe("completed");
     expect(completed.permissionReviews[0]?.outcome).toBe("approved");
+    expect(completed.threads.find((entry) => entry.id === "thread-review")?.summary.activePermissionReviewCount).toBe(0);
     expect(completed.threads.find((entry) => entry.id === "thread-review")?.turns[0]?.items[0]).toMatchObject({
       type: "unknown",
       label: "permission review",
     });
+  });
+
+  test("marks failed turns in thread summaries when runtime errors arrive", () => {
+    const seed = createCodexSnapshot("cli", []);
+
+    const next = applyCodexNotification(
+      seed,
+      {
+        method: "error",
+        params: {
+          threadId: "thread-error",
+          turnId: "turn-error",
+          error: "Command failed",
+          willRetry: false,
+        },
+      },
+      "cli"
+    );
+
+    const thread = next.threads.find((entry) => entry.id === "thread-error");
+    expect(thread?.state).toBe("failed");
+    expect(thread?.summary.failedTurnCount).toBe(1);
+    expect(thread?.summary.latestAssistantText).toBeNull();
   });
 
   test("preserves known turn diffs when a fresh snapshot is rebuilt from thread reads", () => {
@@ -657,6 +694,17 @@ describe("codex snapshot adapter", () => {
           threadKind: "conversation",
           sourceThreadId: null,
           reviewThreadId: null,
+          summary: {
+            messageCount: 0,
+            commandCount: 0,
+            toolActivityCount: 0,
+            reasoningCount: 0,
+            diffTurnCount: 0,
+            latestAssistantText: null,
+            pendingApprovalCount: 0,
+            activePermissionReviewCount: 0,
+            failedTurnCount: 0,
+          },
           runtimeTarget: "cli",
           state: "completed",
           unreadCount: 0,
@@ -1207,6 +1255,17 @@ describe("codex snapshot adapter", () => {
           threadKind: "conversation",
           sourceThreadId: null,
           reviewThreadId: null,
+          summary: {
+            messageCount: 0,
+            commandCount: 0,
+            toolActivityCount: 0,
+            reasoningCount: 0,
+            diffTurnCount: 0,
+            latestAssistantText: null,
+            pendingApprovalCount: 0,
+            activePermissionReviewCount: 0,
+            failedTurnCount: 0,
+          },
           runtimeTarget: "cli",
           state: "completed",
           unreadCount: 0,

@@ -22,6 +22,9 @@ import {
   type OffdexRuntimeAccount,
   type OffdexTurn,
   type OffdexWorkbenchInventory,
+  type OffdexThreadSummary,
+  summarizeOffdexThread,
+  refreshSnapshotThreadSummaries,
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   type OffdexMessage,
@@ -938,6 +941,20 @@ function existingThreadMetadata(
   } as const;
 }
 
+function summarizeThread(
+  thread: Pick<OffdexThread, "id" | "messages" | "turns">,
+  snapshot?: Pick<OffdexWorkspaceSnapshot, "pendingApprovals" | "permissionReviews">
+): OffdexThreadSummary {
+  return summarizeOffdexThread(thread, snapshot);
+}
+
+function refreshThreadSummary(
+  thread: OffdexThread,
+  snapshot?: Pick<OffdexWorkspaceSnapshot, "pendingApprovals" | "permissionReviews">
+) {
+  thread.summary = summarizeThread(thread, snapshot);
+}
+
 export function findActiveTurnId(thread: CodexThread) {
   return [...thread.turns].reverse().find((turn) => turn.status === "inProgress")?.id ?? null;
 }
@@ -950,6 +967,17 @@ function makePlaceholderThread(runtimeTarget: RuntimeTarget): OffdexThread {
     threadKind: "conversation",
     sourceThreadId: null,
     reviewThreadId: null,
+    summary: {
+      messageCount: 0,
+      commandCount: 0,
+      toolActivityCount: 0,
+      reasoningCount: 0,
+      diffTurnCount: 0,
+      latestAssistantText: null,
+      pendingApprovalCount: 0,
+      activePermissionReviewCount: 0,
+      failedTurnCount: 0,
+    },
     runtimeTarget,
     state: "idle",
     unreadCount: 0,
@@ -986,6 +1014,14 @@ export function mapCodexThreadToOffdexThread(
     ? turnStatusToState(latestTurn.status)
     : threadStatusToState(thread.status, messages.length);
   const metadata = existingThreadMetadata(seedSnapshot, thread.id);
+  const summary = summarizeThread(
+    {
+      id: thread.id,
+      messages,
+      turns,
+    },
+    seedSnapshot
+  );
 
   return {
     id: thread.id,
@@ -994,6 +1030,7 @@ export function mapCodexThreadToOffdexThread(
     threadKind: metadata.threadKind,
     sourceThreadId: metadata.sourceThreadId,
     reviewThreadId: metadata.reviewThreadId,
+    summary,
     runtimeTarget,
     state,
     unreadCount: 0,
@@ -1057,6 +1094,17 @@ function ensureThread(
     threadKind: "conversation",
     sourceThreadId: null,
     reviewThreadId: null,
+    summary: {
+      messageCount: 0,
+      commandCount: 0,
+      toolActivityCount: 0,
+      reasoningCount: 0,
+      diffTurnCount: 0,
+      latestAssistantText: null,
+      pendingApprovalCount: 0,
+      activePermissionReviewCount: 0,
+      failedTurnCount: 0,
+    },
     runtimeTarget,
     state: "idle",
     unreadCount: 0,
@@ -1077,23 +1125,30 @@ function ensureThread(
 }
 
 function upsertThread(snapshot: OffdexWorkspaceSnapshot, thread: OffdexThread) {
+  refreshThreadSummary(thread, snapshot);
   const otherThreads = snapshot.threads.filter(
     (entry) => entry.id !== thread.id && entry.id !== NEW_THREAD_ID
   );
   snapshot.threads = [thread, ...otherThreads];
 }
 
-function upsertMessage(thread: OffdexThread, message: OffdexMessage) {
+function upsertMessage(
+  snapshot: OffdexWorkspaceSnapshot,
+  thread: OffdexThread,
+  message: OffdexMessage
+) {
   const existingIndex = thread.messages.findIndex((entry) => entry.id === message.id);
   if (existingIndex >= 0) {
     thread.messages[existingIndex] = message;
+    refreshThreadSummary(thread, snapshot);
     return;
   }
 
   thread.messages.push(message);
+  refreshThreadSummary(thread, snapshot);
 }
 
-function ensureTurn(thread: OffdexThread, turnId: string) {
+function ensureTurn(snapshot: OffdexWorkspaceSnapshot, thread: OffdexThread, turnId: string) {
   const existing = thread.turns.find((turn) => turn.id === turnId);
   if (existing) {
     return existing;
@@ -1107,6 +1162,7 @@ function ensureTurn(thread: OffdexThread, turnId: string) {
     diff: null,
   };
   thread.turns.push(turn);
+  refreshThreadSummary(thread, snapshot);
   return turn;
 }
 
@@ -1129,7 +1185,7 @@ function mergeAgentDelta(
   runtimeTarget: RuntimeTarget
 ) {
   const thread = ensureThread(snapshot, threadId, runtimeTarget);
-  const turn = ensureTurn(thread, turnId);
+  const turn = ensureTurn(snapshot, thread, turnId);
   thread.state = "running";
   thread.updatedAt = "Now";
   const existing = thread.messages.find((message) => message.id === itemId);
@@ -1148,6 +1204,7 @@ function mergeAgentDelta(
   const existingTimelineItem = turn.items.find((item) => item.id === itemId);
   if (existingTimelineItem?.type === "agentMessage") {
     existingTimelineItem.text += delta;
+    refreshThreadSummary(thread, snapshot);
     return;
   }
 
@@ -1157,6 +1214,7 @@ function mergeAgentDelta(
     text: delta,
     phase: "commentary",
   });
+  refreshThreadSummary(thread, snapshot);
 }
 
 function applyItemUpdate(
@@ -1167,16 +1225,17 @@ function applyItemUpdate(
   runtimeTarget: RuntimeTarget
 ) {
   const thread = ensureThread(snapshot, threadId, runtimeTarget);
-  const turn = ensureTurn(thread, turnId);
+  const turn = ensureTurn(snapshot, thread, turnId);
   const message = threadItemToMessage(item, "Now");
   const timelineItem = threadItemToTimelineItem(item);
   upsertTimelineItem(turn, timelineItem);
   if (message) {
-    upsertMessage(thread, message);
+    upsertMessage(snapshot, thread, message);
   }
 
   thread.state = item.type === "agentMessage" ? "running" : thread.state;
   thread.updatedAt = "Now";
+  refreshThreadSummary(thread, snapshot);
 }
 
 export function applyCodexNotification(
@@ -1272,10 +1331,11 @@ export function applyCodexNotification(
     case "turn/started": {
       const payload = (notification as TurnStartedNotification).params;
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
-      const turn = ensureTurn(thread, payload.turn.id);
+      const turn = ensureTurn(next, thread, payload.turn.id);
       thread.state = "running";
       thread.updatedAt = "Now";
       turn.status = payload.turn.status;
+      refreshThreadSummary(thread, next);
       return next;
     }
     case "turn/completed": {
@@ -1283,7 +1343,7 @@ export function applyCodexNotification(
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
       thread.state = turnStatusToState(payload.turn.status);
       thread.updatedAt = "Now";
-      const turn = ensureTurn(thread, payload.turn.id);
+      const turn = ensureTurn(next, thread, payload.turn.id);
       turn.status = payload.turn.status;
       turn.errorMessage =
         payload.turn.error instanceof Error
@@ -1293,14 +1353,16 @@ export function applyCodexNotification(
             : payload.turn.error
               ? JSON.stringify(payload.turn.error)
               : null;
+      refreshThreadSummary(thread, next);
       return next;
     }
     case "turn/diff/updated": {
       const payload = (notification as TurnDiffUpdatedNotification).params;
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
-      const turn = ensureTurn(thread, payload.turnId);
+      const turn = ensureTurn(next, thread, payload.turnId);
       turn.diff = payload.diff;
       thread.updatedAt = "Now";
+      refreshThreadSummary(thread, next);
       return next;
     }
     case "item/started": {
@@ -1322,7 +1384,7 @@ export function applyCodexNotification(
       upsertPermissionReviewSnapshot(next, review);
       if (review.threadId && review.turnId) {
         const thread = ensureThread(next, review.threadId, runtimeTarget);
-        const turn = ensureTurn(thread, review.turnId);
+        const turn = ensureTurn(next, thread, review.turnId);
         thread.updatedAt = "Now";
         upsertTimelineItem(turn, {
           type: "unknown",
@@ -1330,6 +1392,7 @@ export function applyCodexNotification(
           label: "permission review",
           data: review.detail,
         });
+        refreshThreadSummary(thread, next);
       }
       return next;
     }
@@ -1342,7 +1405,7 @@ export function applyCodexNotification(
       upsertPermissionReviewSnapshot(next, review);
       if (review.threadId && review.turnId) {
         const thread = ensureThread(next, review.threadId, runtimeTarget);
-        const turn = ensureTurn(thread, review.turnId);
+        const turn = ensureTurn(next, thread, review.turnId);
         thread.updatedAt = "Now";
         upsertTimelineItem(turn, {
           type: "unknown",
@@ -1350,6 +1413,7 @@ export function applyCodexNotification(
           label: "permission review",
           data: review.outcome ? `${review.detail}\n\nOutcome: ${review.outcome}` : review.detail,
         });
+        refreshThreadSummary(thread, next);
       }
       return next;
     }
@@ -1382,12 +1446,13 @@ export function applyCodexNotification(
         paramsRecord?.status ??
         paramsRecord;
       applyApprovalResolution(next, requestId, approvalStatusFromValue(resolutionSource));
+      refreshSnapshotThreadSummaries(next);
       return next;
     }
     case "error": {
       const payload = (notification as ErrorNotification).params;
       const thread = ensureThread(next, payload.threadId, runtimeTarget);
-      const turn = ensureTurn(thread, payload.turnId);
+      const turn = ensureTurn(next, thread, payload.turnId);
       thread.state = payload.willRetry ? "running" : "failed";
       thread.updatedAt = "Now";
       turn.status = payload.willRetry ? "inProgress" : "failed";
@@ -1411,6 +1476,7 @@ export function applyCodexNotification(
         label: "error",
         data: turn.errorMessage,
       });
+      refreshThreadSummary(thread, next);
       return next;
     }
     default:

@@ -29,9 +29,11 @@ export const ThreadItem = memo(function ThreadItem({
 
   // Get last message preview
   const lastMessage = thread.messages[thread.messages.length - 1];
-  const preview = lastMessage
-    ? `${lastMessage.role === "user" ? "You" : "Codex"}: ${lastMessage.body}`
-    : "No messages yet";
+  const preview = thread.summary.latestAssistantText
+    ? `Codex: ${thread.summary.latestAssistantText}`
+    : lastMessage
+      ? `${lastMessage.role === "user" ? "You" : "Codex"}: ${lastMessage.body}`
+      : "No messages yet";
 
   // Determine status to show
   const status = isConnected ? thread.state : "idle";
@@ -87,7 +89,17 @@ export const ThreadItem = memo(function ThreadItem({
           {status === "running" && (
             <StatusBadge status="running" showDot />
           )}
-        <Text className="text-xs text-foreground-subtle uppercase font-mono">
+          {thread.summary.pendingApprovalCount > 0 && (
+            <Text className="text-xs text-warning">
+              {thread.summary.pendingApprovalCount} approvals
+            </Text>
+          )}
+          {thread.summary.failedTurnCount > 0 && (
+            <Text className="text-xs text-destructive">
+              {thread.summary.failedTurnCount} failed
+            </Text>
+          )}
+          <Text className="text-xs text-foreground-subtle uppercase font-mono">
             {thread.runtimeTarget === "cli" ? "CLI" : "Desktop"}
           </Text>
         </View>

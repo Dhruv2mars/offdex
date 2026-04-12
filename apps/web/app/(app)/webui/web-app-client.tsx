@@ -441,6 +441,16 @@ function threadMetrics(thread: OffdexThread | null) {
     };
   }
 
+  if (thread.summary) {
+    return {
+      messages: thread.summary.messageCount,
+      commands: thread.summary.commandCount,
+      toolActivity: thread.summary.toolActivityCount,
+      reasoning: thread.summary.reasoningCount,
+      diffs: thread.summary.diffTurnCount,
+    };
+  }
+
   const items = itemsForThread(thread).map((entry) => entry.item);
   return {
     messages: items.filter((item) => item.type === "userMessage" || item.type === "agentMessage").length,
@@ -449,6 +459,23 @@ function threadMetrics(thread: OffdexThread | null) {
     reasoning: items.filter((item) => item.type === "reasoning" || item.type === "plan").length,
     diffs: thread.turns.filter((turn) => Boolean(turn.diff?.trim())).length,
   };
+}
+
+function threadPreview(thread: OffdexThread | null) {
+  if (!thread) {
+    return "No thread selected.";
+  }
+
+  if (thread.summary?.latestAssistantText?.trim()) {
+    return `Codex: ${thread.summary.latestAssistantText.trim()}`;
+  }
+
+  const latestMessage = thread.messages.at(-1);
+  if (latestMessage?.body?.trim()) {
+    return `${latestMessage.role === "user" ? "You" : "Codex"}: ${latestMessage.body.trim()}`;
+  }
+
+  return thread.gitInfo?.branch ?? thread.cwd ?? thread.projectLabel;
 }
 
 function detectReviewThread(thread: OffdexThread | null) {
@@ -465,15 +492,11 @@ function ThreadSummaryCard({
   thread,
   runtimeTarget,
   accountEmail,
-  pendingApprovalCount,
-  activeReviewCount,
   sourceThread,
 }: {
   thread: OffdexThread | null;
   runtimeTarget: OffdexWorkspaceSnapshot["pairing"]["runtimeTarget"] | null | undefined;
   accountEmail: string | null | undefined;
-  pendingApprovalCount: number;
-  activeReviewCount: number;
   sourceThread: OffdexThread | null;
 }) {
   const metrics = threadMetrics(thread);
@@ -539,13 +562,24 @@ function ThreadSummaryCard({
           <dd className="text-foreground">{metrics.diffs}</dd>
         </div>
       </dl>
+      {thread.summary.latestAssistantText ? (
+        <div className="mt-4 rounded-2xl bg-muted p-3 shadow-border">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Latest assistant update</p>
+          <p className="mt-2 text-sm leading-6 text-foreground">{thread.summary.latestAssistantText}</p>
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-2">
         <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground shadow-border">
-          {pendingApprovalCount} pending permissions
+          {thread.summary.pendingApprovalCount} pending permissions
         </span>
         <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground shadow-border">
-          {activeReviewCount} active reviews
+          {thread.summary.activePermissionReviewCount} active reviews
         </span>
+        {thread.summary.failedTurnCount > 0 ? (
+          <span className="rounded-full bg-[#fff1f0] px-3 py-1 text-[11px] text-[#b42318] shadow-border">
+            {thread.summary.failedTurnCount} failed turns
+          </span>
+        ) : null}
         {detectReviewThread(thread) ? (
           <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-foreground shadow-border">
             review thread
@@ -1772,7 +1806,10 @@ export function WebAppClient() {
                       >
                         <div className="min-w-0 flex-1">
                           <span className="block truncate leading-tight">{thread.title}</span>
-                          <span className="mt-1 block truncate text-[11px] opacity-60">
+                          <span className="mt-1 block truncate text-[11px] opacity-70">
+                            {threadPreview(thread)}
+                          </span>
+                          <span className="mt-1 block truncate text-[10px] opacity-50">
                             {thread.gitInfo?.branch ?? thread.cwd ?? thread.projectLabel}
                           </span>
                         </div>
@@ -1781,6 +1818,19 @@ export function WebAppClient() {
                           <span className={`rounded-full px-2 py-0.5 text-[10px] shadow-border ${toneForStatus(thread.state)}`}>
                             {thread.state}
                           </span>
+                          {thread.summary.pendingApprovalCount > 0 ? (
+                            <span className="rounded-full bg-[#fff6ed] px-2 py-0.5 text-[10px] text-[#b54708] shadow-border">
+                              {thread.summary.pendingApprovalCount} approvals
+                            </span>
+                          ) : thread.summary.activePermissionReviewCount > 0 ? (
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-foreground shadow-border">
+                              {thread.summary.activePermissionReviewCount} reviews
+                            </span>
+                          ) : thread.summary.failedTurnCount > 0 ? (
+                            <span className="rounded-full bg-[#fff1f0] px-2 py-0.5 text-[10px] text-[#b42318] shadow-border">
+                              {thread.summary.failedTurnCount} failed
+                            </span>
+                          ) : null}
                         </div>
                       </button>
                     );
@@ -2951,8 +3001,6 @@ export function WebAppClient() {
         <aside className="hidden w-[340px] shrink-0 border-l border-border/60 bg-muted/70 p-4 xl:block">
           <ThreadSummaryCard
             accountEmail={snapshot?.account?.email}
-            activeReviewCount={activePermissionReviews.length}
-            pendingApprovalCount={pendingApprovals.length}
             runtimeTarget={snapshot?.pairing.runtimeTarget}
             sourceThread={selectedReviewSource}
             thread={selectedThread}

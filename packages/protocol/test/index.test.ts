@@ -12,6 +12,7 @@ import {
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   makeMessage,
+  summarizeOffdexThread,
 } from "../src";
 
 describe("protocol demo snapshot", () => {
@@ -79,6 +80,39 @@ describe("workspace snapshot store", () => {
     const thread = store.getSnapshot().threads.find((entry) => entry.id === "thread-foundation");
     expect(thread?.messages.at(-1)?.body).toBe("Bridge snapshot refreshed.");
     expect(thread?.updatedAt).toBe("Now");
+    expect(thread?.summary.latestAssistantText).toBe("Bridge snapshot refreshed.");
+    expect(thread?.summary.messageCount).toBe(thread?.messages.length);
+  });
+
+  test("recomputes thread attention counts from approvals and permission reviews", () => {
+    const store = new WorkspaceSnapshotStore();
+
+    store.upsertApproval({
+      id: "approval-1",
+      method: "execCommandApproval",
+      title: "Approve command",
+      detail: "Run tests",
+      threadId: "thread-foundation",
+      turnId: "turn-1",
+      createdAt: "Now",
+      status: "pending",
+      inputSchema: "decision",
+      rawParams: "{}",
+    });
+    store.upsertPermissionReview({
+      id: "review-1",
+      threadId: "thread-foundation",
+      turnId: "turn-1",
+      title: "Permission review in progress",
+      detail: "Checking network access",
+      status: "running",
+      outcome: null,
+      updatedAt: "Now",
+    });
+
+    const thread = store.getSnapshot().threads.find((entry) => entry.id === "thread-foundation");
+    expect(thread?.summary.pendingApprovalCount).toBe(1);
+    expect(thread?.summary.activePermissionReviewCount).toBe(1);
   });
 
   test("updates local pairing details without replacing the thread timeline", () => {
@@ -111,6 +145,78 @@ describe("workspace snapshot store", () => {
     const snapshot = store.getSnapshot();
     expect(snapshot.archivedThreads[0]?.id).toBe("thread-archived");
     expect(snapshot.threads.some((thread) => thread.id === "thread-archived")).toBe(false);
+  });
+});
+
+describe("thread summaries", () => {
+  test("summarizes timeline, failures, and active thread attention", () => {
+    const snapshot = makeDemoWorkspaceSnapshot();
+    const thread = snapshot.threads[0]!;
+
+    thread.turns.push({
+      id: "turn-extra",
+      status: "failed",
+      errorMessage: "Boom",
+      diff: "diff --git a/file.ts b/file.ts\n+hello",
+      items: [
+        {
+          type: "commandExecution",
+          id: "cmd-1",
+          command: "bun test",
+          cwd: thread.cwd,
+          status: "failed",
+          aggregatedOutput: "broken",
+          exitCode: 1,
+          durationMs: 1000,
+        },
+        {
+          type: "toolActivity",
+          id: "tool-1",
+          toolName: "Read file",
+          status: "completed",
+          source: "file",
+          summary: null,
+          input: null,
+          output: null,
+        },
+      ],
+    });
+
+    const summary = summarizeOffdexThread(thread, {
+      pendingApprovals: [
+        {
+          id: "approval-1",
+          method: "execCommandApproval",
+          title: "Approve command",
+          detail: "Run tests",
+          threadId: thread.id,
+          turnId: "turn-extra",
+          createdAt: "Now",
+          status: "pending",
+          inputSchema: "decision",
+          rawParams: "{}",
+        },
+      ],
+      permissionReviews: [
+        {
+          id: "review-1",
+          threadId: thread.id,
+          turnId: "turn-extra",
+          title: "Permission review in progress",
+          detail: "Checking",
+          status: "running",
+          outcome: null,
+          updatedAt: "Now",
+        },
+      ],
+    });
+
+    expect(summary.commandCount).toBe(1);
+    expect(summary.toolActivityCount).toBe(1);
+    expect(summary.diffTurnCount).toBe(1);
+    expect(summary.pendingApprovalCount).toBe(1);
+    expect(summary.activePermissionReviewCount).toBe(1);
+    expect(summary.failedTurnCount).toBe(1);
   });
 });
 

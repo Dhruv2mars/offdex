@@ -300,6 +300,7 @@ export interface OffdexThread {
   threadKind: "conversation" | "review";
   sourceThreadId: string | null;
   reviewThreadId: string | null;
+  summary: OffdexThreadSummary;
   runtimeTarget: RuntimeTarget;
   state: TurnState;
   unreadCount: number;
@@ -315,6 +316,18 @@ export interface OffdexThread {
   turns: OffdexTurn[];
 }
 
+export interface OffdexThreadSummary {
+  messageCount: number;
+  commandCount: number;
+  toolActivityCount: number;
+  reasoningCount: number;
+  diffTurnCount: number;
+  latestAssistantText: string | null;
+  pendingApprovalCount: number;
+  activePermissionReviewCount: number;
+  failedTurnCount: number;
+}
+
 export interface OffdexWorkspaceSnapshot {
   pairing: OffdexPairingProfile;
   capabilityMatrix: DeviceCapabilityMatrix;
@@ -323,6 +336,51 @@ export interface OffdexWorkspaceSnapshot {
   permissionReviews: OffdexPermissionReview[];
   threads: OffdexThread[];
   archivedThreads: OffdexThread[];
+}
+
+export function summarizeOffdexThread(
+  thread: Pick<OffdexThread, "id" | "messages" | "turns">,
+  context?: {
+    pendingApprovals?: OffdexApprovalRequest[];
+    permissionReviews?: OffdexPermissionReview[];
+  }
+): OffdexThreadSummary {
+  const timelineItems = thread.turns.flatMap((turn) => turn.items);
+  const latestAssistantText =
+    [...thread.messages].reverse().find((message) => message.role === "assistant")?.body ?? null;
+
+  return {
+    messageCount: thread.messages.length,
+    commandCount: timelineItems.filter((item) => item.type === "commandExecution").length,
+    toolActivityCount: timelineItems.filter((item) => item.type === "toolActivity").length,
+    reasoningCount: timelineItems.filter((item) => item.type === "reasoning" || item.type === "plan").length,
+    diffTurnCount: thread.turns.filter((turn) => Boolean(turn.diff?.trim())).length,
+    latestAssistantText,
+    pendingApprovalCount: (context?.pendingApprovals ?? []).filter(
+      (approval) => approval.threadId === thread.id && approval.status === "pending"
+    ).length,
+    activePermissionReviewCount: (context?.permissionReviews ?? []).filter(
+      (review) => review.threadId === thread.id && review.status === "running"
+    ).length,
+    failedTurnCount: thread.turns.filter(
+      (turn) => turn.status === "failed" || Boolean(turn.errorMessage?.trim())
+    ).length,
+  };
+}
+
+export function refreshSnapshotThreadSummaries(snapshot: OffdexWorkspaceSnapshot) {
+  const context = {
+    pendingApprovals: snapshot.pendingApprovals,
+    permissionReviews: snapshot.permissionReviews,
+  };
+  snapshot.threads = snapshot.threads.map((thread) => ({
+    ...thread,
+    summary: summarizeOffdexThread(thread, context),
+  }));
+  snapshot.archivedThreads = snapshot.archivedThreads.map((thread) => ({
+    ...thread,
+    summary: summarizeOffdexThread(thread, context),
+  }));
 }
 
 export interface OffdexAccountSession {
@@ -678,6 +736,17 @@ export function makeDemoWorkspaceSnapshot(
         threadKind: "conversation",
         sourceThreadId: null,
         reviewThreadId: null,
+        summary: {
+          messageCount: foundationMessages.length,
+          commandCount: 0,
+          toolActivityCount: 0,
+          reasoningCount: 0,
+          diffTurnCount: 0,
+          latestAssistantText: foundationMessages[1]!.body,
+          pendingApprovalCount: 0,
+          activePermissionReviewCount: 0,
+          failedTurnCount: 0,
+        },
         runtimeTarget,
         state: "running",
         unreadCount: 0,
@@ -718,6 +787,17 @@ export function makeDemoWorkspaceSnapshot(
         threadKind: "conversation",
         sourceThreadId: null,
         reviewThreadId: null,
+        summary: {
+          messageCount: linuxMessages.length,
+          commandCount: 0,
+          toolActivityCount: 0,
+          reasoningCount: 0,
+          diffTurnCount: 0,
+          latestAssistantText: linuxMessages[1]!.body,
+          pendingApprovalCount: 0,
+          activePermissionReviewCount: 0,
+          failedTurnCount: 0,
+        },
         runtimeTarget: "cli",
         state: "idle",
         unreadCount: 3,
@@ -758,6 +838,17 @@ export function makeDemoWorkspaceSnapshot(
         threadKind: "conversation",
         sourceThreadId: null,
         reviewThreadId: null,
+        summary: {
+          messageCount: uxMessages.length,
+          commandCount: 0,
+          toolActivityCount: 0,
+          reasoningCount: 0,
+          diffTurnCount: 0,
+          latestAssistantText: uxMessages[1]!.body,
+          pendingApprovalCount: 0,
+          activePermissionReviewCount: 0,
+          failedTurnCount: 0,
+        },
         runtimeTarget,
         state: "completed",
         unreadCount: 0,
@@ -809,6 +900,7 @@ export class WorkspaceSnapshotStore {
 
   replaceSnapshot(snapshot: OffdexWorkspaceSnapshot) {
     this.#snapshot = structuredClone(snapshot);
+    refreshSnapshotThreadSummaries(this.#snapshot);
     this.#emit();
   }
 
@@ -842,6 +934,7 @@ export class WorkspaceSnapshotStore {
         messages: [...thread.messages, input.message],
       };
     });
+    refreshSnapshotThreadSummaries(this.#snapshot);
     this.#emit();
   }
 
@@ -866,6 +959,7 @@ export class WorkspaceSnapshotStore {
 
   setArchivedThreads(threads: OffdexThread[]) {
     this.#snapshot.archivedThreads = structuredClone(threads);
+    refreshSnapshotThreadSummaries(this.#snapshot);
     this.#emit();
   }
 
@@ -876,6 +970,7 @@ export class WorkspaceSnapshotStore {
     } else {
       this.#snapshot.pendingApprovals.unshift(approval);
     }
+    refreshSnapshotThreadSummaries(this.#snapshot);
     this.#emit();
   }
 
@@ -887,6 +982,7 @@ export class WorkspaceSnapshotStore {
       this.#snapshot.permissionReviews.unshift(review);
       this.#snapshot.permissionReviews = this.#snapshot.permissionReviews.slice(0, 8);
     }
+    refreshSnapshotThreadSummaries(this.#snapshot);
     this.#emit();
   }
 
@@ -894,6 +990,7 @@ export class WorkspaceSnapshotStore {
     this.#snapshot.pendingApprovals = this.#snapshot.pendingApprovals.map((approval) =>
       approval.id === id ? { ...approval, status } : approval
     );
+    refreshSnapshotThreadSummaries(this.#snapshot);
     this.#emit();
   }
 
@@ -901,6 +998,7 @@ export class WorkspaceSnapshotStore {
     this.#snapshot.pendingApprovals = this.#snapshot.pendingApprovals.filter(
       (approval) => approval.status === "pending"
     );
+    refreshSnapshotThreadSummaries(this.#snapshot);
     this.#emit();
   }
 
