@@ -40,6 +40,7 @@ import {
   type ConnectionTransport,
   type ManagedSession,
   type OffdexApprovalRequest,
+  type OffdexAutomationRecord,
   type OffdexPermissionReview,
   type OffdexThread,
   type OffdexTimelineItem,
@@ -48,7 +49,7 @@ import {
 } from "./web-transport";
 
 type ConnectionState = "idle" | "connecting" | "live" | "offline";
-type WorkbenchPanel = "search" | "history" | "plugins" | "apps" | "settings" | "files" | "diff" | null;
+type WorkbenchPanel = "search" | "history" | "plugins" | "apps" | "automations" | "settings" | "files" | "diff" | null;
 type ComposerAttachment = {
   id: string;
   name: string;
@@ -219,6 +220,7 @@ function panelTitle(panel: Exclude<WorkbenchPanel, null>) {
   if (panel === "history") return "Archived threads";
   if (panel === "plugins") return "Plugins and skills";
   if (panel === "apps") return "Apps and connectors";
+  if (panel === "automations") return "Automations";
   if (panel === "files") return "Workspace files";
   if (panel === "diff") return "Turn diff";
   return "Settings";
@@ -264,16 +266,140 @@ function toSearchEntries(threads: OffdexThread[]) {
       id: `${thread.id}:title`,
       threadId: thread.id,
       title: thread.title,
-      snippet: thread.projectLabel,
+      snippet: [thread.projectLabel, thread.cwd, thread.gitInfo?.branch].filter(Boolean).join(" · "),
     };
-    const messageEntries = thread.messages.map((message) => ({
-      id: `${thread.id}:${message.id}`,
+    const timelineEntries = itemsForThread(thread).map(({ item, turn }) => ({
+      id: `${thread.id}:${turn.id}:${item.id}`,
       threadId: thread.id,
-      title: thread.title,
-      snippet: message.body,
+      title: `${thread.title} · ${roleLabel(item)}`,
+      snippet: itemBody(item),
     }));
-    return [threadEntry, ...messageEntries];
+    return [threadEntry, ...timelineEntries];
   });
+}
+
+function formatDuration(durationMs: number | null | undefined) {
+  if (typeof durationMs !== "number" || !Number.isFinite(durationMs)) {
+    return null;
+  }
+  if (durationMs < 1_000) {
+    return `${durationMs}ms`;
+  }
+  if (durationMs < 60_000) {
+    return `${(durationMs / 1_000).toFixed(1)}s`;
+  }
+  return `${Math.round(durationMs / 60_000)}m`;
+}
+
+function toneForStatus(status: string | null | undefined) {
+  if (status === "failed" || status === "declined" || status === "interrupted") {
+    return "bg-[#fff1f0] text-[#b42318]";
+  }
+  if (status === "completed" || status === "approved") {
+    return "bg-[#ecfdf3] text-[#027a48]";
+  }
+  if (status === "running" || status === "in_progress" || status === "inProgress" || status === "pending") {
+    return "bg-[#eff8ff] text-[#175cd3]";
+  }
+  return "bg-muted text-muted-foreground";
+}
+
+function threadMatchesFilter(thread: OffdexThread, query: string) {
+  if (!query.trim()) {
+    return true;
+  }
+  const haystack = [
+    thread.title,
+    thread.projectLabel,
+    thread.cwd,
+    thread.path,
+    thread.gitInfo?.branch,
+    thread.gitInfo?.originUrl,
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+  return haystack.includes(query.trim().toLowerCase());
+}
+
+function ThreadSummaryCard({
+  thread,
+  runtimeTarget,
+  accountEmail,
+}: {
+  thread: OffdexThread | null;
+  runtimeTarget: OffdexWorkspaceSnapshot["pairing"]["runtimeTarget"] | null | undefined;
+  accountEmail: string | null | undefined;
+}) {
+  if (!thread) {
+    return (
+      <article className="rounded-2xl bg-background p-4 shadow-card">
+        <h3 className="text-sm font-semibold text-foreground">Workbench</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Select a thread to inspect workspace, git, and runtime context.
+        </p>
+        <p className="mt-3 font-mono text-[11px] text-muted-foreground">{accountEmail ?? "No active account"}</p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-2xl bg-background p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-foreground">{thread.title}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{thread.projectLabel}</p>
+        </div>
+        <span className={`rounded-full px-2.5 py-1 text-[11px] shadow-border ${toneForStatus(thread.state)}`}>
+          {thread.state}
+        </span>
+      </div>
+      <dl className="mt-4 grid gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <dt>Workspace</dt>
+          <dd className="truncate font-mono text-[11px] text-foreground">{thread.cwd ?? "Unavailable"}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Branch</dt>
+          <dd className="truncate font-mono text-[11px] text-foreground">{thread.gitInfo?.branch ?? "main"}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Runtime</dt>
+          <dd className="text-foreground">{runtimeTarget ?? thread.runtimeTarget}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Source</dt>
+          <dd className="text-foreground">{thread.source ?? "bridge"}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Turns</dt>
+          <dd className="text-foreground">{thread.turns.length}</dd>
+        </div>
+      </dl>
+    </article>
+  );
+}
+
+function AutomationCard({ automation }: { automation: OffdexAutomationRecord }) {
+  return (
+    <article className="rounded-2xl bg-muted p-4 shadow-border">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-foreground">{automation.name}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {[automation.kind, automation.status].filter(Boolean).join(" · ") || "Unknown automation"}
+          </p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-[11px] shadow-border ${toneForStatus(automation.status)}`}>
+          {automation.status ?? "unknown"}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-foreground">
+        {automation.schedule ? automation.schedule : "No schedule metadata was returned for this automation."}
+      </p>
+      <p className="mt-2 font-mono text-[11px] text-muted-foreground">{automation.path}</p>
+    </article>
+  );
 }
 
 function readFileAsText(file: File) {
@@ -399,10 +525,23 @@ function TimelineRow({ item, turn }: { item: OffdexTimelineItem; turn: OffdexTur
             <p className="mt-1 font-mono text-xs text-foreground">{item.command}</p>
             {item.cwd ? <p className="mt-1 font-mono text-[11px] text-muted-foreground">{item.cwd}</p> : null}
           </div>
-          <div className="rounded-full bg-muted px-3 py-1 font-mono text-[11px] text-muted-foreground shadow-border">
+          <div className={`rounded-full px-3 py-1 font-mono text-[11px] shadow-border ${toneForStatus(item.status)}`}>
             {item.status}
           </div>
         </div>
+        {item.actions?.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {item.actions.map((action, index) => (
+              <span
+                className="rounded-full bg-muted px-3 py-1 font-mono text-[11px] text-muted-foreground shadow-border"
+                key={`${action.type}-${action.command ?? action.path ?? index}`}
+              >
+                {action.type}
+                {action.command ? ` · ${action.command}` : action.path ? ` · ${action.path}` : ""}
+              </span>
+            ))}
+          </div>
+        ) : null}
         {item.aggregatedOutput ? (
           <pre className="mt-3 max-h-80 overflow-auto rounded-xl bg-muted px-3 py-3 font-mono text-[12px] leading-5 text-foreground whitespace-pre-wrap">
             {item.aggregatedOutput}
@@ -411,7 +550,8 @@ function TimelineRow({ item, turn }: { item: OffdexTimelineItem; turn: OffdexTur
         <p className="mt-3 text-[11px] text-muted-foreground">
           {turn.status}
           {typeof item.exitCode === "number" ? ` · exit ${item.exitCode}` : ""}
-          {typeof item.durationMs === "number" ? ` · ${item.durationMs}ms` : ""}
+          {formatDuration(item.durationMs) ? ` · ${formatDuration(item.durationMs)}` : ""}
+          {item.source ? ` · ${item.source}` : ""}
         </p>
       </article>
     );
@@ -419,8 +559,56 @@ function TimelineRow({ item, turn }: { item: OffdexTimelineItem; turn: OffdexTur
 
   const isUser = item.type === "userMessage";
   const isPlan = item.type === "plan";
-  const isReasoning = item.type === "reasoning";
+  const isUnknown = item.type === "unknown";
   const body = itemBody(item);
+
+  if (item.type === "reasoning") {
+    return (
+      <article className="rounded-2xl bg-muted p-4 shadow-border">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Reasoning</p>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] shadow-border ${toneForStatus(turn.status)}`}>
+            {turn.status}
+          </span>
+        </div>
+        {item.summary.length > 0 ? (
+          <div className="mt-3 space-y-2">
+            {item.summary.map((entry, index) => (
+              <p className="text-sm leading-6 text-foreground" key={`${item.id}-summary-${index}`}>
+                {entry}
+              </p>
+            ))}
+          </div>
+        ) : null}
+        {item.content.length > 0 ? (
+          <pre className="mt-3 max-h-64 overflow-auto rounded-xl bg-background px-3 py-3 font-mono text-[11px] leading-5 text-muted-foreground shadow-border whitespace-pre-wrap">
+            {item.content.join("\n")}
+          </pre>
+        ) : null}
+      </article>
+    );
+  }
+
+  if (item.type === "unknown") {
+    return (
+      <article className="rounded-2xl bg-background p-4 shadow-card">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              {item.label}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Raw runtime event</p>
+          </div>
+          <span className={`rounded-full px-2.5 py-1 text-[11px] shadow-border ${toneForStatus(turn.status)}`}>
+            {turn.status}
+          </span>
+        </div>
+        <pre className="mt-3 max-h-64 overflow-auto rounded-xl bg-muted px-3 py-3 font-mono text-[11px] leading-5 text-foreground whitespace-pre-wrap">
+          {item.data}
+        </pre>
+      </article>
+    );
+  }
 
   return (
     <article className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -430,14 +618,25 @@ function TimelineRow({ item, turn }: { item: OffdexTimelineItem; turn: OffdexTur
             ? "bg-foreground text-background"
             : isPlan
               ? "bg-accent text-accent-foreground shadow-border"
-              : isReasoning
-                ? "bg-muted text-foreground shadow-border"
-                : "bg-background text-foreground shadow-card"
+              : "bg-background text-foreground shadow-card"
         }`}
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">{roleLabel(item)}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">{roleLabel(item)}</p>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] shadow-border ${toneForStatus(turn.status)}`}>
+            {turn.status}
+          </span>
+        </div>
         <pre className="mt-2 whitespace-pre-wrap font-sans text-[14px] leading-7">{body}</pre>
-        <p className="mt-3 text-[11px] opacity-60">{turn.status}</p>
+        {turn.errorMessage ? (
+          <p className="mt-3 rounded-xl bg-[#fff1f0] px-3 py-2 text-[11px] leading-5 text-[#b42318]">
+            {turn.errorMessage}
+          </p>
+        ) : null}
+        {isPlan ? (
+          <p className="mt-3 text-[11px] opacity-60">Plan updates stream in-line for the active turn.</p>
+        ) : null}
+        {isUnknown ? <p className="mt-3 text-[11px] opacity-60">Runtime event</p> : null}
       </div>
     </article>
   );
@@ -456,6 +655,7 @@ export function WebAppClient() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [panel, setPanel] = useState<WorkbenchPanel>(null);
+  const [threadFilter, setThreadFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [archivedQuery, setArchivedQuery] = useState("");
   const [approvalAnswers, setApprovalAnswers] = useState<Record<string, string>>({});
@@ -1120,6 +1320,9 @@ export function WebAppClient() {
 
   const projectThreadGroups = threads.reduce<Array<{ name: string; threads: OffdexThread[] }>>(
     (groups, thread) => {
+      if (!threadMatchesFilter(thread, threadFilter)) {
+        return groups;
+      }
       const name = thread.projectLabel || "workspace";
       const existingGroup = groups.find((group) => group.name === name);
       if (existingGroup) {
@@ -1189,18 +1392,37 @@ export function WebAppClient() {
             <Icon name="plug" className="h-[15px] w-[15px]" />
             Apps
           </button>
+          <button
+            className="focus-ring flex h-[32px] items-center gap-2.5 rounded-md px-2 text-[13px] text-muted-foreground hover:bg-black/5 hover:text-foreground"
+            onClick={() => {
+              void refreshInventory();
+              setPanel("automations");
+            }}
+            type="button"
+          >
+            <Icon name="automations" className="h-[15px] w-[15px]" />
+            Automations
+          </button>
         </nav>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
           <div className="flex items-center justify-between px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-            Projects
+            <span>Projects</span>
+            <span>{threads.length}</span>
           </div>
+          <input
+            className="focus-ring mt-2 w-full rounded-xl bg-background px-3 py-2 text-sm text-foreground shadow-border"
+            onChange={(event) => setThreadFilter(event.target.value)}
+            placeholder="Filter threads"
+            value={threadFilter}
+          />
           <div className="mt-1 space-y-3">
-            {projectThreadGroups.map((group) => (
+            {projectThreadGroups.length > 0 ? projectThreadGroups.map((group) => (
               <div key={group.name}>
                 <div className="flex h-7 items-center gap-2 px-2 text-[13px] font-medium text-foreground">
                   <Icon name="folder" className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 truncate">{group.name}</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground">{group.threads.length}</span>
                 </div>
                 <div className="mt-[2px] flex flex-col gap-[2px]">
                   {group.threads.map((thread) => {
@@ -1216,14 +1438,28 @@ export function WebAppClient() {
                         onClick={() => setSelectedThreadId(thread.id)}
                         type="button"
                       >
-                        <span className="min-w-0 flex-1 truncate leading-tight">{thread.title}</span>
-                        <span className="shrink-0 text-[11px] opacity-50">{thread.updatedAt}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate leading-tight">{thread.title}</span>
+                          <span className="mt-1 block truncate text-[11px] opacity-60">
+                            {thread.gitInfo?.branch ?? thread.cwd ?? thread.projectLabel}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span className="text-[11px] opacity-50">{thread.updatedAt}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] shadow-border ${toneForStatus(thread.state)}`}>
+                            {thread.state}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="rounded-2xl bg-background px-4 py-5 text-sm text-muted-foreground shadow-card">
+                {threadFilter.trim() ? "No loaded threads matched that filter." : "No live threads are loaded yet."}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1489,6 +1725,8 @@ export function WebAppClient() {
                         ? "Inspect the machine-local skills and plugin bundles available to Codex."
                         : panel === "apps"
                           ? "Inspect the live app and connector inventory exposed by the Codex runtime."
+                          : panel === "automations"
+                            ? "Inspect the recurring jobs that this Codex environment currently knows about."
                           : panel === "files"
                             ? "Browse or search your Mac workspace and attach files as Codex context."
                             : panel === "diff"
@@ -1764,6 +2002,30 @@ export function WebAppClient() {
                         )}
                       </div>
                     </section>
+                  </div>
+                </div>
+              ) : null}
+
+              {panel === "automations" ? (
+                <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
+                  <div className="rounded-2xl bg-muted p-4 shadow-border">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Automations</p>
+                    <p className="mt-2 text-sm text-foreground">
+                      {(inventory?.automations ?? []).length > 0
+                        ? `${inventory!.automations.length} automations available in this Codex home.`
+                        : "No automations were discovered for this Codex environment."}
+                    </p>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {(inventory?.automations ?? []).length > 0 ? (
+                      inventory!.automations.map((automation) => (
+                        <AutomationCard automation={automation} key={automation.id} />
+                      ))
+                    ) : (
+                      <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground shadow-border">
+                        Create automations from Codex Desktop or the Codex app shell and they will appear here.
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : null}
@@ -2160,7 +2422,12 @@ export function WebAppClient() {
         ) : null}
 
         <aside className="hidden w-[340px] shrink-0 border-l border-border/60 bg-muted/70 p-4 xl:block">
-          <div className="flex items-center justify-between">
+          <ThreadSummaryCard
+            accountEmail={snapshot?.account?.email}
+            runtimeTarget={snapshot?.pairing.runtimeTarget}
+            thread={selectedThread}
+          />
+          <div className="mt-5 flex items-center justify-between">
             <div>
               <h2 className="text-[13px] font-semibold text-foreground">Permissions</h2>
               <p className="mt-1 text-[11px] text-muted-foreground">
@@ -2191,7 +2458,8 @@ export function WebAppClient() {
               ))
             ) : activePermissionReviews.length === 0 ? (
               <div className="rounded-2xl bg-background p-5 text-sm text-muted-foreground shadow-card">
-                Command, file, connector, and broader permission requests from Codex will appear here.
+                Command, file, connector, and broader permission requests from Codex will appear here. Until then,
+                use this rail as a quick view into the active thread state.
               </div>
             ) : null}
           </div>
