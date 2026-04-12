@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "d904fc15d0ac",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/web/test/design-system.test.ts",
+    "apps/web/test/webui-diff.test.ts",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/protocol/src/index.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d9/04fc15d0ac/0/metadata.json",
+      "transcript": "/d9/04fc15d0ac/0/full.jsonl",
+      "content_hash": "/d9/04fc15d0ac/0/content_hash.txt",
+      "prompt": "/d9/04fc15d0ac/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 7886726,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7744512,
+    "output_tokens": 31023,
+    "api_call_count": 72
+  }
+}
