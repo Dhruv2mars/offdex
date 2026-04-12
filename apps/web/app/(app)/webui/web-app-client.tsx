@@ -58,6 +58,8 @@ type ComposerAttachment = {
   input: OffdexInputItem;
 };
 
+type ReviewLinkMap = Record<string, string>;
+
 export type ParsedDiffFile = {
   id: string;
   path: string;
@@ -430,15 +432,54 @@ function threadMatchesFilter(thread: OffdexThread, query: string) {
   return haystack.includes(query.trim().toLowerCase());
 }
 
+function threadMetrics(thread: OffdexThread | null) {
+  if (!thread) {
+    return {
+      messages: 0,
+      commands: 0,
+      toolActivity: 0,
+      reasoning: 0,
+      diffs: 0,
+    };
+  }
+
+  const items = itemsForThread(thread).map((entry) => entry.item);
+  return {
+    messages: items.filter((item) => item.type === "userMessage" || item.type === "agentMessage").length,
+    commands: items.filter((item) => item.type === "commandExecution").length,
+    toolActivity: items.filter((item) => item.type === "toolActivity").length,
+    reasoning: items.filter((item) => item.type === "reasoning" || item.type === "plan").length,
+    diffs: thread.turns.filter((turn) => Boolean(turn.diff?.trim())).length,
+  };
+}
+
+function detectReviewThread(thread: OffdexThread | null) {
+  if (!thread) {
+    return false;
+  }
+
+  const title = thread.title.toLowerCase();
+  const role = thread.agentRole?.toLowerCase() ?? "";
+  return title.includes("review") || role.includes("review");
+}
+
 function ThreadSummaryCard({
   thread,
   runtimeTarget,
   accountEmail,
+  pendingApprovalCount,
+  activeReviewCount,
+  sourceThread,
 }: {
   thread: OffdexThread | null;
   runtimeTarget: OffdexWorkspaceSnapshot["pairing"]["runtimeTarget"] | null | undefined;
   accountEmail: string | null | undefined;
+  pendingApprovalCount: number;
+  activeReviewCount: number;
+  sourceThread: OffdexThread | null;
 }) {
+  const metrics = threadMetrics(thread);
+
   if (!thread) {
     return (
       <article className="rounded-2xl bg-background p-4 shadow-card">
@@ -483,7 +524,43 @@ function ThreadSummaryCard({
           <dt>Turns</dt>
           <dd className="text-foreground">{thread.turns.length}</dd>
         </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Messages</dt>
+          <dd className="text-foreground">{metrics.messages}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Commands</dt>
+          <dd className="text-foreground">{metrics.commands}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Tools</dt>
+          <dd className="text-foreground">{metrics.toolActivity}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt>Diff turns</dt>
+          <dd className="text-foreground">{metrics.diffs}</dd>
+        </div>
       </dl>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+          {pendingApprovalCount} pending permissions
+        </span>
+        <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+          {activeReviewCount} active reviews
+        </span>
+        {detectReviewThread(thread) ? (
+          <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-foreground shadow-border">
+            review thread
+          </span>
+        ) : null}
+      </div>
+      {sourceThread ? (
+        <div className="mt-4 rounded-2xl bg-muted p-3 shadow-border">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Review source</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">{sourceThread.title}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{sourceThread.projectLabel}</p>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -873,6 +950,7 @@ export function WebAppClient() {
   const [remoteFileQuery, setRemoteFileQuery] = useState("");
   const [remoteFileMatches, setRemoteFileMatches] = useState<OffdexRemoteFileMatch[]>([]);
   const [remoteFilesLoading, setRemoteFilesLoading] = useState(false);
+  const [reviewOrigins, setReviewOrigins] = useState<ReviewLinkMap>({});
   const [isPending, startTransition] = useTransition();
   const socketRef = useRef<WebSocket | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -919,11 +997,19 @@ export function WebAppClient() {
           )
           .slice(0, 40);
   const archivedThreads = snapshot?.archivedThreads ?? [];
+  const selectedReviewSourceId = selectedThread ? reviewOrigins[selectedThread.id] : null;
+  const selectedReviewSource =
+    selectedReviewSourceId ? threads.find((thread) => thread.id === selectedReviewSourceId) ?? null : null;
+  const selectedThreadMetrics = threadMetrics(selectedThread);
+  const searchCountLabel =
+    searchQuery.trim().length === 0 ? `${toSearchEntries(threads).length} searchable rows` : `${searchResults.length} matches`;
   const archivedResults = archivedThreads.filter((thread) =>
     archivedQuery.trim()
       ? `${thread.title}\n${thread.projectLabel}\n${thread.messages[0]?.body ?? ""}`.toLowerCase().includes(archivedQuery.trim().toLowerCase())
       : true
   );
+  const archivedCountLabel =
+    archivedQuery.trim().length === 0 ? `${archivedThreads.length} archived threads` : `${archivedResults.length} matches`;
 
   useEffect(() => {
     if (!isDraftThread && !selectedThread && threads.length > 0) {
@@ -1104,6 +1190,25 @@ export function WebAppClient() {
         inventoryError instanceof Error
           ? `Could not load machine inventory: ${inventoryError.message}`
           : "Could not load machine inventory."
+      );
+    }
+  }
+
+  async function refreshSnapshot() {
+    try {
+      const [nextHealth, nextSnapshot] = await Promise.all([
+        fetchBridgeHealth(connectionTarget || bridgeUrl),
+        fetchBridgeSnapshot(connectionTarget || bridgeUrl),
+      ]);
+      startTransition(() => {
+        setHealth(nextHealth);
+        setSnapshot(nextSnapshot);
+      });
+    } catch (snapshotError) {
+      setError(
+        snapshotError instanceof Error
+          ? `Could not refresh this workspace: ${snapshotError.message}`
+          : "Could not refresh this workspace."
       );
     }
   }
@@ -1505,9 +1610,17 @@ export function WebAppClient() {
     if (!selectedThread || !isLive) return;
 
     try {
+      const sourceThreadId = selectedThread.id;
       const result = await sendBridgeReview(connectionTarget || bridgeUrl, selectedThread.id);
       startTransition(() => {
         setSnapshot(result.snapshot);
+        const reviewThreadId =
+          result.snapshot.threads.find((thread) => thread.id !== sourceThreadId)?.id ?? sourceThreadId;
+        setReviewOrigins((current) =>
+          reviewThreadId === sourceThreadId ? current : { ...current, [reviewThreadId]: sourceThreadId }
+        );
+        setSelectedThreadId(reviewThreadId);
+        setPanel("diff");
       });
     } catch (reviewError) {
       setError(
@@ -1516,6 +1629,14 @@ export function WebAppClient() {
           : "Could not start review."
       );
     }
+  }
+
+  function returnToReviewSource() {
+    if (!selectedReviewSource) {
+      return;
+    }
+    setSelectedThreadId(selectedReviewSource.id);
+    setPanel(null);
   }
 
   async function loginMcpServer(name: string) {
@@ -1740,6 +1861,15 @@ export function WebAppClient() {
               ) : null}
               {selectedThread ? (
                 <>
+                  {selectedReviewSource ? (
+                    <button
+                      className="focus-ring rounded-full bg-muted px-3 py-1.5 text-foreground shadow-border"
+                      onClick={returnToReviewSource}
+                      type="button"
+                    >
+                      Back to source
+                    </button>
+                  ) : null}
                   <button
                     className="focus-ring rounded-full bg-muted px-3 py-1.5 text-foreground shadow-border"
                     onClick={() => void renameSelectedThread()}
@@ -1809,6 +1939,67 @@ export function WebAppClient() {
               </div>
             ) : flattenedItems.length > 0 ? (
               <div className="mx-auto flex w-full max-w-[840px] flex-col gap-5 py-6">
+                {selectedThread ? (
+                  <article className="rounded-2xl bg-muted p-4 shadow-border">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                          {selectedReviewSource ? "Review session" : "Thread activity"}
+                        </p>
+                        <p className="mt-2 text-sm text-foreground">
+                          {selectedReviewSource
+                            ? `Reviewing changes from ${selectedReviewSource.title}.`
+                            : "Live thread state, runtime activity, and streamed changes."}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                          {selectedThreadMetrics.messages} messages
+                        </span>
+                        <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                          {selectedThreadMetrics.commands} commands
+                        </span>
+                        <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                          {selectedThreadMetrics.toolActivity} tools
+                        </span>
+                        <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                          {selectedThreadMetrics.diffs} diff turns
+                        </span>
+                      </div>
+                    </div>
+                    {(selectedReviewSource || activeDiffTurn || pendingApprovals.length > 0) ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {selectedReviewSource ? (
+                          <button
+                            className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                            onClick={returnToReviewSource}
+                            type="button"
+                          >
+                            Open source thread
+                          </button>
+                        ) : null}
+                        {activeDiffTurn?.diff ? (
+                          <button
+                            className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                            onClick={() => setPanel("diff")}
+                            type="button"
+                          >
+                            Open latest diff
+                          </button>
+                        ) : null}
+                        {pendingApprovals.length > 0 ? (
+                          <button
+                            className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            type="button"
+                          >
+                            Pending permissions
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </article>
+                ) : null}
                 {flattenedItems.map(({ item, turn }) => (
                   <TimelineRow item={item} key={`${turn.id}-${item.id}`} turn={turn} />
                 ))}
@@ -1961,13 +2152,32 @@ export function WebAppClient() {
 
               {panel === "search" ? (
                 <div className="mt-5 flex min-h-0 flex-1 flex-col">
-                  <input
-                    autoFocus
-                    className="focus-ring rounded-2xl bg-muted px-4 py-3 text-sm text-foreground shadow-border"
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search thread titles and transcript text"
-                    value={searchQuery}
-                  />
+                  <div className="rounded-2xl bg-muted p-4 shadow-border">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-foreground">Search loaded workbench history</p>
+                      <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                        {searchCountLabel}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        autoFocus
+                        className="focus-ring min-w-0 flex-1 rounded-2xl bg-background px-4 py-3 text-sm text-foreground shadow-border"
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        placeholder="Search thread titles and transcript text"
+                        value={searchQuery}
+                      />
+                      {searchQuery ? (
+                        <button
+                          className="focus-ring rounded-full bg-background px-3 py-2 text-[11px] font-medium text-foreground shadow-border"
+                          onClick={() => setSearchQuery("")}
+                          type="button"
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                   <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
                     {searchResults.length > 0 ? (
                       <div className="space-y-2">
@@ -1999,13 +2209,32 @@ export function WebAppClient() {
 
               {panel === "history" ? (
                 <div className="mt-5 flex min-h-0 flex-1 flex-col">
-                  <input
-                    autoFocus
-                    className="focus-ring rounded-2xl bg-muted px-4 py-3 text-sm text-foreground shadow-border"
-                    onChange={(event) => setArchivedQuery(event.target.value)}
-                    placeholder="Search archived threads"
-                    value={archivedQuery}
-                  />
+                  <div className="rounded-2xl bg-muted p-4 shadow-border">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-foreground">Archived thread library</p>
+                      <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                        {archivedCountLabel}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        autoFocus
+                        className="focus-ring min-w-0 flex-1 rounded-2xl bg-background px-4 py-3 text-sm text-foreground shadow-border"
+                        onChange={(event) => setArchivedQuery(event.target.value)}
+                        placeholder="Search archived threads"
+                        value={archivedQuery}
+                      />
+                      {archivedQuery ? (
+                        <button
+                          className="focus-ring rounded-full bg-background px-3 py-2 text-[11px] font-medium text-foreground shadow-border"
+                          onClick={() => setArchivedQuery("")}
+                          type="button"
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                   <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
                     {archivedResults.length > 0 ? (
                       <div className="space-y-2">
@@ -2421,6 +2650,47 @@ export function WebAppClient() {
 
               {panel === "settings" ? (
                 <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
+                  <div className="rounded-2xl bg-muted p-4 shadow-border">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Machine controls</p>
+                        <p className="mt-2 text-sm text-foreground">Refresh connection state, runtime inventory, and workspace metadata.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                          disabled={isPending || !isLive}
+                          onClick={() => void refreshSnapshot()}
+                          type="button"
+                        >
+                          Refresh snapshot
+                        </button>
+                        <button
+                          className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                          disabled={isPending || !isLive}
+                          onClick={() => void refreshInventory()}
+                          type="button"
+                        >
+                          Reload inventory
+                        </button>
+                        <button
+                          className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                          disabled={isPending || !bridgeUrl}
+                          onClick={() => void connect(connectionTarget || bridgeUrl, { transport: connectionTransport ?? undefined })}
+                          type="button"
+                        >
+                          Reconnect
+                        </button>
+                        <button
+                          className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                          onClick={() => setPanel("files")}
+                          type="button"
+                        >
+                          Workspace files
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl bg-muted p-4 shadow-border">
                       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Connection</p>
@@ -2686,7 +2956,10 @@ export function WebAppClient() {
         <aside className="hidden w-[340px] shrink-0 border-l border-border/60 bg-muted/70 p-4 xl:block">
           <ThreadSummaryCard
             accountEmail={snapshot?.account?.email}
+            activeReviewCount={activePermissionReviews.length}
+            pendingApprovalCount={pendingApprovals.length}
             runtimeTarget={snapshot?.pairing.runtimeTarget}
+            sourceThread={selectedReviewSource}
             thread={selectedThread}
           />
           <div className="mt-5 flex items-center justify-between">

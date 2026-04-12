@@ -70,6 +70,11 @@ describe("web DESIGN.md system", () => {
     expect(webui).toContain("Tool activity");
     expect(webui).toContain("File activity");
     expect(webui).toContain("Review summary");
+    expect(webui).toContain("Review session");
+    expect(webui).toContain("Back to source");
+    expect(webui).toContain("Refresh snapshot");
+    expect(webui).toContain("Reload inventory");
+    expect(webui).toContain("Archived thread library");
     expect(webui).toContain("Filter threads");
     expect(webui).toContain("Ask Codex anything, @ to add files, / for commands, $ for skills");
     expect(webui).toContain("Command, file, connector, and broader permission requests from Codex will appear here.");
