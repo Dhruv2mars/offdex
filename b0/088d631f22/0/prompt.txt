@@ -1,0 +1,244 @@
+yeah, you should switch to that branch. but do you know the context behind this webUI devlopment, you might need to get that. once that is clear, you should go ahead with your next moves. in the meantime you should push the docs seperately.
+
+---
+
+go ahead. agent-browser should work, try the skill
+
+---
+
+push everything to main now. then we will move forwards with the next phase of webUI development!!!!
+
+---
+
+are you sure that both our remote and local and github repo are clean. then only we will move forward
+
+---
+
+ok, so whats the status now, in terms of progress. whats your plan for moving forward.
+
+---
+
+based on the codex desktop app report md file in teh /dev/gihub folder. what do you say, how much %age is our current implementation in webUI is of the actual desktop codex app in terms of user experience.
+
+---
+
+Based on the local app bundle, protocol, settings pages, and runtime behavior, this is the most complete user-facing feature list I can give you for Codex Desktop.
+
+Some of this is directly visible from shipped UI chunks and protocol methods. A few items are inferred from those shipped parts, but still strongly supported.
+
+Core app
+
+Start a new conversation.
+Resume an old conversation.
+Fork a conversation into a new one.
+Archive and unarchive conversations.
+Rename conversations.
+View conversation history.
+See conversation status changes.
+See token/usage updates tied to a conversation.
+Compact a long conversation into a shorter summary state.
+Chat / agent interaction
+
+Send normal prompts.
+Steer an in-progress response.
+Interrupt/stop an in-progress response.
+Continue work in the same thread.
+Likely attach context inputs to prompts.
+See streamed assistant output as it is generated.
+See intermediate planning updates.
+See reasoning-style updates.
+Get structured tool results inside the thread.
+Files and code
+
+Read files from the local workspace.
+Write files.
+Create folders.
+Copy paths/files.
+Remove files/folders.
+Read directory listings.
+Inspect file metadata.
+Watch files for changes.
+Stop watching files.
+Search files fuzzily by name.
+Likely attach files into conversation context.
+View generated diffs before or after changes.
+Roll back a thread’s file changes.
+Shell / terminal
+
+Run shell commands.
+Stream command output live.
+Send input to a running command.
+Resize terminal sessions.
+Terminate running commands.
+Run commands inside the thread workflow.
+See command output as timeline items.
+Approvals and safety
+
+Approve or deny shell commands.
+Approve or deny file changes.
+Approve or deny certain tool calls.
+Approve broader permission requests.
+Answer tool prompts that require user input.
+Answer MCP server prompts/elicitation requests.
+Work under different approval modes.
+Work under different sandbox or permission settings.
+Git and workspace awareness
+
+Detect the current repo.
+Show current branch.
+Track current commit SHA.
+Track remote/origin info.
+Show diff to remote/upstream.
+Support git commit related UI.
+Support git rebase related UI.
+Show git settings.
+Work with worktrees.
+Configure worktree paths and local environments.
+Review / coding workflows
+
+Run a code review flow.
+See review-style findings in a thread.
+See file-by-file diffs.
+Use patch/apply style changes.
+Likely review generated edits before accepting them.
+Tool ecosystem
+
+Use built-in tools through the app.
+Use dynamic tools attached to a thread.
+Use plugin-provided tools.
+Use app/connector tools.
+Use MCP tool servers.
+Reload MCP server config.
+View MCP server status.
+Log into MCP servers with OAuth.
+See MCP progress and results in-thread.
+Skills and plugins
+
+View installed skills.
+Configure skills.
+Open a skills page.
+Open skills settings.
+View installed plugins.
+Read plugin details.
+Install plugins.
+Uninstall plugins.
+Open plugin settings.
+Open a plugin marketplace-style page.
+Apps / connectors
+
+View available connected apps.
+Use tools exposed by those apps.
+Go through OAuth callback flow for connectors.
+Receive app list updates.
+Likely grant or deny app tool permissions.
+Remote and multi-environment
+
+Connect to remote environments.
+View remote connection states.
+Detect whether the session is on a remote host.
+Likely launch or connect to remote app-server instances.
+Use SSH-based remote command patterns.
+Switch between local and remote contexts.
+Automations
+
+Open an automations page.
+Create and manage recurring automations.
+Run automations on schedules.
+Use heartbeat-style automations tied to a thread.
+Generate inbox items from automation runs.
+Track automation runs and statuses.
+Use workspace/worktree-specific execution settings for automations.
+Realtime / voice
+
+Start realtime sessions.
+Receive live transcript updates.
+Receive live item updates during realtime mode.
+Receive output audio chunks.
+Handle realtime errors and closure.
+The app asks for microphone permission.
+It also declares camera and Bluetooth permissions.
+Account and auth
+
+Start login flow.
+Cancel login flow.
+Log out.
+Read account state.
+Read rate limits/usage limits.
+Refresh auth tokens when needed.
+Likely support device-code style login in some flows.
+Model and behavior controls
+
+List available models.
+Choose model/provider.
+Store model per thread.
+Store reasoning effort per thread.
+Get model reroute notifications.
+Toggle experimental features.
+Read experimental feature list.
+Set feature enablement.
+Settings
+
+General settings.
+Appearance settings.
+Personalization settings.
+Usage settings.
+Agent settings.
+Git settings.
+MCP settings.
+Plugin settings.
+Skills settings.
+Worktrees settings.
+Remote connections settings.
+Local environments settings.
+Likely auth/account settings.
+Desktop-native features
+
+Native context menus.
+Application menu.
+System theme detection.
+Live theme change subscription.
+Desktop notifications.
+Notification sound support.
+Deep links like:
+settings
+skills
+automations
+new thread
+specific thread
+connector OAuth callback
+Browser / extension integration
+
+Integrate with a Chrome extension via native messaging.
+Handle browser/sidebar comment related preload logic.
+Likely bring browser context into Codex workflows.
+Open in external apps
+
+Open files/folders in editors and terminals.
+Detect many editors/terminals, including:
+VS Code
+Cursor
+Zed
+Windsurf
+JetBrains IDEs
+Xcode
+iTerm2
+Warp
+Ghostty
+Terminal
+Finder
+Search and navigation
+
+Fuzzy file search.
+Navigate to local conversations.
+Open specific app sections through deep links.
+Likely search/switch among threads quickly.
+Observability / diagnostics
+
+Log desktop activity.
+Log backend activity.
+Capture crashes.
+Upload feedback.
+Trigger test Sentry error internally.
+Track app session ID and build flavor.
+
+the above is a complete list that i could compile. you can take this into account as well. and consider your next phase plan as well. based on this, start working. and do not stop until everything you think has to be done, is done. fully and completely. !
