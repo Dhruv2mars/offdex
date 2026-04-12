@@ -1,27 +1,3 @@
-yeah, you should switch to that branch. but do you know the context behind this webUI devlopment, you might need to get that. once that is clear, you should go ahead with your next moves. in the meantime you should push the docs seperately.
-
----
-
-go ahead. agent-browser should work, try the skill
-
----
-
-push everything to main now. then we will move forwards with the next phase of webUI development!!!!
-
----
-
-are you sure that both our remote and local and github repo are clean. then only we will move forward
-
----
-
-ok, so whats the status now, in terms of progress. whats your plan for moving forward.
-
----
-
-based on the codex desktop app report md file in teh /dev/gihub folder. what do you say, how much %age is our current implementation in webUI is of the actual desktop codex app in terms of user experience.
-
----
-
 Based on the local app bundle, protocol, settings pages, and runtime behavior, this is the most complete user-facing feature list I can give you for Codex Desktop.
 
 Some of this is directly visible from shipped UI chunks and protocol methods. A few items are inferred from those shipped parts, but still strongly supported.
