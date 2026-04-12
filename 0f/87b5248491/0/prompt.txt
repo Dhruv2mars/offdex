@@ -1,13 +1,3 @@
-yeah, go ahed with the next slide. once that is done, go on to next slide. keep doing it, for 5 slides. do not stop
-
----
-
-/btw 
-
-you are doing all this, making the webUI experience a lot better and comparable to the desktop codex app. but doing it in the bridge right? keeping the webui just a GUI layer. so that all of this can be easily implemented in our mobile apps as well> ?
-
----
-
 yeah, coz bridge is the main part. webUI is just the GUI layer, which is for user interaction and usage. 
 
 you can now continue!
