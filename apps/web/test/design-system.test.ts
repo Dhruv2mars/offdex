@@ -67,6 +67,9 @@ describe("web DESIGN.md system", () => {
     expect(webui).toContain("Permissions");
     expect(webui).toContain("Compact");
     expect(webui).toContain("Usage");
+    expect(webui).toContain("Tool activity");
+    expect(webui).toContain("File activity");
+    expect(webui).toContain("Review summary");
     expect(webui).toContain("Filter threads");
     expect(webui).toContain("Ask Codex anything, @ to add files, / for commands, $ for skills");
     expect(webui).toContain("Command, file, connector, and broader permission requests from Codex will appear here.");

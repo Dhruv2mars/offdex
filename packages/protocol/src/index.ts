@@ -151,6 +151,32 @@ export type OffdexTimelineItem =
       text: string;
     }
   | {
+      type: "taskLifecycle";
+      id: string;
+      label: string;
+      status: "pending" | "in_progress" | "completed" | "failed" | "interrupted";
+      detail: string | null;
+    }
+  | {
+      type: "toolActivity";
+      id: string;
+      toolName: string;
+      status: "pending" | "in_progress" | "completed" | "failed" | "interrupted";
+      source: "tool" | "search" | "file" | "mcp" | "unknown";
+      summary: string | null;
+      input: string | null;
+      output: string | null;
+    }
+  | {
+      type: "tokenUsage";
+      id: string;
+      summary: string;
+      planType: string | null;
+      primaryPercent: number | null;
+      secondaryPercent: number | null;
+      totalTokens: number | null;
+    }
+  | {
       type: "commandExecution";
       id: string;
       command: string;

@@ -107,6 +107,106 @@ describe("codex snapshot adapter", () => {
     expect(mapped.messages.map((message) => message.body)).toEqual(["Ship it.", "Done."]);
   });
 
+  test("maps task, tool, file, and usage runtime items into typed timeline rows", () => {
+    const thread = {
+      id: "thread-runtime",
+      preview: "Runtime thread",
+      ephemeral: false,
+      modelProvider: "openai",
+      createdAt: 1774702996,
+      updatedAt: 1774703010,
+      status: { type: "idle" },
+      path: null,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+      cliVersion: "0.116.0",
+      source: "appServer",
+      agentNickname: null,
+      agentRole: null,
+      gitInfo: null,
+      name: "Runtime thread",
+      turns: [
+        {
+          id: "turn-runtime",
+          status: "completed",
+          error: null,
+          items: [
+            {
+              type: "task_started",
+              id: "task-1",
+              turn_id: "turn-runtime",
+            },
+            {
+              type: "function_call",
+              id: "tool-1",
+              name: "write_stdin",
+              arguments: "{\"chars\":\"y\"}",
+              summary: "Waiting for approval input",
+            },
+            {
+              type: "read",
+              id: "file-1",
+              path: "/Users/dhruv2mars/dev/github/offdex/README.md",
+              output: "# Offdex",
+            },
+            {
+              type: "token_count",
+              id: "usage-1",
+              rate_limits: {
+                plan_type: "plus",
+                primary: { used_percent: 12 },
+                secondary: { used_percent: 48 },
+              },
+              info: {
+                total_token_usage: {
+                  total_tokens: 2048,
+                },
+              },
+            },
+            {
+              type: "task_complete",
+              id: "task-2",
+              last_agent_message: "Done",
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    const mapped = mapCodexThreadToOffdexThread(thread, "cli");
+    const items = mapped.turns[0]?.items ?? [];
+
+    expect(items[0]).toMatchObject({
+      type: "taskLifecycle",
+      label: "Task started",
+      status: "in_progress",
+    });
+    expect(items[1]).toMatchObject({
+      type: "toolActivity",
+      toolName: "write_stdin",
+      source: "tool",
+      input: "{\"chars\":\"y\"}",
+    });
+    expect(items[2]).toMatchObject({
+      type: "toolActivity",
+      toolName: "Read file",
+      source: "file",
+      output: "# Offdex",
+    });
+    expect(items[3]).toMatchObject({
+      type: "tokenUsage",
+      planType: "plus",
+      primaryPercent: 12,
+      secondaryPercent: 48,
+      totalTokens: 2048,
+    });
+    expect(items[4]).toMatchObject({
+      type: "taskLifecycle",
+      label: "Task complete",
+      status: "completed",
+      detail: "Done",
+    });
+  });
+
   test("creates a placeholder thread when codex has no history for this workspace", () => {
     const snapshot = createCodexSnapshot("cli", []);
 
@@ -326,6 +426,70 @@ describe("codex snapshot adapter", () => {
 
     const diffThread = withDiff.threads.find((entry) => entry.id === "thread-diff");
     expect(diffThread?.turns[0]?.diff).toContain("+hello");
+  });
+
+  test("normalizes live tool activity notifications into typed rows", () => {
+    const seed = createCodexSnapshot("cli", []);
+    const thread = {
+      id: "thread-tools",
+      preview: "Tool thread",
+      ephemeral: false,
+      modelProvider: "openai",
+      createdAt: 1774702996,
+      updatedAt: 1774703010,
+      status: { type: "idle" },
+      path: null,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+      cliVersion: "0.116.0",
+      source: "appServer",
+      agentNickname: null,
+      agentRole: null,
+      gitInfo: null,
+      name: "Tool thread",
+      turns: [],
+    } as const;
+
+    const withThread = applyCodexNotification(
+      seed,
+      { method: "thread/started", params: { thread } },
+      "cli"
+    );
+    const withTurn = applyCodexNotification(
+      withThread,
+      {
+        method: "turn/started",
+        params: {
+          threadId: "thread-tools",
+          turn: { id: "turn-tools", items: [], status: "inProgress", error: null },
+        },
+      },
+      "cli"
+    );
+    const withTool = applyCodexNotification(
+      withTurn,
+      {
+        method: "item/started",
+        params: {
+          threadId: "thread-tools",
+          turnId: "turn-tools",
+          item: {
+            type: "web_search_call",
+            id: "search-1",
+            query: "offdex webui parity",
+            status: "running",
+          },
+        },
+      },
+      "cli"
+    );
+
+    expect(withTool.threads.find((entry) => entry.id === "thread-tools")?.turns[0]?.items[0]).toMatchObject({
+      type: "toolActivity",
+      toolName: "Web search",
+      source: "search",
+      status: "in_progress",
+      input: "offdex webui parity",
+    });
   });
 
   test("marks permission requests resolved from runtime notifications", () => {

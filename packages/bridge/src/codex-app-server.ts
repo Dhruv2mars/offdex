@@ -545,6 +545,220 @@ function isCommandExecutionItem(
   return item.type === "commandExecution" && typeof (item as { command?: unknown }).command === "string";
 }
 
+function extractScalarText(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function extractText(value: unknown): string | null {
+  const scalar = extractScalarText(value);
+  if (scalar) {
+    return scalar;
+  }
+
+  if (Array.isArray(value)) {
+    const joined = value
+      .map((entry) => extractText(entry))
+      .filter((entry): entry is string => Boolean(entry))
+      .join("\n")
+      .trim();
+    return joined.length > 0 ? joined : null;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of [
+    "text",
+    "message",
+    "summary",
+    "content",
+    "output",
+    "result",
+    "query",
+    "path",
+    "command",
+    "name",
+    "title",
+    "detail",
+  ]) {
+    const nested = extractText(record[key]);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  return JSON.stringify(value, null, 2);
+}
+
+function firstText(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = extractText(record[key]);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function firstNumber(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function normalizeTimelineStatus(
+  value: unknown,
+  fallback: "pending" | "in_progress" | "completed" | "failed" | "interrupted"
+) {
+  if (value === "pending" || value === "in_progress" || value === "completed" || value === "failed" || value === "interrupted") {
+    return value;
+  }
+
+  if (value === "inProgress" || value === "running" || value === "started") {
+    return "in_progress";
+  }
+
+  if (value === "done" || value === "success" || value === "succeeded") {
+    return "completed";
+  }
+
+  if (value === "cancelled" || value === "canceled" || value === "stopped") {
+    return "interrupted";
+  }
+
+  return fallback;
+}
+
+function unknownItemToTimelineItem(item: CodexUnknownThreadItem): OffdexTimelineItem | null {
+  const record = item as Record<string, unknown>;
+  const itemType = item.type;
+
+  if (itemType === "task_started" || itemType === "task_complete") {
+    return {
+      type: "taskLifecycle",
+      id: item.id,
+      label: itemType === "task_started" ? "Task started" : "Task complete",
+      status: itemType === "task_started" ? "in_progress" : "completed",
+      detail:
+        firstText(record, ["last_agent_message", "message", "detail"]) ??
+        firstText(record, ["turn_id", "turnId", "started_at", "completed_at"]),
+    };
+  }
+
+  if (itemType === "token_count") {
+    const rateLimits =
+      record.rate_limits && typeof record.rate_limits === "object"
+        ? (record.rate_limits as Record<string, unknown>)
+        : null;
+    const info = record.info && typeof record.info === "object" ? (record.info as Record<string, unknown>) : null;
+    const totalUsage =
+      info?.total_token_usage && typeof info.total_token_usage === "object"
+        ? (info.total_token_usage as Record<string, unknown>)
+        : null;
+    const primary =
+      rateLimits?.primary && typeof rateLimits.primary === "object"
+        ? (rateLimits.primary as Record<string, unknown>)
+        : null;
+    const secondary =
+      rateLimits?.secondary && typeof rateLimits.secondary === "object"
+        ? (rateLimits.secondary as Record<string, unknown>)
+        : null;
+    const primaryPercent = firstNumber(primary ?? {}, ["used_percent"]);
+    const secondaryPercent = firstNumber(secondary ?? {}, ["used_percent"]);
+    const totalTokens = firstNumber(totalUsage ?? {}, ["total_tokens"]);
+    const parts = [
+      typeof totalTokens === "number" ? `${totalTokens.toLocaleString()} tokens` : null,
+      typeof primaryPercent === "number" ? `${primaryPercent}% primary` : null,
+      typeof secondaryPercent === "number" ? `${secondaryPercent}% weekly` : null,
+      extractScalarText(rateLimits?.plan_type) ? `${extractScalarText(rateLimits?.plan_type)} plan` : null,
+    ].filter((entry): entry is string => Boolean(entry));
+
+    return {
+      type: "tokenUsage",
+      id: item.id,
+      summary: parts.join(" · ") || "Token usage update",
+      planType: extractScalarText(rateLimits?.plan_type),
+      primaryPercent,
+      secondaryPercent,
+      totalTokens,
+    };
+  }
+
+  if (
+    itemType === "function_call" ||
+    itemType === "function_call_output" ||
+    itemType === "custom_tool_call" ||
+    itemType === "custom_tool_call_output" ||
+    itemType === "web_search_call" ||
+    itemType === "search" ||
+    itemType === "read" ||
+    itemType === "patch_apply_end"
+  ) {
+    const toolName =
+      firstText(record, ["name", "tool_name", "toolName", "title"]) ??
+      (itemType === "web_search_call"
+        ? "Web search"
+        : itemType === "search"
+          ? "Search"
+          : itemType === "read"
+            ? "Read file"
+            : itemType === "patch_apply_end"
+              ? "Apply patch"
+              : itemType === "custom_tool_call" || itemType === "custom_tool_call_output"
+                ? "Custom tool"
+                : "Tool call");
+    const source =
+      itemType === "web_search_call" || itemType === "search"
+        ? "search"
+        : itemType === "read" || itemType === "patch_apply_end"
+          ? "file"
+          : itemType.includes("mcp")
+            ? "mcp"
+            : "tool";
+
+    return {
+      type: "toolActivity",
+      id: item.id,
+      toolName,
+      status: normalizeTimelineStatus(
+        record.status,
+        itemType.endsWith("_output") || itemType.endsWith("_end") || itemType === "search" || itemType === "read"
+          ? "completed"
+          : "in_progress"
+      ),
+      source,
+      summary:
+        firstText(record, ["summary", "message", "title"]) ??
+        (itemType === "patch_apply_end"
+          ? "Patch application result"
+          : itemType.endsWith("_output")
+            ? "Tool result"
+            : "Tool activity"),
+      input: firstText(record, ["arguments", "args", "input", "query", "path", "command"]),
+      output: firstText(record, ["output", "result", "content", "text", "message", "diff"]),
+    };
+  }
+
+  return null;
+}
+
 function userInputToText(input: CodexUserInput) {
   switch (input.type) {
     case "text":
@@ -663,6 +877,11 @@ function threadItemToTimelineItem(item: CodexThreadItem): OffdexTimelineItem {
         path: action.path,
       })),
     };
+  }
+
+  const normalizedUnknown = unknownItemToTimelineItem(item as CodexUnknownThreadItem);
+  if (normalizedUnknown) {
+    return normalizedUnknown;
   }
 
   return {

@@ -58,6 +58,16 @@ type ComposerAttachment = {
   input: OffdexInputItem;
 };
 
+export type ParsedDiffFile = {
+  id: string;
+  path: string;
+  previousPath: string | null;
+  additions: number;
+  deletions: number;
+  hunks: string[];
+  raw: string;
+};
+
 const STORED_BRIDGE_KEY = "offdex:web:bridge";
 const STORED_SESSION_KEY = "offdex:web:machine-session";
 const APPROVAL_POLICY_OPTIONS = ["never", "on-request"] as const;
@@ -146,6 +156,9 @@ function roleLabel(item: OffdexTimelineItem) {
   if (item.type === "agentMessage") return item.phase === "final_answer" ? "Codex" : "Codex live";
   if (item.type === "plan") return "Plan";
   if (item.type === "reasoning") return "Reasoning";
+  if (item.type === "taskLifecycle") return "Task";
+  if (item.type === "toolActivity") return "Tool";
+  if (item.type === "tokenUsage") return "Usage";
   if (item.type === "commandExecution") return "Command";
   return item.label;
 }
@@ -211,6 +224,9 @@ function itemBody(item: OffdexTimelineItem) {
   if (item.type === "agentMessage") return item.text;
   if (item.type === "plan") return item.text;
   if (item.type === "reasoning") return [...item.summary, ...item.content].join("\n");
+  if (item.type === "taskLifecycle") return [item.label, item.detail].filter(Boolean).join("\n");
+  if (item.type === "toolActivity") return [item.summary, item.input, item.output].filter(Boolean).join("\n");
+  if (item.type === "tokenUsage") return item.summary;
   if (item.type === "commandExecution") return item.aggregatedOutput || item.command;
   return item.data;
 }
@@ -228,6 +244,91 @@ function panelTitle(panel: Exclude<WorkbenchPanel, null>) {
 
 function latestTurnWithDiff(thread: OffdexThread | null) {
   return [...(thread?.turns ?? [])].reverse().find((turn) => Boolean(turn.diff?.trim())) ?? null;
+}
+
+export function parseUnifiedDiff(diff: string): ParsedDiffFile[] {
+  const lines = diff.split("\n");
+  const files: ParsedDiffFile[] = [];
+  let current: ParsedDiffFile | null = null;
+  let currentLines: string[] = [];
+
+  function pushCurrent() {
+    if (!current) {
+      return;
+    }
+
+    current.raw = currentLines.join("\n").trim();
+    files.push(current);
+    current = null;
+    currentLines = [];
+  }
+
+  for (const line of lines) {
+    if (line.startsWith("diff --git ")) {
+      pushCurrent();
+      const match = /^diff --git a\/(.+?) b\/(.+)$/.exec(line);
+      const previousPath = match?.[1] ?? null;
+      const path = match?.[2] ?? previousPath ?? "unknown file";
+      current = {
+        id: `${path}-${files.length}`,
+        path,
+        previousPath: previousPath && previousPath !== path ? previousPath : null,
+        additions: 0,
+        deletions: 0,
+        hunks: [],
+        raw: "",
+      };
+    }
+
+    if (!current) {
+      continue;
+    }
+
+    currentLines.push(line);
+
+    if (line.startsWith("@@")) {
+      current.hunks.push(line);
+      continue;
+    }
+
+    if (line.startsWith("rename from ")) {
+      current.previousPath = line.slice("rename from ".length).trim() || current.previousPath;
+      continue;
+    }
+
+    if (line.startsWith("rename to ")) {
+      current.path = line.slice("rename to ".length).trim() || current.path;
+      continue;
+    }
+
+    if (line.startsWith("+++ ")) {
+      const nextPath = line.slice(4).replace(/^b\//, "").trim();
+      if (nextPath && nextPath !== "/dev/null") {
+        current.path = nextPath;
+      }
+      continue;
+    }
+
+    if (line.startsWith("--- ")) {
+      const previousPath = line.slice(4).replace(/^a\//, "").trim();
+      if (previousPath && previousPath !== "/dev/null" && previousPath !== current.path) {
+        current.previousPath = previousPath;
+      }
+      continue;
+    }
+
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      current.additions += 1;
+      continue;
+    }
+
+    if (line.startsWith("-") && !line.startsWith("---")) {
+      current.deletions += 1;
+    }
+  }
+
+  pushCurrent();
+  return files;
 }
 
 function parentDirectory(path: string) {
@@ -302,6 +403,13 @@ function toneForStatus(status: string | null | undefined) {
     return "bg-[#eff8ff] text-[#175cd3]";
   }
   return "bg-muted text-muted-foreground";
+}
+
+function iconForToolSource(source: "tool" | "search" | "file" | "mcp" | "unknown") {
+  if (source === "search") return "search";
+  if (source === "file") return "folder";
+  if (source === "mcp") return "plug";
+  return "commit";
 }
 
 function threadMatchesFilter(thread: OffdexThread, query: string) {
@@ -516,6 +624,106 @@ function PermissionReviewCard({ review }: { review: OffdexPermissionReview }) {
 }
 
 function TimelineRow({ item, turn }: { item: OffdexTimelineItem; turn: OffdexTurn }) {
+  if (item.type === "taskLifecycle") {
+    return (
+      <article className="rounded-2xl bg-background p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="rounded-2xl bg-muted p-2 text-muted-foreground shadow-border">
+              <Icon name={item.status === "failed" ? "warning" : "commit"} className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Task</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{item.label}</p>
+              {item.detail ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p> : null}
+            </div>
+          </div>
+          <span className={`rounded-full px-3 py-1 font-mono text-[11px] shadow-border ${toneForStatus(item.status)}`}>
+            {item.status}
+          </span>
+        </div>
+      </article>
+    );
+  }
+
+  if (item.type === "toolActivity") {
+    return (
+      <article className="rounded-2xl bg-background p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="rounded-2xl bg-muted p-2 text-muted-foreground shadow-border">
+              <Icon name={iconForToolSource(item.source)} className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {item.source === "search" ? "Search" : item.source === "file" ? "File activity" : item.source === "mcp" ? "MCP tool" : "Tool activity"}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{item.toolName}</p>
+              {item.summary ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p> : null}
+            </div>
+          </div>
+          <span className={`rounded-full px-3 py-1 font-mono text-[11px] shadow-border ${toneForStatus(item.status)}`}>
+            {item.status}
+          </span>
+        </div>
+        {item.input ? (
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Input</p>
+            <pre className="mt-2 max-h-40 overflow-auto rounded-xl bg-muted px-3 py-3 font-mono text-[11px] leading-5 text-foreground whitespace-pre-wrap">
+              {item.input}
+            </pre>
+          </div>
+        ) : null}
+        {item.output ? (
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Output</p>
+            <pre className="mt-2 max-h-64 overflow-auto rounded-xl bg-muted px-3 py-3 font-mono text-[11px] leading-5 text-foreground whitespace-pre-wrap">
+              {item.output}
+            </pre>
+          </div>
+        ) : null}
+      </article>
+    );
+  }
+
+  if (item.type === "tokenUsage") {
+    return (
+      <article className="rounded-2xl bg-muted p-4 shadow-border">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Usage</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{item.summary}</p>
+          </div>
+          <span className={`rounded-full px-3 py-1 font-mono text-[11px] shadow-border ${toneForStatus("completed")}`}>
+            update
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {typeof item.totalTokens === "number" ? (
+            <span className="rounded-full bg-background px-3 py-1 font-mono text-[11px] text-muted-foreground shadow-border">
+              total {item.totalTokens.toLocaleString()}
+            </span>
+          ) : null}
+          {typeof item.primaryPercent === "number" ? (
+            <span className="rounded-full bg-background px-3 py-1 font-mono text-[11px] text-muted-foreground shadow-border">
+              primary {item.primaryPercent}%
+            </span>
+          ) : null}
+          {typeof item.secondaryPercent === "number" ? (
+            <span className="rounded-full bg-background px-3 py-1 font-mono text-[11px] text-muted-foreground shadow-border">
+              weekly {item.secondaryPercent}%
+            </span>
+          ) : null}
+          {item.planType ? (
+            <span className="rounded-full bg-background px-3 py-1 font-mono text-[11px] text-muted-foreground shadow-border">
+              {item.planType}
+            </span>
+          ) : null}
+        </div>
+      </article>
+    );
+  }
+
   if (item.type === "commandExecution") {
     return (
       <article className="rounded-2xl bg-background p-4 shadow-card">
@@ -688,6 +896,14 @@ export function WebAppClient() {
   const canSend = (draft.trim().length > 0 || attachments.length > 0) && isLive && codexReady && !isPending;
   const workspaceRoot = selectedThread?.cwd ?? threads[0]?.cwd ?? "";
   const activeDiffTurn = latestTurnWithDiff(selectedThread);
+  const parsedDiffFiles = activeDiffTurn?.diff ? parseUnifiedDiff(activeDiffTurn.diff) : [];
+  const diffTotals = parsedDiffFiles.reduce(
+    (totals, file) => ({
+      additions: totals.additions + file.additions,
+      deletions: totals.deletions + file.deletions,
+    }),
+    { additions: 0, deletions: 0 }
+  );
   const visibleModels = (inventory?.models ?? []).filter((model) => !model.hidden);
   const activeModel =
     visibleModels.find((model) => model.model === inventory?.config?.model) ??
@@ -2146,9 +2362,55 @@ export function WebAppClient() {
               {panel === "diff" ? (
                 <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
                   {activeDiffTurn?.diff ? (
-                    <pre className="max-h-full overflow-auto rounded-2xl bg-muted p-4 font-mono text-[12px] leading-6 text-foreground shadow-border whitespace-pre-wrap">
-                      {activeDiffTurn.diff}
-                    </pre>
+                    <div className="space-y-3">
+                      <div className="rounded-2xl bg-muted p-4 shadow-border">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Review summary</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                            {parsedDiffFiles.length} files
+                          </span>
+                          <span className="rounded-full bg-background px-3 py-1 text-[11px] text-[#027a48] shadow-border">
+                            +{diffTotals.additions}
+                          </span>
+                          <span className="rounded-full bg-background px-3 py-1 text-[11px] text-[#b42318] shadow-border">
+                            -{diffTotals.deletions}
+                          </span>
+                          <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                            turn {activeDiffTurn.id}
+                          </span>
+                        </div>
+                      </div>
+
+                      {parsedDiffFiles.length > 0 ? (
+                        parsedDiffFiles.map((file) => (
+                          <article className="rounded-2xl bg-muted p-4 shadow-border" key={file.id}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-foreground">{file.path}</p>
+                                <p className="mt-1 text-[11px] text-muted-foreground">
+                                  {file.previousPath ? `${file.previousPath} -> ${file.path}` : file.hunks[0] ?? "Unified diff"}
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <span className="rounded-full bg-background px-3 py-1 text-[11px] text-[#027a48] shadow-border">
+                                  +{file.additions}
+                                </span>
+                                <span className="rounded-full bg-background px-3 py-1 text-[11px] text-[#b42318] shadow-border">
+                                  -{file.deletions}
+                                </span>
+                              </div>
+                            </div>
+                            <pre className="mt-3 max-h-72 overflow-auto rounded-xl bg-background px-3 py-3 font-mono text-[11px] leading-5 text-foreground shadow-border whitespace-pre-wrap">
+                              {file.raw}
+                            </pre>
+                          </article>
+                        ))
+                      ) : (
+                        <pre className="max-h-full overflow-auto rounded-2xl bg-muted p-4 font-mono text-[12px] leading-6 text-foreground shadow-border whitespace-pre-wrap">
+                          {activeDiffTurn.diff}
+                        </pre>
+                      )}
+                    </div>
                   ) : (
                     <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground shadow-border">
                       No unified diff has been streamed for the selected thread yet.
