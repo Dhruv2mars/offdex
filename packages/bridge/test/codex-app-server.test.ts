@@ -654,6 +654,9 @@ describe("codex snapshot adapter", () => {
           id: "stale-thread",
           title: "Old thread",
           projectLabel: "offdex",
+          threadKind: "conversation",
+          sourceThreadId: null,
+          reviewThreadId: null,
           runtimeTarget: "cli",
           state: "completed",
           unreadCount: 0,
@@ -1194,6 +1197,32 @@ describe("codex snapshot adapter", () => {
         state: "paired",
       })
     );
+    store.replaceSnapshot({
+      ...store.getSnapshot(),
+      threads: [
+        {
+          id: "thread-source",
+          title: "Source thread",
+          projectLabel: "offdex",
+          threadKind: "conversation",
+          sourceThreadId: null,
+          reviewThreadId: null,
+          runtimeTarget: "cli",
+          state: "completed",
+          unreadCount: 0,
+          updatedAt: "Now",
+          path: null,
+          cwd: "/Users/dhruv2mars/dev/github/offdex",
+          cliVersion: "0.116.0",
+          source: "appServer",
+          agentNickname: null,
+          agentRole: null,
+          gitInfo: null,
+          messages: [],
+          turns: [],
+        },
+      ],
+    });
     const runtime = new CodexBridgeRuntime({
       runtimeTarget: "cli",
       workspaceStore: store,
@@ -1225,7 +1254,7 @@ describe("codex snapshot adapter", () => {
     ];
     runtime.client.readThread = async (threadId: string) => ({
       id: threadId,
-      preview: "Review me",
+      preview: threadId === "thread-review" ? "Review me" : "Source thread",
       ephemeral: false,
       modelProvider: "openai",
       createdAt: 1774702996,
@@ -1238,8 +1267,11 @@ describe("codex snapshot adapter", () => {
       agentNickname: null,
       agentRole: null,
       gitInfo: null,
-      name: "Review me",
-      turns: [{ id: "turn-review", items: [], status: "inProgress", error: null }],
+      name: threadId === "thread-review" ? "Review me" : "Source thread",
+      turns:
+        threadId === "thread-review"
+          ? [{ id: "turn-review", items: [], status: "inProgress", error: null }]
+          : [],
     });
     runtime.client.readAccount = async () => ({
       id: "acct-1",
@@ -1253,8 +1285,8 @@ describe("codex snapshot adapter", () => {
     runtime.client.resumeThread = async () => {
       resumeCalled = true;
       return {
-        id: "thread-review",
-        preview: "Review me",
+        id: "thread-source",
+        preview: "Source thread",
         ephemeral: false,
         modelProvider: "openai",
         createdAt: 1774702996,
@@ -1267,15 +1299,15 @@ describe("codex snapshot adapter", () => {
         agentNickname: null,
         agentRole: null,
         gitInfo: null,
-        name: "Review me",
+        name: "Source thread",
         turns: [],
       };
     };
     let reviewAttempts = 0;
-    runtime.client.startReview = async () => {
+    runtime.client.startReview = async (threadId: string) => {
       reviewAttempts += 1;
       if (reviewAttempts === 1) {
-        throw new Error("thread not found: thread-review");
+        throw new Error(`thread not found: ${threadId}`);
       }
       return {
         reviewThreadId: "thread-review",
@@ -1283,11 +1315,14 @@ describe("codex snapshot adapter", () => {
       };
     };
 
-    const snapshot = await runtime.startReview("thread-review");
+    const snapshot = await runtime.startReview("thread-source");
 
     expect(resumeCalled).toBe(true);
     expect(reviewAttempts).toBe(2);
     expect(snapshot.threads[0]?.id).toBe("thread-review");
+    expect(snapshot.threads[0]?.threadKind).toBe("review");
+    expect(snapshot.threads[0]?.sourceThreadId).toBe("thread-source");
+    expect(snapshot.threads.find((thread) => thread.id === "thread-source")?.reviewThreadId).toBe("thread-review");
   });
 
   test("resumes a missing thread before compacting", async () => {

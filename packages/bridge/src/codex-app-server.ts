@@ -926,6 +926,18 @@ function sortThreadsByUpdatedAt(threads: CodexThread[]) {
   return [...threads].sort((left, right) => right.updatedAt - left.updatedAt);
 }
 
+function existingThreadMetadata(
+  snapshot: OffdexWorkspaceSnapshot | undefined,
+  threadId: string
+) {
+  const existing = snapshot?.threads.find((thread) => thread.id === threadId) ?? null;
+  return {
+    threadKind: existing?.threadKind ?? "conversation",
+    sourceThreadId: existing?.sourceThreadId ?? null,
+    reviewThreadId: existing?.reviewThreadId ?? null,
+  } as const;
+}
+
 export function findActiveTurnId(thread: CodexThread) {
   return [...thread.turns].reverse().find((turn) => turn.status === "inProgress")?.id ?? null;
 }
@@ -935,6 +947,9 @@ function makePlaceholderThread(runtimeTarget: RuntimeTarget): OffdexThread {
     id: NEW_THREAD_ID,
     title: "New Codex thread",
     projectLabel: "offdex",
+    threadKind: "conversation",
+    sourceThreadId: null,
+    reviewThreadId: null,
     runtimeTarget,
     state: "idle",
     unreadCount: 0,
@@ -970,11 +985,15 @@ export function mapCodexThreadToOffdexThread(
   const state = latestTurn
     ? turnStatusToState(latestTurn.status)
     : threadStatusToState(thread.status, messages.length);
+  const metadata = existingThreadMetadata(seedSnapshot, thread.id);
 
   return {
     id: thread.id,
     title: titleFromThread(thread),
     projectLabel: projectLabelFromThread(thread),
+    threadKind: metadata.threadKind,
+    sourceThreadId: metadata.sourceThreadId,
+    reviewThreadId: metadata.reviewThreadId,
     runtimeTarget,
     state,
     unreadCount: 0,
@@ -1035,6 +1054,9 @@ function ensureThread(
     id: threadId,
     title: `Thread ${threadId.slice(0, 6)}`,
     projectLabel: "offdex",
+    threadKind: "conversation",
+    sourceThreadId: null,
+    reviewThreadId: null,
     runtimeTarget,
     state: "idle",
     unreadCount: 0,
@@ -2270,6 +2292,7 @@ export class CodexBridgeRuntime {
   #unsubscribeServerRequests: (() => void) | null = null;
   #runtimeTarget: RuntimeTarget;
   #activeTurnIdByThread = new Map<string, string>();
+  #reviewSourceByThread = new Map<string, string>();
   #pendingServerRequests = new Map<string, CodexServerRequest>();
   readonly client = new CodexAppServerClient();
 
@@ -2281,6 +2304,46 @@ export class CodexBridgeRuntime {
 
   get runtimeTarget() {
     return this.#runtimeTarget;
+  }
+
+  #preserveReviewSourceThreads(snapshot: OffdexWorkspaceSnapshot) {
+    const previousSnapshot = this.options.workspaceStore.getSnapshot();
+    for (const sourceThreadId of this.#reviewSourceByThread.values()) {
+      if (snapshot.threads.some((thread) => thread.id === sourceThreadId)) {
+        continue;
+      }
+
+      const previousThread =
+        previousSnapshot.threads.find((thread) => thread.id === sourceThreadId) ??
+        previousSnapshot.archivedThreads.find((thread) => thread.id === sourceThreadId) ??
+        null;
+
+      if (!previousThread) {
+        continue;
+      }
+
+      snapshot.threads.push({
+        ...previousThread,
+        threadKind: "conversation",
+      });
+    }
+  }
+
+  #annotateReviewThreads(snapshot: OffdexWorkspaceSnapshot) {
+    for (const thread of snapshot.threads) {
+      const sourceThreadId = this.#reviewSourceByThread.get(thread.id) ?? thread.sourceThreadId;
+      if (!sourceThreadId) {
+        thread.threadKind = thread.threadKind ?? "conversation";
+        continue;
+      }
+
+      thread.threadKind = "review";
+      thread.sourceThreadId = sourceThreadId;
+      const sourceThread = snapshot.threads.find((entry) => entry.id === sourceThreadId);
+      if (sourceThread) {
+        sourceThread.reviewThreadId = thread.id;
+      }
+    }
   }
 
   async refreshSnapshot() {
@@ -2302,6 +2365,8 @@ export class CodexBridgeRuntime {
       archivedListed,
       this.options.workspaceStore.getSnapshot()
     );
+    this.#preserveReviewSourceThreads(snapshot);
+    this.#annotateReviewThreads(snapshot);
     snapshot.account = account;
     this.options.workspaceStore.replaceSnapshot(snapshot);
     return snapshot;
@@ -2636,6 +2701,7 @@ export class CodexBridgeRuntime {
       await this.client.resumeThread(threadId);
       response = await this.client.startReview(threadId);
     }
+    this.#reviewSourceByThread.set(response.reviewThreadId, threadId);
     this.#activeTurnIdByThread.set(response.reviewThreadId, response.turn.id);
     return this.refreshSnapshot();
   }

@@ -58,8 +58,6 @@ type ComposerAttachment = {
   input: OffdexInputItem;
 };
 
-type ReviewLinkMap = Record<string, string>;
-
 export type ParsedDiffFile = {
   id: string;
   path: string;
@@ -460,7 +458,7 @@ function detectReviewThread(thread: OffdexThread | null) {
 
   const title = thread.title.toLowerCase();
   const role = thread.agentRole?.toLowerCase() ?? "";
-  return title.includes("review") || role.includes("review");
+  return thread.threadKind === "review" || title.includes("review") || role.includes("review");
 }
 
 function ThreadSummaryCard({
@@ -950,7 +948,6 @@ export function WebAppClient() {
   const [remoteFileQuery, setRemoteFileQuery] = useState("");
   const [remoteFileMatches, setRemoteFileMatches] = useState<OffdexRemoteFileMatch[]>([]);
   const [remoteFilesLoading, setRemoteFilesLoading] = useState(false);
-  const [reviewOrigins, setReviewOrigins] = useState<ReviewLinkMap>({});
   const [isPending, startTransition] = useTransition();
   const socketRef = useRef<WebSocket | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -997,7 +994,7 @@ export function WebAppClient() {
           )
           .slice(0, 40);
   const archivedThreads = snapshot?.archivedThreads ?? [];
-  const selectedReviewSourceId = selectedThread ? reviewOrigins[selectedThread.id] : null;
+  const selectedReviewSourceId = selectedThread?.sourceThreadId ?? null;
   const selectedReviewSource =
     selectedReviewSourceId ? threads.find((thread) => thread.id === selectedReviewSourceId) ?? null : null;
   const selectedThreadMetrics = threadMetrics(selectedThread);
@@ -1610,15 +1607,13 @@ export function WebAppClient() {
     if (!selectedThread || !isLive) return;
 
     try {
-      const sourceThreadId = selectedThread.id;
       const result = await sendBridgeReview(connectionTarget || bridgeUrl, selectedThread.id);
       startTransition(() => {
         setSnapshot(result.snapshot);
         const reviewThreadId =
-          result.snapshot.threads.find((thread) => thread.id !== sourceThreadId)?.id ?? sourceThreadId;
-        setReviewOrigins((current) =>
-          reviewThreadId === sourceThreadId ? current : { ...current, [reviewThreadId]: sourceThreadId }
-        );
+          result.snapshot.threads.find((thread) => thread.sourceThreadId === selectedThread.id)?.id ??
+          result.snapshot.threads.find((thread) => thread.id !== selectedThread.id)?.id ??
+          selectedThread.id;
         setSelectedThreadId(reviewThreadId);
         setPanel("diff");
       });

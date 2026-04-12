@@ -297,6 +297,9 @@ export interface OffdexThread {
   id: string;
   title: string;
   projectLabel: string;
+  threadKind: "conversation" | "review";
+  sourceThreadId: string | null;
+  reviewThreadId: string | null;
   runtimeTarget: RuntimeTarget;
   state: TurnState;
   unreadCount: number;
@@ -672,6 +675,9 @@ export function makeDemoWorkspaceSnapshot(
         id: "thread-foundation",
         title: "Ship Offdex foundation",
         projectLabel: "offdex",
+        threadKind: "conversation",
+        sourceThreadId: null,
+        reviewThreadId: null,
         runtimeTarget,
         state: "running",
         unreadCount: 0,
@@ -709,6 +715,9 @@ export function makeDemoWorkspaceSnapshot(
         id: "thread-linux",
         title: "Runtime targeting on Linux",
         projectLabel: "bridge",
+        threadKind: "conversation",
+        sourceThreadId: null,
+        reviewThreadId: null,
         runtimeTarget: "cli",
         state: "idle",
         unreadCount: 3,
@@ -746,6 +755,9 @@ export function makeDemoWorkspaceSnapshot(
         id: "thread-ux",
         title: "Make the app feel official",
         projectLabel: "mobile",
+        threadKind: "conversation",
+        sourceThreadId: null,
+        reviewThreadId: null,
         runtimeTarget,
         state: "completed",
         unreadCount: 0,
