@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "dd75170062ea",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "AGENTS.md",
+    "apps/mobile/test/design-system.test.ts",
+    "apps/web/test/design-system.test.ts",
+    "docs/prompt.md",
+    "packages/npm/test/design-doc.test.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/dd/75170062ea/0/metadata.json",
+      "transcript": "/dd/75170062ea/0/full.jsonl",
+      "content_hash": "/dd/75170062ea/0/content_hash.txt",
+      "prompt": "/dd/75170062ea/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 447731,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 399360,
+    "output_tokens": 3416,
+    "api_call_count": 12
+  }
+}
