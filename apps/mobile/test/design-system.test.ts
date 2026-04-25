@@ -16,7 +16,7 @@ function readPngSize(path: string) {
   };
 }
 
-describe("mobile DESIGN.md system", () => {
+describe("mobile visual system", () => {
   test("uses the light Vercel-style theme tokens", () => {
     const globals = readMobileFile("global.css");
 

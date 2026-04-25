@@ -8,7 +8,7 @@ function readAppFile(path: string) {
   return readFileSync(join(appRoot, path), "utf8");
 }
 
-describe("web DESIGN.md system", () => {
+describe("web visual system", () => {
   test("uses Geist and the light Vercel-style color tokens", () => {
     const layout = readAppFile("layout.tsx");
     const globals = readAppFile("globals.css");

@@ -21,7 +21,7 @@
 
 ## Constraints
 - Bun-first commands and Turborepo workspace conventions.
-- `DESIGN.md` remains the frontend design authority unless the user overrides it.
+- No root design-system authority file is maintained; follow current app patterns unless the user gives a new frontend direction.
 - Bridge-first rule: shared semantics belong in `packages/protocol` and `packages/bridge` before client-specific rendering.
 - Web and mobile clients may differ in layout and interaction, but should consume the same underlying capability model.
 - Keep durable memory current before and after substantial work.
