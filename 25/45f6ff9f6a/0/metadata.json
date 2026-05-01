@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2545f6ff9f6a",
+  "session_id": "019de2c7-746c-7193-adb0-47f78cf06b4e",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-01T10:14:06.286436Z",
+  "branch": "fix/public-cli-status-diagnostics",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/release.yml",
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/web/app/(app)/webui/web-transport.ts",
+    "apps/web/components/mobile-nav.tsx",
+    "packages/npm/test/release-contract.test.js"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4-mini",
+  "turn_id": "67dfcf7c8bd3",
+  "initial_attribution": {
+    "calculated_at": "2026-05-01T10:14:06.28583Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 11,
+    "human_removed": 12,
+    "total_committed": 0,
+    "total_lines_changed": 23,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
