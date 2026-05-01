@@ -175,3 +175,7 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 ```
 
 </skill>
+
+---
+
+i would like you to work fully and make sure that evreything is done. done is: i should be able to install cli, download the mobile app, and use it fully without any issues. the ultimate goal. everything should be working perfectly
