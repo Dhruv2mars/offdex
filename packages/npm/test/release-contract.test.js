@@ -46,6 +46,8 @@ test("release workflow publishes Android APKs for public tag releases", () => {
   assert.match(releaseWorkflow, /publish_android:/);
   assert.match(releaseWorkflow, /default:\s*true/);
   assert.match(releaseWorkflow, /release_tag="\$\{GITHUB_REF_NAME\}"\n\s+publish_android="true"/);
+  assert.match(releaseWorkflow, /keytool -list/);
+  assert.match(releaseWorkflow, /keytool -certreq/);
   assert.match(releaseWorkflow, /offdex-android\.apk/);
   assert.match(releaseWorkflow, /offdex-android\.sha256/);
   assert.match(
