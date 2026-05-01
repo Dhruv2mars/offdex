@@ -3,7 +3,7 @@
   "checkpoint_id": "2545f6ff9f6a",
   "strategy": "manual-commit",
   "branch": "fix/public-cli-status-diagnostics",
-  "checkpoints_count": 0,
+  "checkpoints_count": 1,
   "files_touched": [
     ".github/workflows/release.yml",
     "apps/web/app/(app)/webui/web-app-client.tsx",
@@ -17,6 +17,19 @@
       "transcript": "/25/45f6ff9f6a/0/full.jsonl",
       "content_hash": "/25/45f6ff9f6a/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/25/45f6ff9f6a/1/metadata.json",
+      "transcript": "/25/45f6ff9f6a/1/full.jsonl",
+      "content_hash": "/25/45f6ff9f6a/1/content_hash.txt",
+      "prompt": "/25/45f6ff9f6a/1/prompt.txt"
     }
-  ]
+  ],
+  "token_usage": {
+    "input_tokens": 6567535,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6380800,
+    "output_tokens": 8951,
+    "api_call_count": 51
+  }
 }

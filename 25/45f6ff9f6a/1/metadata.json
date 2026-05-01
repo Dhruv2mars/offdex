@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2545f6ff9f6a",
+  "session_id": "019de2f9-faf1-7543-a69f-ba49417ca31b",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-01T10:14:06.706878Z",
+  "branch": "fix/public-cli-status-diagnostics",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "e998fedc7df2",
+  "checkpoint_transcript_start": 239,
+  "transcript_lines_at_start": 239,
+  "token_usage": {
+    "input_tokens": 6567535,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6380800,
+    "output_tokens": 8951,
+    "api_call_count": 51
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 655,
+      "agent_lines_removed": 0
+    }
+  ]
+}
