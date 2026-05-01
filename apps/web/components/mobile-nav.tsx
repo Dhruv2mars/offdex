@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { githubReleasesUrl } from "../app/site-content";
 
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);

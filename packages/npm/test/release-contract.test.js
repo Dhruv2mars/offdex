@@ -42,10 +42,12 @@ test("release workflow detects web, mobile, and cli areas before publishing", ()
   assert.match(releaseWorkflow, /needs\.detect_areas\.outputs\.web == 'true'/);
 });
 
-test("release workflow keeps Android builds opt-in for fast CLI releases", () => {
+test("release workflow publishes Android APKs for public tag releases", () => {
   assert.match(releaseWorkflow, /publish_android:/);
-  assert.match(releaseWorkflow, /default:\s*false/);
-  assert.match(releaseWorkflow, /release_tag="\$\{GITHUB_REF_NAME\}"\n\s+publish_android="false"/);
+  assert.match(releaseWorkflow, /default:\s*true/);
+  assert.match(releaseWorkflow, /release_tag="\$\{GITHUB_REF_NAME\}"\n\s+publish_android="true"/);
+  assert.match(releaseWorkflow, /offdex-android\.apk/);
+  assert.match(releaseWorkflow, /offdex-android\.sha256/);
   assert.match(
     releaseWorkflow,
     /build_android_release:\n(?:.*\n)*?\s+if:\s+\$\{\{\s*needs\.resolve_tag\.outputs\.publish_android == 'true'\s*\}\}/

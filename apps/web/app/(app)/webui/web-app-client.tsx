@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type ChangeEvent, type ClipboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ChangeEvent, type ClipboardEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   OFFDEX_NEW_THREAD_ID,
@@ -986,7 +986,7 @@ export function WebAppClient() {
   const socketRef = useRef<WebSocket | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const threads = snapshot?.threads ?? [];
+  const threads = useMemo(() => snapshot?.threads ?? [], [snapshot?.threads]);
   const isDraftThread = selectedThreadId === OFFDEX_NEW_THREAD_ID;
   const selectedThread =
     isDraftThread
