@@ -14,6 +14,7 @@ export type CliOptions = {
 export const DEFAULT_PORT = 42420;
 export const DEFAULT_HOST = "0.0.0.0";
 export const OFFDEX_WEB_URL = "https://offdexapp.vercel.app";
+export const OFFDEX_WEB_UI_URL = `${OFFDEX_WEB_URL}/webui`;
 export const OFFDEX_GITHUB_URL = "https://github.com/Dhruv2mars/offdex";
 export const OFFDEX_ISSUES_URL = `${OFFDEX_GITHUB_URL}/issues`;
 export const OFFDEX_CONTROL_PLANE_URL =
@@ -143,6 +144,12 @@ export function createDaemonLaunchPlan(input: {
   };
 }
 
+export function createWebUiUrl(bridgeUrl: string, webAppUrl = OFFDEX_WEB_UI_URL) {
+  const url = new URL(webAppUrl);
+  url.searchParams.set("bridge", bridgeUrl);
+  return url.toString();
+}
+
 export function usage() {
   return [
     title("OFFDEX HELP"),
@@ -191,6 +198,7 @@ export function onboarding() {
 
 export function formatBridgeStatus(input: {
   baseUrl: string;
+  webUiUrl?: string;
   state: BridgeRunStateView | null;
   health: BridgeHealthView;
 }) {
@@ -209,11 +217,13 @@ export function formatBridgeStatus(input: {
   return [
     title("OFFDEX IS RUNNING"),
     row("Bridge", underline(input.baseUrl)),
+    row("Web UI", underline(input.webUiUrl ?? createWebUiUrl(input.baseUrl))),
     input.health.macName ? row("Machine", input.health.macName) : null,
     row("Runtime", input.health.bridgeMode ?? "codex"),
     row("Codex", codexLine.replace(/^Codex: /, "")),
     row("Clients", clientCount > 0 ? successGreen(`${clientCount} live`) : `${clientCount} live`),
     row("Remote", input.health.relayConnected ? successGreen(remoteLine) : remoteLine),
+    row("Pair", "scan QR with `offdex start`"),
     input.state?.startedAt ? row("Started", input.state.startedAt) : null,
     `${S_END}`
   ].filter(Boolean).join("\n");
@@ -223,6 +233,7 @@ export function formatOfflineStatus() {
   return [
     alertTitle("OFFDEX IS NOT RUNNING"),
     row("Next", bold(white("offdex start"))),
+    row("Logs", "~/.offdex/bridge.log"),
     `${S_END}`
   ].join("\n");
 }
