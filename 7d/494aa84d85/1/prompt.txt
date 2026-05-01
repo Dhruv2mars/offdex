@@ -1,0 +1,3 @@
+[$tdd](/Users/dhruv2mars/.agents/skills/tdd/SKILL.md) [$full-output-enforcement](/Users/dhruv2mars/.agents/skills/full-output-enforcement/SKILL.md) 
+
+implement the open issue. and make sure that our offdex project is fully complete and ready for public use. everything should be working and at a state where normal users can use it without any issues and have a great experience
