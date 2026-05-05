@@ -3,6 +3,7 @@ import {
   OFFDEX_NEW_THREAD_ID,
   makeDemoWorkspaceSnapshot,
   type OffdexMachineRecord,
+  type OffdexWorkbenchInventory,
 } from "@offdex/protocol";
 import type { ManagedBridgeSession } from "../src/bridge-client";
 import {
@@ -94,6 +95,7 @@ function createFakeClient() {
   let compactedThreadId: string | null = null;
   let rollbackRequest: { threadId: string; numTurns: number } | null = null;
   let diffCwd: string | null | undefined;
+  let inventoryRequestCount = 0;
   let healthRequestCount = 0;
   let managedListRequestCount = 0;
   let failHealthRequests = 0;
@@ -133,6 +135,60 @@ function createFakeClient() {
     },
     async fetchBridgeSnapshot() {
       return snapshot;
+    },
+    async fetchBridgeInventory() {
+      inventoryRequestCount += 1;
+      return {
+        codeHome: "/Users/dhruv2mars/.codex",
+        plugins: [
+          {
+            id: "browser-use",
+            name: "Browser Use",
+            path: "/Users/dhruv2mars/.codex/plugins/browser-use",
+            enabled: true,
+            source: "local",
+          },
+        ],
+        skills: [
+          {
+            id: "tdd",
+            name: "tdd",
+            path: "/Users/dhruv2mars/.agents/skills/tdd/SKILL.md",
+            source: "agents",
+            description: "Test-driven development",
+          },
+        ],
+        mcpServers: [
+          {
+            name: "github",
+            authStatus: "oAuth",
+            toolCount: 4,
+            resourceCount: 2,
+            resourceTemplateCount: 1,
+          },
+        ],
+        automations: [],
+        config: {
+          model: "gpt-5.2",
+          modelProvider: "openai",
+          reasoningEffort: "medium",
+          sandboxMode: "danger-full-access",
+          approvalPolicy: "never",
+          webSearch: "enabled",
+        },
+        rateLimits: {
+          limitId: "plus",
+          limitName: "Plus",
+          planType: "plus",
+          primary: {
+            usedPercent: 42,
+            windowDurationMins: 300,
+            resetsAt: null,
+          },
+          secondary: null,
+          credits: null,
+        },
+      } satisfies OffdexWorkbenchInventory;
     },
     async selectBridgeRuntime(_baseUrl, preferredTarget) {
       return {
@@ -330,6 +386,9 @@ function createFakeClient() {
     },
     getDiffCwd() {
       return diffCwd;
+    },
+    getInventoryRequestCount() {
+      return inventoryRequestCount;
     },
     getSentThreadId() {
       return sentThreadId;
@@ -838,6 +897,22 @@ describe("bridge workspace controller", () => {
     });
     expect(fakeClient.getDiffCwd()).toBe("/Users/dhruv2mars/dev/github/offdex");
     expect(diff.diff).toContain("+mobile parity");
+  });
+
+  test("loads runtime inventory through the connected bridge", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    const inventory = await controller.refreshInventory();
+
+    expect(fakeClient.getInventoryRequestCount()).toBe(1);
+    expect(inventory.skills[0]?.name).toBe("tdd");
+    expect(controller.getState().inventory?.config?.model).toBe("gpt-5.2");
+    expect(controller.getState().bridgeStatus).toBe("Runtime inventory loaded.");
   });
 
   test("surfaces bridge action failures in controller status", async () => {

@@ -5,6 +5,7 @@ import {
   decodeRelayConnectionTarget,
   encodeDirectConnectionTarget,
   encodeRelayConnectionTarget,
+  fetchBridgeInventory,
   resolveManagedConnection,
   normalizeBridgeBaseUrl,
 } from "../src/bridge-client";
@@ -87,6 +88,46 @@ describe("bridge client", () => {
     expect(toBridgeLiveUrl(target)).toContain(
       "wss://relay.example.com/ws/room-123"
     );
+  });
+
+  test("fetches runtime inventory from a direct bridge", async () => {
+    const originalFetch = globalThis.fetch;
+    const requests: string[] = [];
+
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      requests.push(url);
+      if (url !== "http://127.0.0.1:42420/inventory") {
+        throw new Error(`Unexpected fetch: ${url}`);
+      }
+
+      return new Response(
+        JSON.stringify({
+          codeHome: "/Users/dhruv2mars/.codex",
+          plugins: [],
+          skills: [
+            {
+              id: "tdd",
+              name: "tdd",
+              path: "/Users/dhruv2mars/.agents/skills/tdd/SKILL.md",
+              source: "agents",
+            },
+          ],
+          mcpServers: [],
+          automations: [],
+        }),
+        { status: 200 }
+      );
+    }) as typeof fetch;
+
+    try {
+      const inventory = await fetchBridgeInventory("127.0.0.1:42420");
+
+      expect(requests).toEqual(["http://127.0.0.1:42420/inventory"]);
+      expect(inventory.skills[0]?.name).toBe("tdd");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   test("managed connection falls through to a later local url when the first probe times out", async () => {

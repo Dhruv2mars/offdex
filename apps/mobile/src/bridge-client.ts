@@ -8,6 +8,7 @@ import {
   encryptRelayPayload,
   type OffdexPairingPayload,
   type OffdexRemoteDiff,
+  type OffdexWorkbenchInventory,
   type OffdexWorkspaceSnapshot,
   type RuntimeTarget,
 } from "@offdex/protocol";
@@ -51,6 +52,7 @@ interface RelayBridgeRequest {
   id: string;
   action:
     | "health"
+    | "inventory"
     | "snapshot"
     | "runtime"
     | "turn"
@@ -453,6 +455,26 @@ export async function fetchBridgeSnapshot(baseUrl: string) {
   }
 
   return response.json() as Promise<OffdexWorkspaceSnapshot>;
+}
+
+export async function fetchBridgeInventory(baseUrl: string) {
+  const relayTarget = decodeRelayConnectionTarget(baseUrl);
+  if (relayTarget) {
+    return sendRelayProxyRequest<OffdexWorkbenchInventory>(relayTarget, {
+      id: nextRequestId("inventory"),
+      action: "inventory",
+    });
+  }
+
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/inventory`, {
+    headers: request.headers,
+  });
+  if (!response.ok) {
+    throw new Error(`Bridge inventory failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<OffdexWorkbenchInventory>;
 }
 
 export async function selectBridgeRuntime(
