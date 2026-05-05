@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.6.0",
+  "checkpoint_id": "fd5b660748fb",
+  "session_id": "019df713-04ee-7661-83c1-eb444f40e5c0",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-05T08:17:57.838188Z",
+  "branch": "feat/issue-80-mobile-account-controls",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "bedf74c0f43b",
+  "token_usage": {
+    "input_tokens": 549813,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 26813568,
+    "output_tokens": 47564,
+    "api_call_count": 220
+  },
+  "session_metrics": {
+    "turn_count": 1
+  }
+}
