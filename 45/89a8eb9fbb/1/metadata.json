@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.6.0",
+  "checkpoint_id": "4589a8eb9fbb",
+  "session_id": "019df725-7fe3-7f22-99af-5c3d2324a2f3",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-05T08:06:04.972082Z",
+  "branch": "feat/issue-79-connector-resource-explorer",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/bridge/test/codex-app-server.test.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "50c666d9076c",
+  "checkpoint_transcript_start": 273,
+  "transcript_lines_at_start": 273,
+  "token_usage": {
+    "input_tokens": 23095,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 650752,
+    "output_tokens": 1632,
+    "api_call_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-05T08:06:04.955843Z",
+    "agent_lines": 22,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 22,
+    "total_lines_changed": 22,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
