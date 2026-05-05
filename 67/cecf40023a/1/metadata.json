@@ -1,9 +1,11 @@
 {
   "cli_version": "0.6.0",
   "checkpoint_id": "67cecf40023a",
+  "session_id": "019df725-7fe3-7f22-99af-5c3d2324a2f3",
   "strategy": "manual-commit",
+  "created_at": "2026-05-05T08:10:39.077307Z",
   "branch": "feat/issue-78-runtime-readiness",
-  "checkpoints_count": 1,
+  "checkpoints_count": 0,
   "files_touched": [
     "apps/mobile/components/layout/mobile-chat-shell.tsx",
     "apps/mobile/src/bridge-workspace-controller.ts",
@@ -19,25 +21,21 @@
     "packages/protocol/src/index.ts",
     "packages/protocol/test/index.test.ts"
   ],
-  "sessions": [
-    {
-      "metadata": "/67/cecf40023a/0/metadata.json",
-      "transcript": "/67/cecf40023a/0/full.jsonl",
-      "content_hash": "/67/cecf40023a/0/content_hash.txt",
-      "prompt": "/67/cecf40023a/0/prompt.txt"
-    },
-    {
-      "metadata": "/67/cecf40023a/1/metadata.json",
-      "transcript": "/67/cecf40023a/1/full.jsonl",
-      "content_hash": "/67/cecf40023a/1/content_hash.txt",
-      "prompt": ""
-    }
-  ],
-  "token_usage": {
-    "input_tokens": 436320,
-    "cache_creation_tokens": 0,
-    "cache_read_tokens": 21381248,
-    "output_tokens": 32102,
-    "api_call_count": 159
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "50c666d9076c",
+  "checkpoint_transcript_start": 317,
+  "transcript_lines_at_start": 317,
+  "initial_attribution": {
+    "calculated_at": "2026-05-05T08:10:39.061196Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 175,
+    "human_removed": 546,
+    "total_committed": 0,
+    "total_lines_changed": 721,
+    "agent_percentage": 0,
+    "metric_version": 2
   }
 }
