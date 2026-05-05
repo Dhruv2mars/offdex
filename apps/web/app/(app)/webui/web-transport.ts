@@ -24,6 +24,7 @@ export type {
   OffdexExperimentalFeatureRecord,
   OffdexInputItem,
   OffdexMcpServerRecord,
+  OffdexMcpResourceRecord,
   OffdexModelRecord,
   OffdexPermissionReview,
   OffdexPluginRecord,

@@ -30,6 +30,7 @@ import {
   type OffdexWorkbenchInventory,
   type OffdexThreadSummary,
   normalizeOffdexRuntimeTimelineItem,
+  normalizeOffdexMcpServerRecord,
   summarizeOffdexThread,
   refreshSnapshotThreadSummaries,
   WorkspaceSnapshotStore,
@@ -2832,15 +2833,7 @@ export class CodexBridgeRuntime {
           cwd: entry.cwd,
         }))
       ),
-      mcpServers: mcpServers.map<OffdexMcpServerRecord>((server) => ({
-        name: server.name,
-        authStatus: server.authStatus ?? "unsupported",
-        toolCount: Object.keys(server.tools ?? {}).length,
-        resourceCount: Array.isArray(server.resources) ? server.resources.length : 0,
-        resourceTemplateCount: Array.isArray(server.resourceTemplates)
-          ? server.resourceTemplates.length
-          : 0,
-      })),
+      mcpServers: mcpServers.map<OffdexMcpServerRecord>((server) => normalizeOffdexMcpServerRecord(server)),
       automations: [],
       apps: apps.map<OffdexAppRecord>((app) => ({
         id: app.id,

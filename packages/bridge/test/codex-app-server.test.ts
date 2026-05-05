@@ -1000,11 +1000,20 @@ describe("codex snapshot adapter", () => {
         name: "vercel",
         authStatus: "notLoggedIn",
         tools: {
-          deploy: {},
-          logs: {},
+          deploy: { description: "Deploy project." },
+          logs: { title: "Runtime logs" },
         },
-        resources: [{}],
-        resourceTemplates: [{}, {}],
+        resources: [
+          {
+            uri: "mcp://vercel/projects/offdex",
+            name: "offdex",
+            mimeType: "application/json",
+          },
+        ],
+        resourceTemplates: [
+          { uriTemplate: "mcp://vercel/projects/{project}", name: "Project" },
+          { uriTemplate: "mcp://vercel/deployments/{id}", name: "Deployment" },
+        ],
       },
     ];
     runtime.client.readRateLimits = async () => ({
@@ -1059,9 +1068,57 @@ describe("codex snapshot adapter", () => {
     expect(inventory.mcpServers[0]).toEqual({
       name: "vercel",
       authStatus: "notLoggedIn",
+      oauthState: "disconnected",
+      canStartOauth: true,
+      unavailableReason: "loginRequired",
       toolCount: 2,
       resourceCount: 1,
       resourceTemplateCount: 2,
+      tools: [
+        {
+          name: "deploy",
+          title: null,
+          description: "Deploy project.",
+          inputSchema: null,
+          annotations: null,
+        },
+        {
+          name: "logs",
+          title: "Runtime logs",
+          description: null,
+          inputSchema: null,
+          annotations: null,
+        },
+      ],
+      resources: [
+        {
+          uri: "mcp://vercel/projects/offdex",
+          name: "offdex",
+          title: null,
+          mimeType: "application/json",
+          description: null,
+          canAttachAsContext: true,
+          attachText: "MCP resource vercel/offdex: mcp://vercel/projects/offdex",
+        },
+      ],
+      resourceTemplates: [
+        {
+          uriTemplate: "mcp://vercel/projects/{project}",
+          name: "Project",
+          title: null,
+          mimeType: null,
+          description: null,
+          canAttachAsContext: false,
+        },
+        {
+          uriTemplate: "mcp://vercel/deployments/{id}",
+          name: "Deployment",
+          title: null,
+          mimeType: null,
+          description: null,
+          canAttachAsContext: false,
+        },
+      ],
     });
     expect(inventory.rateLimits?.primary?.usedPercent).toBe(62);
     expect(inventory.experimentalFeatures?.[0]).toMatchObject({
