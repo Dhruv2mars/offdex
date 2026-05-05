@@ -1,0 +1,5 @@
+AFK repo task. Work in your forked workspace. You are not alone in codebase; do not revert edits by others, and adapt to existing changes. Use bun. Issue #75: Desktop-grade composer command surface. Inspect apps/web WebUI composer and bridge endpoints. Implement a focused vertical slice for / command palette, @ file search/context chips, or $ skill mentions based on existing support, with tests. Avoid landing page changes. Edit files directly in your workspace. Final: summary, tests run, files changed, blockers.
+
+---
+
+AFK repo task. Work in your forked workspace. You are not alone in codebase; do not revert edits by others, and adapt to existing changes. Use bun. Issue #75: Desktop-grade composer command surface. Inspect apps/web WebUI composer and bridge endpoints. Implement a focused vertical slice for / command palette, @ file search/context chips, or $ skill mentions based on existing support, with tests. Avoid landing page changes. Edit files directly in your workspace. Final: summary, tests run, files changed, blockers.
