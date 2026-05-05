@@ -1,0 +1,5 @@
+AFK repo task. Work in your forked workspace. You are not alone in codebase; do not revert edits by others, and adapt to existing changes. Use bun. Issue #78: Config requirements and runtime readiness. Inspect bridge Codex App Server capabilities and WebUI settings. Implement a focused vertical slice exposing runtime readiness/config requirements where supported and surfacing it in WebUI, with tests. Avoid landing page changes. Edit files directly in your workspace. Final: summary, tests run, files changed, blockers.
+
+---
+
+AFK repo task. Work in your forked workspace. You are not alone in codebase; do not revert edits by others, and adapt to existing changes. Use bun. Issue #78: Config requirements and runtime readiness. Inspect bridge Codex App Server capabilities and WebUI settings. Implement a focused vertical slice exposing runtime readiness/config requirements where supported and surfacing it in WebUI, with tests. Avoid landing page changes. Edit files directly in your workspace. Final: summary, tests run, files changed, blockers.
