@@ -2,23 +2,29 @@ import {
   decodePairingUri,
   type OffdexMachineRecord,
   type OffdexPairingPayload,
+  type OffdexRemoteDiff,
   type OffdexRuntimeAccount,
   type OffdexWorkspaceSnapshot,
   type RuntimeTarget,
 } from "@offdex/protocol";
 import {
+  archiveBridgeThread,
   claimManagedPairing,
+  compactBridgeThread,
   decodeRelayConnectionTarget,
   encodeRelayConnectionTarget,
   fetchBridgeHealth,
   fetchBridgeSnapshot,
+  fetchRemoteDiff,
   interruptBridgeTurn,
   listManagedMachines,
   normalizeBridgeBaseUrl,
   resolveManagedConnection,
+  rollbackBridgeThread,
   sendBridgeTurn,
   selectBridgeRuntime,
   subscribeToBridgeSnapshots,
+  unarchiveBridgeThread,
   type BridgeHealth,
   type ManagedBridgeSession,
 } from "./bridge-client";
@@ -50,6 +56,24 @@ export interface BridgeClient {
     baseUrl: string,
     threadId: string
   ): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
+  archiveBridgeThread(
+    baseUrl: string,
+    threadId: string
+  ): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
+  unarchiveBridgeThread(
+    baseUrl: string,
+    threadId: string
+  ): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
+  compactBridgeThread(
+    baseUrl: string,
+    threadId: string
+  ): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
+  rollbackBridgeThread(
+    baseUrl: string,
+    threadId: string,
+    numTurns: number
+  ): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
+  fetchRemoteDiff(baseUrl: string, cwd?: string | null): Promise<OffdexRemoteDiff>;
   subscribeToBridgeSnapshots(
     baseUrl: string,
     handlers: {
@@ -101,6 +125,11 @@ const defaultClient: BridgeClient = {
   selectBridgeRuntime,
   sendBridgeTurn,
   interruptBridgeTurn,
+  archiveBridgeThread,
+  unarchiveBridgeThread,
+  compactBridgeThread,
+  rollbackBridgeThread,
+  fetchRemoteDiff,
   subscribeToBridgeSnapshots,
   claimManagedPairing,
   listManagedMachines,
@@ -523,6 +552,74 @@ export class BridgeWorkspaceController {
     }
   }
 
+  async archiveThread(threadId: string) {
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Archiving thread..." });
+    try {
+      const response = await this.#client.archiveBridgeThread(connectionTarget, threadId);
+      this.#applyBridgeSnapshot(response.snapshot, "Thread archived.");
+      return this.getState();
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async unarchiveThread(threadId: string) {
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Restoring thread..." });
+    try {
+      const response = await this.#client.unarchiveBridgeThread(connectionTarget, threadId);
+      this.#applyBridgeSnapshot(response.snapshot, "Thread restored.");
+      return this.getState();
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async compactThread(threadId: string) {
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Compacting thread..." });
+    try {
+      const response = await this.#client.compactBridgeThread(connectionTarget, threadId);
+      this.#applyBridgeSnapshot(response.snapshot, "Thread compact requested.");
+      return this.getState();
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async rollbackThread(threadId: string, numTurns: number) {
+    if (!Number.isInteger(numTurns) || numTurns < 1) {
+      throw new Error("Thread rollback requires at least one turn.");
+    }
+
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Rolling back thread..." });
+    try {
+      const response = await this.#client.rollbackBridgeThread(
+        connectionTarget,
+        threadId,
+        numTurns
+      );
+      this.#applyBridgeSnapshot(response.snapshot, "Thread rollback requested.");
+      return this.getState();
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async fetchRemoteDiff(cwd?: string | null) {
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Loading remote diff..." });
+    try {
+      const diff = await this.#client.fetchRemoteDiff(connectionTarget, cwd);
+      this.#setState({ bridgeStatus: diff.diff.trim() ? "Remote diff loaded." : "No remote diff." });
+      return diff;
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
   dispose() {
     this.#clearReconnectTimer();
     this.#teardownLiveSubscription();
@@ -810,6 +907,21 @@ export class BridgeWorkspaceController {
 
   #replaceSnapshot(snapshot: OffdexWorkspaceSnapshot) {
     this.#demoController.replaceSnapshot(snapshot);
+  }
+
+  #applyBridgeSnapshot(snapshot: OffdexWorkspaceSnapshot, bridgeStatus: string) {
+    this.#replaceSnapshot(snapshot);
+    this.#setState({ bridgeStatus });
+  }
+
+  #requireConnectionTarget() {
+    if (!this.#connectionTarget) {
+      const error = new Error("Connect to your Mac first.");
+      this.#setState({ bridgeStatus: error.message });
+      throw error;
+    }
+
+    return this.#connectionTarget;
   }
 
   #patchPairingProfile(

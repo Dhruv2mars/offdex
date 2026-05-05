@@ -90,6 +90,10 @@ function createFakeClient() {
   let machines = [makeManagedMachine()];
   let interruptedThreadId: string | null = null;
   let sentThreadId: string | null = null;
+  let archivedThreadId: string | null = null;
+  let compactedThreadId: string | null = null;
+  let rollbackRequest: { threadId: string; numTurns: number } | null = null;
+  let diffCwd: string | null | undefined;
   let healthRequestCount = 0;
   let managedListRequestCount = 0;
   let failHealthRequests = 0;
@@ -224,6 +228,41 @@ function createFakeClient() {
         },
       };
     },
+    async archiveBridgeThread(_baseUrl, threadId) {
+      archivedThreadId = threadId;
+      return {
+        snapshot: {
+          ...snapshot,
+          threads: snapshot.threads.filter((thread) => thread.id !== threadId),
+          archivedThreads: [
+            snapshot.threads.find((thread) => thread.id === threadId) ?? snapshot.threads[0],
+          ],
+        },
+      };
+    },
+    async unarchiveBridgeThread(_baseUrl, threadId) {
+      return {
+        snapshot: {
+          ...snapshot,
+          archivedThreads: snapshot.archivedThreads.filter((thread) => thread.id !== threadId),
+        },
+      };
+    },
+    async compactBridgeThread(_baseUrl, threadId) {
+      compactedThreadId = threadId;
+      return { snapshot };
+    },
+    async rollbackBridgeThread(_baseUrl, threadId, numTurns) {
+      rollbackRequest = { threadId, numTurns };
+      return { snapshot };
+    },
+    async fetchRemoteDiff(_baseUrl, cwd) {
+      diffCwd = cwd;
+      return {
+        sha: "abc123",
+        diff: "diff --git a/file.ts b/file.ts\n+mobile parity",
+      };
+    },
     subscribeToBridgeSnapshots(_baseUrl, handlers) {
       liveHandlers = handlers;
       return () => {
@@ -274,6 +313,18 @@ function createFakeClient() {
     },
     getInterruptedThreadId() {
       return interruptedThreadId;
+    },
+    getArchivedThreadId() {
+      return archivedThreadId;
+    },
+    getCompactedThreadId() {
+      return compactedThreadId;
+    },
+    getRollbackRequest() {
+      return rollbackRequest;
+    },
+    getDiffCwd() {
+      return diffCwd;
     },
     getSentThreadId() {
       return sentThreadId;
@@ -756,6 +807,29 @@ describe("bridge workspace controller", () => {
     expect(controller.getState().snapshot.threads[0]?.messages[0]?.body).toBe(
       "Open a brand new Codex thread."
     );
+  });
+
+  test("archives, compacts, rolls back, and reads remote diff through shared bridge endpoints", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    await controller.archiveThread("thread-foundation");
+    await controller.compactThread("thread-foundation");
+    await controller.rollbackThread("thread-foundation", 1);
+    const diff = await controller.fetchRemoteDiff("/Users/dhruv2mars/dev/github/offdex");
+
+    expect(fakeClient.getArchivedThreadId()).toBe("thread-foundation");
+    expect(fakeClient.getCompactedThreadId()).toBe("thread-foundation");
+    expect(fakeClient.getRollbackRequest()).toEqual({
+      threadId: "thread-foundation",
+      numTurns: 1,
+    });
+    expect(fakeClient.getDiffCwd()).toBe("/Users/dhruv2mars/dev/github/offdex");
+    expect(diff.diff).toContain("+mobile parity");
   });
 
   test("switches runtime through the connected bridge", async () => {

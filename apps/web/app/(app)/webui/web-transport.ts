@@ -2,9 +2,11 @@ import nacl from "tweetnacl";
 import { decodeUTF8, encodeBase64, decodeBase64, encodeUTF8 } from "tweetnacl-util";
 import {
   OFFDEX_NEW_THREAD_ID as PROTOCOL_OFFDEX_NEW_THREAD_ID,
+  type OffdexAccountLoginSession,
   type OffdexInputItem,
   type OffdexRemoteFileEntry,
   type OffdexRemoteFileMatch,
+  type OffdexRemoteDiff,
   type RuntimeTarget,
   type OffdexApprovalRequest,
   type OffdexRuntimeAccount,
@@ -13,6 +15,7 @@ import {
 } from "@offdex/protocol";
 export const OFFDEX_NEW_THREAD_ID = PROTOCOL_OFFDEX_NEW_THREAD_ID;
 export type {
+  OffdexAccountLoginSession,
   OffdexAppRecord,
   RuntimeTarget,
   OffdexAutomationRecord,
@@ -27,6 +30,7 @@ export type {
   OffdexRateLimitsSummary,
   OffdexRemoteFileEntry,
   OffdexRemoteFileMatch,
+  OffdexRemoteDiff,
   OffdexRuntimeAccount,
   OffdexSkillRecord,
   OffdexThread,
@@ -282,21 +286,28 @@ async function fetchWithTimeout(input: string, init?: RequestInit, timeoutMs = L
 async function sendRelayRequest<T>(
   target: RelayTarget,
   request:
-    | { id: string; action: "health" | "snapshot" | "inventory" }
+    | { id: string; action: "health" | "snapshot" | "inventory" | "account/logout" }
+    | { id: string; action: "account/login/start"; type?: "chatgpt" }
+    | { id: string; action: "account/login/cancel"; loginId: string }
     | { id: string; action: "config/write"; keyPath: string; value: unknown; filePath?: string | null }
+    | { id: string; action: "config/batchWrite"; edits: Array<{ keyPath: string; value: unknown }>; filePath?: string | null }
+    | { id: string; action: "experimental-feature/set"; name: string; enabled: boolean }
     | { id: string; action: "skills/config/write"; name?: string | null; path?: string | null; enabled: boolean }
     | { id: string; action: "plugin/install"; marketplacePath: string; pluginName: string }
     | { id: string; action: "plugin/uninstall"; pluginId: string }
+    | { id: string; action: "git/diff-remote"; cwd?: string | null }
     | { id: string; action: "files/list"; path: string }
     | { id: string; action: "files/search"; query: string; roots: string[] }
     | { id: string; action: "runtime"; preferredTarget: RuntimeTarget }
     | { id: string; action: "turn"; threadId?: string; body?: string; inputs?: OffdexInputItem[] }
+    | { id: string; action: "turn/steer"; threadId: string; body: string; inputs?: OffdexInputItem[] }
     | { id: string; action: "interrupt"; threadId?: string }
     | { id: string; action: "thread/rename"; threadId: string; name: string }
     | { id: string; action: "thread/fork"; threadId: string }
     | { id: string; action: "thread/archive"; threadId: string }
     | { id: string; action: "thread/unarchive"; threadId: string }
     | { id: string; action: "thread/compact"; threadId: string }
+    | { id: string; action: "thread/rollback"; threadId: string; numTurns: number }
     | { id: string; action: "review/start"; threadId: string }
     | { id: string; action: "mcp/oauth/login"; name: string }
     | {
@@ -392,6 +403,52 @@ export async function fetchBridgeInventory(target: string) {
   return fetchJson<OffdexWorkbenchInventory>(`${target}/inventory`);
 }
 
+export async function sendBridgeAccountLoginStart(target: string, type: "chatgpt" = "chatgpt") {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ session: OffdexAccountLoginSession }>(relayTarget, {
+      id: `account-login-start-${Date.now()}`,
+      action: "account/login/start",
+      type,
+    });
+  }
+  return fetchJson<{ session: OffdexAccountLoginSession }>(`${target}/account/login/start`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ type }),
+  });
+}
+
+export async function sendBridgeAccountLoginCancel(target: string, loginId: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ ok: true }>(relayTarget, {
+      id: `account-login-cancel-${Date.now()}`,
+      action: "account/login/cancel",
+      loginId,
+    });
+  }
+  return fetchJson<{ ok: true }>(`${target}/account/login/cancel`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ loginId }),
+  });
+}
+
+export async function sendBridgeAccountLogout(target: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `account-logout-${Date.now()}`,
+      action: "account/logout",
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/account/logout`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+  });
+}
+
 export async function sendBridgeConfigWrite(
   target: string,
   input: { keyPath: string; value: unknown; filePath?: string | null }
@@ -410,6 +467,43 @@ export async function sendBridgeConfigWrite(
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
+  });
+}
+
+export async function sendBridgeConfigBatchWrite(
+  target: string,
+  input: { edits: Array<{ keyPath: string; value: unknown }>; filePath?: string | null }
+) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ inventory: OffdexWorkbenchInventory }>(relayTarget, {
+      id: `config-batch-write-${Date.now()}`,
+      action: "config/batchWrite",
+      edits: input.edits,
+      filePath: input.filePath ?? null,
+    });
+  }
+  return fetchJson<{ inventory: OffdexWorkbenchInventory }>(`${target}/config/batch`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function sendBridgeExperimentalFeatureSet(target: string, name: string, enabled: boolean) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ inventory: OffdexWorkbenchInventory }>(relayTarget, {
+      id: `experimental-feature-${Date.now()}`,
+      action: "experimental-feature/set",
+      name,
+      enabled,
+    });
+  }
+  return fetchJson<{ inventory: OffdexWorkbenchInventory }>(`${target}/experimental-features`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name, enabled }),
   });
 }
 
@@ -502,6 +596,20 @@ export async function searchBridgeFiles(target: string, query: string, roots: st
   return fetchJson<{ files: OffdexRemoteFileMatch[] }>(url.toString());
 }
 
+export async function fetchBridgeGitDiffRemote(target: string, cwd: string) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<OffdexRemoteDiff>(relayTarget, {
+      id: `git-diff-remote-${Date.now()}`,
+      action: "git/diff-remote",
+      cwd,
+    });
+  }
+  const url = new URL(`${target}/git/diff-remote`);
+  url.searchParams.set("cwd", cwd);
+  return fetchJson<OffdexRemoteDiff>(url.toString());
+}
+
 export async function sendBridgeRuntime(target: string, preferredTarget: RuntimeTarget) {
   const relayTarget = decodeRelayConnectionTarget(target);
   if (relayTarget) {
@@ -535,6 +643,29 @@ export async function sendBridgeTurn(
     });
   }
   return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/turn`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId, body, inputs }),
+  });
+}
+
+export async function sendBridgeSteer(
+  target: string,
+  threadId: string,
+  body: string,
+  inputs?: OffdexInputItem[]
+) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `turn-steer-${Date.now()}`,
+      action: "turn/steer",
+      threadId,
+      body,
+      inputs,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/turn/steer`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ threadId, body, inputs }),
@@ -661,6 +792,23 @@ export async function sendBridgeThreadCompact(target: string, threadId: string) 
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ threadId }),
+  });
+}
+
+export async function sendBridgeThreadRollback(target: string, threadId: string, numTurns: number) {
+  const relayTarget = decodeRelayConnectionTarget(target);
+  if (relayTarget) {
+    return sendRelayRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: `thread-rollback-${Date.now()}`,
+      action: "thread/rollback",
+      threadId,
+      numTurns,
+    });
+  }
+  return fetchJson<{ snapshot: OffdexWorkspaceSnapshot }>(`${target}/thread/rollback`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ threadId, numTurns }),
   });
 }
 

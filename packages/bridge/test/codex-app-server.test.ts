@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { WorkspaceSnapshotStore, makeDemoWorkspaceSnapshot } from "@offdex/protocol";
 import {
+  CodexAppServerClient,
   CodexBridgeRuntime,
   NEW_THREAD_ID,
   applyCodexNotification,
@@ -154,6 +155,28 @@ describe("codex snapshot adapter", () => {
               summary: "Waiting for approval input",
             },
             {
+              type: "mcp_tool_call_output",
+              id: "tool-2",
+              call_id: "call-github-1",
+              server: "github",
+              name: "list_issues",
+              output: [{ number: 76, title: "Timeline fidelity" }],
+              api_token: "secret-token",
+            },
+            {
+              type: "operation_progress",
+              id: "progress-1",
+              label: "Applying patch",
+              completed: 1,
+              total: 2,
+            },
+            {
+              type: "tool_error",
+              id: "error-1",
+              title: "Connector failed",
+              error: "Forbidden",
+            },
+            {
               type: "read",
               id: "file-1",
               path: "/Users/dhruv2mars/dev/github/offdex/README.md",
@@ -199,18 +222,42 @@ describe("codex snapshot adapter", () => {
     });
     expect(items[2]).toMatchObject({
       type: "toolActivity",
+      toolName: "list_issues",
+      source: "mcp",
+      phase: "result",
+      callId: "call-github-1",
+      output: "Timeline fidelity",
+      rawMetadata: {
+        raw: {
+          api_token: "[redacted]",
+        },
+      },
+    });
+    expect(items[3]).toMatchObject({
+      type: "progressUpdate",
+      label: "Applying patch",
+      completed: 1,
+      total: 2,
+    });
+    expect(items[4]).toMatchObject({
+      type: "runtimeError",
+      title: "Connector failed",
+      message: "Forbidden",
+    });
+    expect(items[5]).toMatchObject({
+      type: "toolActivity",
       toolName: "Read file",
       source: "file",
       output: "# Offdex",
     });
-    expect(items[3]).toMatchObject({
+    expect(items[6]).toMatchObject({
       type: "tokenUsage",
       planType: "plus",
       primaryPercent: 12,
       secondaryPercent: 48,
       totalTokens: 2048,
     });
-    expect(items[4]).toMatchObject({
+    expect(items[7]).toMatchObject({
       type: "taskLifecycle",
       label: "Task complete",
       status: "completed",
@@ -678,6 +725,115 @@ describe("codex snapshot adapter", () => {
     });
   });
 
+  test("maps account auth, steer, rewind, and git diff client requests to the current codex protocol", async () => {
+    const client = new CodexAppServerClient();
+    const calls: Array<{ method: string; params: unknown }> = [];
+
+    client.ensureConnected = async () => {};
+    client.request = async (method: string, params: unknown) => {
+      calls.push({ method, params });
+      if (method === "account/login/start") {
+        return {
+          type: "chatgpt",
+          loginId: "login-123",
+          authUrl: "https://chatgpt.com/auth",
+        };
+      }
+      if (method === "gitDiffToRemote") {
+        return {
+          sha: "abc123def456",
+          diff: "diff --git a/app.ts b/app.ts\n+ship",
+        };
+      }
+      return {};
+    };
+
+    const session = await client.startAccountLogin();
+    await client.steerTurn("thread-1", "turn-1", [{ type: "text", text: "Focus on the error log." }]);
+    await client.rollbackThread("thread-1", 2);
+    await client.cancelAccountLogin("login-123");
+    await client.logoutAccount();
+    await client.setExperimentalFeatureEnablement({ remote_exec: true });
+    const diff = await client.readGitDiffToRemote("/Users/dhruv2mars/dev/github/offdex");
+
+    expect(session).toEqual({
+      type: "chatgpt",
+      loginId: "login-123",
+      authUrl: "https://chatgpt.com/auth",
+    });
+    expect(diff.sha).toBe("abc123def456");
+    expect(diff.diff).toContain("+ship");
+    expect(calls).toEqual([
+      {
+        method: "account/login/start",
+        params: { type: "chatgpt" },
+      },
+      {
+        method: "turn/steer",
+        params: {
+          threadId: "thread-1",
+          expectedTurnId: "turn-1",
+          input: [{ type: "text", text: "Focus on the error log." }],
+        },
+      },
+      {
+        method: "thread/rollback",
+        params: { threadId: "thread-1", numTurns: 2 },
+      },
+      {
+        method: "account/login/cancel",
+        params: { loginId: "login-123" },
+      },
+      {
+        method: "account/logout",
+        params: undefined,
+      },
+      {
+        method: "experimentalFeature/enablement/set",
+        params: { enablement: { remote_exec: true } },
+      },
+      {
+        method: "gitDiffToRemote",
+        params: { cwd: "/Users/dhruv2mars/dev/github/offdex" },
+      },
+    ]);
+  });
+
+  test("clears the stored account state when runtime logout succeeds", async () => {
+    const store = new WorkspaceSnapshotStore(
+      makeDemoWorkspaceSnapshot("cli", {
+        state: "paired",
+      })
+    );
+    store.updateAccount({
+      id: "user-123",
+      email: "dhruv@example.com",
+      name: "Dhruv",
+      planType: "plus",
+      isAuthenticated: true,
+    });
+
+    const runtime = new CodexBridgeRuntime({
+      runtimeTarget: "cli",
+      workspaceStore: store,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+    });
+
+    runtime.client.ensureConnected = async () => {};
+    runtime.client.subscribe = () => () => {};
+    runtime.client.logoutAccount = async () => ({});
+
+    const snapshot = await runtime.logoutAccount();
+
+    expect(snapshot.account).toEqual({
+      id: null,
+      email: null,
+      name: null,
+      planType: null,
+      isAuthenticated: false,
+    });
+  });
+
   test("moves a turn onto a fresh thread when codex rejects a stale thread id", async () => {
     const store = new WorkspaceSnapshotStore(
       makeDemoWorkspaceSnapshot("cli", {
@@ -994,6 +1150,140 @@ describe("codex snapshot adapter", () => {
     ]);
     expect(configResult.config?.model).toBe("gpt-5.4-mini");
     expect(inventory.skills[0]?.enabled).toBe(true);
+  });
+
+  test("surfaces runtime readiness blockers from config requirements and auth status", async () => {
+    const store = new WorkspaceSnapshotStore(
+      makeDemoWorkspaceSnapshot("cli", {
+        state: "paired",
+      })
+    );
+    const runtime = new CodexBridgeRuntime({
+      runtimeTarget: "cli",
+      workspaceStore: store,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+    });
+
+    runtime.client.ensureConnected = async () => {};
+    runtime.client.subscribe = () => () => {};
+    runtime.client.subscribeToServerRequests = () => () => {};
+    runtime.client.listApps = async () => [];
+    runtime.client.listModels = async () => [];
+    runtime.client.readConfig = async () => ({
+      model: "gpt-5.4",
+      model_provider: "openai",
+      model_reasoning_effort: "high",
+      sandbox_mode: "danger-full-access",
+      approval_policy: "never",
+      web_search: "live",
+    });
+    runtime.client.readConfigRequirements = async () => ({
+      allowedApprovalPolicies: ["on-request"],
+      allowedSandboxModes: ["workspace-write"],
+      allowedWebSearchModes: ["cached"],
+      featureRequirements: {
+        experimental_guest_auth: false,
+      },
+      enforceResidency: "us",
+    });
+    runtime.client.readAuthStatus = async () => ({
+      authMethod: null,
+      requiresOpenaiAuth: true,
+    });
+    runtime.client.readAccount = async () => ({
+      id: null,
+      email: null,
+      name: null,
+      planType: null,
+      isAuthenticated: false,
+    });
+    runtime.client.listPlugins = async () => [];
+    runtime.client.listSkills = async () => [];
+
+    const inventory = await runtime.readWorkbenchInventory();
+
+    expect(inventory.runtimeReadiness?.status).toBe("blocked");
+    expect(inventory.runtimeReadiness?.requirements).toMatchObject({
+      allowedApprovalPolicies: ["on-request"],
+      allowedSandboxModes: ["workspace-write"],
+      allowedWebSearchModes: ["cached"],
+      enforceResidency: "us",
+    });
+    expect(inventory.runtimeReadiness?.issues.map((issue) => issue.id)).toEqual(
+      expect.arrayContaining([
+        "credentials.openai",
+        "provider.openai.auth",
+        "config.approval_policy",
+        "config.sandbox_mode",
+        "config.web_search",
+        "config.residency",
+      ])
+    );
+    expect(inventory.runtimeReadiness?.issues.find((issue) => issue.id === "credentials.openai")?.action).toBe(
+      "Sign in to ChatGPT on the connected machine."
+    );
+  });
+
+  test("writes batch runtime config through codex when supported", async () => {
+    const store = new WorkspaceSnapshotStore(
+      makeDemoWorkspaceSnapshot("cli", {
+        state: "paired",
+      })
+    );
+    const runtime = new CodexBridgeRuntime({
+      runtimeTarget: "cli",
+      workspaceStore: store,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+    });
+    const calls: string[] = [];
+    let currentConfig = {
+      model: "gpt-5.4",
+      model_provider: "openai",
+      model_reasoning_effort: "high",
+      sandbox_mode: "workspace-write",
+      approval_policy: "on-request",
+      web_search: "cached",
+    };
+
+    runtime.client.ensureConnected = async () => {};
+    runtime.client.subscribe = () => () => {};
+    runtime.client.subscribeToServerRequests = () => () => {};
+    runtime.client.writeConfigValues = async (edits) => {
+      calls.push(edits.map((edit) => `${edit.keyPath}:${String(edit.value)}`).join(","));
+      currentConfig = {
+        ...currentConfig,
+        ...Object.fromEntries(edits.map((edit) => [edit.keyPath, edit.value])),
+      };
+      return {
+        filePath: "/Users/dhruv2mars/.codex/config.toml",
+        status: "updated",
+        version: "2",
+      };
+    };
+    runtime.client.listApps = async () => [];
+    runtime.client.listModels = async () => [];
+    runtime.client.readConfig = async () => currentConfig;
+    runtime.client.readConfigRequirements = async () => null;
+    runtime.client.readAuthStatus = async () => ({ authMethod: "chatgpt", requiresOpenaiAuth: false });
+    runtime.client.readAccount = async () => ({
+      id: "acct-1",
+      email: "dev@example.com",
+      name: "Dev",
+      planType: "plus",
+      isAuthenticated: true,
+    });
+    runtime.client.listPlugins = async () => [];
+    runtime.client.listSkills = async () => [];
+
+    const inventory = await runtime.writeConfigValues([
+      { keyPath: "approval_policy", value: "never" },
+      { keyPath: "web_search", value: "live" },
+    ]);
+
+    expect(calls).toEqual(["approval_policy:never,web_search:live"]);
+    expect(inventory.config?.approvalPolicy).toBe("never");
+    expect(inventory.config?.webSearch).toBe("live");
+    expect(inventory.runtimeReadiness?.status).toBe("ready");
   });
 
   test("installs and uninstalls plugins through codex", async () => {

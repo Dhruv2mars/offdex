@@ -74,6 +74,35 @@ export interface OffdexConfigSummary {
   webSearch: string | null;
 }
 
+export interface OffdexConfigRequirements {
+  allowedApprovalPolicies: string[] | null;
+  allowedSandboxModes: string[] | null;
+  allowedWebSearchModes: string[] | null;
+  featureRequirements: Record<string, boolean> | null;
+  enforceResidency: string | null;
+}
+
+export interface OffdexRuntimeAuthStatus {
+  authMethod: string | null;
+  requiresOpenaiAuth: boolean | null;
+}
+
+export interface OffdexRuntimeReadinessIssue {
+  id: string;
+  severity: "blocker" | "warning";
+  title: string;
+  detail: string;
+  action: string;
+}
+
+export interface OffdexRuntimeReadiness {
+  status: "ready" | "blocked" | "attention" | "unknown";
+  updatedAt: string;
+  requirements: OffdexConfigRequirements | null;
+  authStatus: OffdexRuntimeAuthStatus | null;
+  issues: OffdexRuntimeReadinessIssue[];
+}
+
 export interface OffdexRateLimitWindow {
   usedPercent: number | null;
   windowDurationMins: number | null;
@@ -103,6 +132,17 @@ export interface OffdexExperimentalFeatureRecord {
   announcement: string | null;
   enabled: boolean;
   defaultEnabled: boolean;
+}
+
+export interface OffdexAccountLoginSession {
+  type: string;
+  loginId: string;
+  authUrl: string;
+}
+
+export interface OffdexRemoteDiff {
+  sha: string | null;
+  diff: string;
 }
 
 export interface OffdexRemoteFileEntry {
@@ -149,6 +189,8 @@ export type OffdexTimelineItem =
       type: "plan";
       id: string;
       text: string;
+      status?: "pending" | "in_progress" | "completed" | "failed" | "interrupted";
+      rawMetadata?: OffdexTimelineMetadata;
     }
   | {
       type: "taskLifecycle";
@@ -156,6 +198,17 @@ export type OffdexTimelineItem =
       label: string;
       status: "pending" | "in_progress" | "completed" | "failed" | "interrupted";
       detail: string | null;
+      rawMetadata?: OffdexTimelineMetadata;
+    }
+  | {
+      type: "progressUpdate";
+      id: string;
+      label: string;
+      status: "pending" | "in_progress" | "completed" | "failed" | "interrupted";
+      detail: string | null;
+      completed: number | null;
+      total: number | null;
+      rawMetadata?: OffdexTimelineMetadata;
     }
   | {
       type: "toolActivity";
@@ -163,9 +216,12 @@ export type OffdexTimelineItem =
       toolName: string;
       status: "pending" | "in_progress" | "completed" | "failed" | "interrupted";
       source: "tool" | "search" | "file" | "mcp" | "unknown";
+      phase?: "call" | "result" | "progress" | "error";
+      callId?: string | null;
       summary: string | null;
       input: string | null;
       output: string | null;
+      rawMetadata?: OffdexTimelineMetadata;
     }
   | {
       type: "tokenUsage";
@@ -175,6 +231,7 @@ export type OffdexTimelineItem =
       primaryPercent: number | null;
       secondaryPercent: number | null;
       totalTokens: number | null;
+      rawMetadata?: OffdexTimelineMetadata;
     }
   | {
       type: "commandExecution";
@@ -187,6 +244,7 @@ export type OffdexTimelineItem =
       durationMs: number | null;
       source?: string | null;
       processId?: string | null;
+      rawMetadata?: OffdexTimelineMetadata;
       actions?: Array<{
         type: string;
         command?: string;
@@ -195,11 +253,391 @@ export type OffdexTimelineItem =
       }>;
     }
   | {
+      type: "runtimeError";
+      id: string;
+      title: string;
+      message: string;
+      source: "tool" | "command" | "mcp" | "connector" | "runtime" | "unknown";
+      rawMetadata?: OffdexTimelineMetadata;
+    }
+  | {
       type: "unknown";
       id: string;
       label: string;
       data: string;
+      rawMetadata?: OffdexTimelineMetadata;
     };
+
+export interface OffdexTimelineMetadata {
+  eventType: string;
+  callId: string | null;
+  connectorName: string | null;
+  mcpServer: string | null;
+  raw: Record<string, unknown>;
+}
+
+export type OffdexRuntimeTimelineInput = {
+  type: string;
+  id: string;
+  [key: string]: unknown;
+};
+
+export type OffdexTimelineStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "interrupted";
+
+const SENSITIVE_METADATA_KEY_PATTERN =
+  /(?:^|[_-])(token|secret|password|passwd|authorization|auth|cookie|api[_-]?key|access[_-]?key|refresh[_-]?token)(?:$|[_-])/i;
+
+function extractScalarText(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function extractText(value: unknown): string | null {
+  const scalar = extractScalarText(value);
+  if (scalar) {
+    return scalar;
+  }
+
+  if (Array.isArray(value)) {
+    const joined = value
+      .map((entry) => extractText(entry))
+      .filter((entry): entry is string => Boolean(entry))
+      .join("\n")
+      .trim();
+    return joined.length > 0 ? joined : null;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of [
+    "text",
+    "message",
+    "summary",
+    "content",
+    "output",
+    "result",
+    "query",
+    "path",
+    "command",
+    "name",
+    "title",
+    "detail",
+  ]) {
+    const nested = extractText(record[key]);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  return JSON.stringify(value, null, 2);
+}
+
+function firstText(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = extractText(record[key]);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function firstNumber(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function sanitizeTimelineMetadataValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeTimelineMetadataValue);
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
+      key,
+      SENSITIVE_METADATA_KEY_PATTERN.test(key) ? "[redacted]" : sanitizeTimelineMetadataValue(nestedValue),
+    ])
+  );
+}
+
+export function sanitizeOffdexTimelineMetadata(record: Record<string, unknown>) {
+  return sanitizeTimelineMetadataValue(record) as Record<string, unknown>;
+}
+
+export function normalizeOffdexTimelineStatus(
+  value: unknown,
+  fallback: OffdexTimelineStatus
+): OffdexTimelineStatus {
+  if (
+    value === "pending" ||
+    value === "in_progress" ||
+    value === "completed" ||
+    value === "failed" ||
+    value === "interrupted"
+  ) {
+    return value;
+  }
+
+  if (value === "inProgress" || value === "running" || value === "started") {
+    return "in_progress";
+  }
+
+  if (value === "done" || value === "success" || value === "succeeded") {
+    return "completed";
+  }
+
+  if (value === "error" || value === "errored") {
+    return "failed";
+  }
+
+  if (value === "cancelled" || value === "canceled" || value === "stopped") {
+    return "interrupted";
+  }
+
+  return fallback;
+}
+
+function timelineMetadata(record: Record<string, unknown>): OffdexTimelineMetadata {
+  return {
+    eventType: extractScalarText(record.type) ?? "unknown",
+    callId: firstText(record, ["call_id", "callId", "tool_call_id", "toolCallId", "id"]),
+    connectorName: firstText(record, ["connector", "connector_name", "connectorName", "app", "appName"]),
+    mcpServer: firstText(record, ["server", "server_name", "serverName", "mcp_server", "mcpServer"]),
+    raw: sanitizeOffdexTimelineMetadata(record),
+  };
+}
+
+function toolSourceForEvent(itemType: string, record: Record<string, unknown>) {
+  const declaredSource = firstText(record, ["source", "category"]);
+  if (declaredSource === "search" || declaredSource === "file" || declaredSource === "mcp" || declaredSource === "tool") {
+    return declaredSource;
+  }
+  if (itemType === "web_search_call" || itemType === "search" || itemType.includes("browser")) {
+    return "search";
+  }
+  if (itemType === "read" || itemType === "patch_apply_end" || itemType.includes("file")) {
+    return "file";
+  }
+  if (itemType.includes("mcp")) {
+    return "mcp";
+  }
+  return "tool";
+}
+
+function toolPhaseForEvent(itemType: string, record: Record<string, unknown>) {
+  const declaredPhase = firstText(record, ["phase"]);
+  if (declaredPhase === "call" || declaredPhase === "result" || declaredPhase === "progress" || declaredPhase === "error") {
+    return declaredPhase;
+  }
+  if (itemType.includes("error") || record.error) {
+    return "error";
+  }
+  if (itemType.endsWith("_output") || itemType.endsWith("_result") || itemType.endsWith("_end")) {
+    return "result";
+  }
+  if (itemType.includes("progress") || itemType.includes("delta")) {
+    return "progress";
+  }
+  return "call";
+}
+
+export function normalizeOffdexRuntimeTimelineItem(
+  item: OffdexRuntimeTimelineInput
+): OffdexTimelineItem | null {
+  const record = item as Record<string, unknown>;
+  const itemType = item.type;
+  const rawMetadata = timelineMetadata(record);
+
+  if (itemType === "task_started" || itemType === "task_complete") {
+    return {
+      type: "taskLifecycle",
+      id: item.id,
+      label: itemType === "task_started" ? "Task started" : "Task complete",
+      status: itemType === "task_started" ? "in_progress" : "completed",
+      detail:
+        firstText(record, ["last_agent_message", "message", "detail"]) ??
+        firstText(record, ["turn_id", "turnId", "started_at", "completed_at"]),
+      rawMetadata,
+    };
+  }
+
+  if (itemType === "plan_update" || itemType === "plan") {
+    const text = firstText(record, ["text", "plan", "message", "summary"]);
+    if (text) {
+      return {
+        type: "plan",
+        id: item.id,
+        text,
+        status: normalizeOffdexTimelineStatus(record.status, "in_progress"),
+        rawMetadata,
+      };
+    }
+  }
+
+  if (itemType.includes("progress") || itemType === "task_delta" || itemType === "operation_update") {
+    return {
+      type: "progressUpdate",
+      id: item.id,
+      label: firstText(record, ["label", "title", "name"]) ?? "Progress update",
+      status: normalizeOffdexTimelineStatus(record.status, "in_progress"),
+      detail: firstText(record, ["detail", "message", "summary"]),
+      completed: firstNumber(record, ["completed", "current", "done"]),
+      total: firstNumber(record, ["total", "expected"]),
+      rawMetadata,
+    };
+  }
+
+  if (itemType === "token_count") {
+    const rateLimits =
+      record.rate_limits && typeof record.rate_limits === "object"
+        ? (record.rate_limits as Record<string, unknown>)
+        : null;
+    const info = record.info && typeof record.info === "object" ? (record.info as Record<string, unknown>) : null;
+    const totalUsage =
+      info?.total_token_usage && typeof info.total_token_usage === "object"
+        ? (info.total_token_usage as Record<string, unknown>)
+        : null;
+    const primary =
+      rateLimits?.primary && typeof rateLimits.primary === "object"
+        ? (rateLimits.primary as Record<string, unknown>)
+        : null;
+    const secondary =
+      rateLimits?.secondary && typeof rateLimits.secondary === "object"
+        ? (rateLimits.secondary as Record<string, unknown>)
+        : null;
+    const primaryPercent = firstNumber(primary ?? {}, ["used_percent"]);
+    const secondaryPercent = firstNumber(secondary ?? {}, ["used_percent"]);
+    const totalTokens = firstNumber(totalUsage ?? {}, ["total_tokens"]);
+    const parts = [
+      typeof totalTokens === "number" ? `${totalTokens.toLocaleString()} tokens` : null,
+      typeof primaryPercent === "number" ? `${primaryPercent}% primary` : null,
+      typeof secondaryPercent === "number" ? `${secondaryPercent}% weekly` : null,
+      extractScalarText(rateLimits?.plan_type) ? `${extractScalarText(rateLimits?.plan_type)} plan` : null,
+    ].filter((entry): entry is string => Boolean(entry));
+
+    return {
+      type: "tokenUsage",
+      id: item.id,
+      summary: parts.join(" · ") || "Token usage update",
+      planType: extractScalarText(rateLimits?.plan_type),
+      primaryPercent,
+      secondaryPercent,
+      totalTokens,
+      rawMetadata,
+    };
+  }
+
+  if (
+    itemType === "function_call" ||
+    itemType === "function_call_output" ||
+    itemType === "custom_tool_call" ||
+    itemType === "custom_tool_call_output" ||
+    itemType === "mcp_tool_call" ||
+    itemType === "mcp_tool_call_output" ||
+    itemType === "connector_call" ||
+    itemType === "connector_call_output" ||
+    itemType === "web_search_call" ||
+    itemType === "browser_tool_call" ||
+    itemType === "browser_tool_call_output" ||
+    itemType === "search" ||
+    itemType === "read" ||
+    itemType === "patch_apply_end"
+  ) {
+    const phase = toolPhaseForEvent(itemType, record);
+    const source = toolSourceForEvent(itemType, record);
+    const toolName =
+      firstText(record, ["name", "tool_name", "toolName", "title"]) ??
+      (itemType === "web_search_call"
+        ? "Web search"
+        : itemType === "search"
+          ? "Search"
+          : itemType === "read"
+            ? "Read file"
+            : itemType === "patch_apply_end"
+              ? "Apply patch"
+              : itemType.includes("browser")
+                ? "Browser"
+                : itemType.includes("connector")
+                  ? "Connector"
+                  : itemType === "custom_tool_call" || itemType === "custom_tool_call_output"
+                    ? "Custom tool"
+                    : "Tool call");
+
+    return {
+      type: "toolActivity",
+      id: item.id,
+      toolName,
+      status: normalizeOffdexTimelineStatus(
+        record.status,
+        phase === "result" ? "completed" : phase === "error" ? "failed" : "in_progress"
+      ),
+      source,
+      phase,
+      callId: rawMetadata.callId,
+      summary:
+        firstText(record, ["summary", "message", "title"]) ??
+        (itemType === "patch_apply_end"
+          ? "Patch application result"
+          : phase === "result"
+            ? "Tool result"
+            : phase === "error"
+              ? "Tool error"
+              : "Tool activity"),
+      input: firstText(record, ["arguments", "args", "input", "query", "path", "command"]),
+      output: firstText(record, ["output", "result", "content", "text", "message", "diff", "error"]),
+      rawMetadata,
+    };
+  }
+
+  if (itemType.includes("error") || record.error) {
+    const message = firstText(record, ["error", "message", "detail"]) ?? "Runtime error";
+    return {
+      type: "runtimeError",
+      id: item.id,
+      title: firstText(record, ["title", "name"]) ?? "Runtime error",
+      message,
+      source: itemType.includes("mcp")
+        ? "mcp"
+        : itemType.includes("connector")
+          ? "connector"
+          : itemType.includes("command")
+            ? "command"
+            : itemType.includes("tool")
+              ? "tool"
+              : "runtime",
+      rawMetadata,
+    };
+  }
+
+  return null;
+}
 
 export interface OffdexTurn {
   id: string;
@@ -289,6 +727,7 @@ export interface OffdexWorkbenchInventory {
   apps?: OffdexAppRecord[];
   models?: OffdexModelRecord[];
   config?: OffdexConfigSummary | null;
+  runtimeReadiness?: OffdexRuntimeReadiness | null;
   rateLimits?: OffdexRateLimitsSummary | null;
   experimentalFeatures?: OffdexExperimentalFeatureRecord[];
 }

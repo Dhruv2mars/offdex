@@ -9,12 +9,14 @@ import {
   createRelayAuthToken,
   decryptRelayPayload,
   encryptRelayPayload,
+  type OffdexAccountLoginSession,
   type OffdexAutomationRecord,
   type OffdexConfigSummary,
   type OffdexInputItem,
   type OffdexPluginRecord,
   type OffdexRemoteFileEntry,
   type OffdexRemoteFileMatch,
+  type OffdexRemoteDiff,
   type OffdexRuntimeAccount,
   type OffdexSkillRecord,
   type OffdexWorkbenchInventory,
@@ -163,20 +165,28 @@ type RelayBridgeRequest =
   | { id: string; action: "health" }
   | { id: string; action: "snapshot" }
   | { id: string; action: "inventory" }
+  | { id: string; action: "account/login/start"; type?: "chatgpt" }
+  | { id: string; action: "account/login/cancel"; loginId: string }
+  | { id: string; action: "account/logout" }
   | { id: string; action: "config/write"; keyPath: string; value: unknown; filePath?: string | null }
+  | { id: string; action: "config/batchWrite"; edits: Array<{ keyPath: string; value: unknown }>; filePath?: string | null }
+  | { id: string; action: "experimental-feature/set"; name: string; enabled: boolean }
   | { id: string; action: "skills/config/write"; name?: string | null; path?: string | null; enabled: boolean }
   | { id: string; action: "plugin/install"; marketplacePath: string; pluginName: string }
   | { id: string; action: "plugin/uninstall"; pluginId: string }
+  | { id: string; action: "git/diff-remote"; cwd?: string | null }
   | { id: string; action: "files/list"; path: string }
   | { id: string; action: "files/search"; query: string; roots: string[] }
   | { id: string; action: "runtime"; preferredTarget: RuntimeTarget }
   | { id: string; action: "turn"; threadId: string; body: string; inputs?: OffdexInputItem[] }
+  | { id: string; action: "turn/steer"; threadId: string; body: string; inputs?: OffdexInputItem[] }
   | { id: string; action: "interrupt"; threadId: string }
   | { id: string; action: "thread/rename"; threadId: string; name: string }
   | { id: string; action: "thread/fork"; threadId: string }
   | { id: string; action: "thread/archive"; threadId: string }
   | { id: string; action: "thread/unarchive"; threadId: string }
   | { id: string; action: "thread/compact"; threadId: string }
+  | { id: string; action: "thread/rollback"; threadId: string; numTurns: number }
   | { id: string; action: "review/start"; threadId: string }
   | { id: string; action: "mcp/oauth/login"; name: string }
   | {
@@ -730,7 +740,9 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       return workspaceStore.getSnapshot();
     }
 
-    return codexRuntime.refreshSnapshot();
+    const snapshot = await codexRuntime.refreshSnapshot();
+    codexAccount = snapshot.account;
+    return snapshot;
   };
 
   const readInventory = async () => {
@@ -758,6 +770,50 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       rateLimits: runtimeInventory.rateLimits ?? localInventory.rateLimits ?? null,
       experimentalFeatures: runtimeInventory.experimentalFeatures ?? localInventory.experimentalFeatures ?? [],
     } satisfies OffdexWorkbenchInventory;
+  };
+
+  const startAccountLogin = async (body: {
+    type?: "chatgpt";
+  }): Promise<{ session: OffdexAccountLoginSession }> => {
+    if (!codexRuntime) {
+      throw new Error("Account login is only available in codex mode.");
+    }
+
+    return {
+      session: await codexRuntime.startAccountLogin(body.type ?? "chatgpt"),
+    };
+  };
+
+  const cancelAccountLogin = async (body: {
+    loginId?: string | null;
+  }): Promise<{ ok: true }> => {
+    if (!codexRuntime) {
+      throw new Error("Account login cancel is only available in codex mode.");
+    }
+
+    if (!body.loginId?.trim()) {
+      throw new Error("Account login cancel rejected. Missing login id.");
+    }
+
+    await codexRuntime.cancelAccountLogin(body.loginId.trim());
+    return { ok: true };
+  };
+
+  const logoutAccount = async (): Promise<{ snapshot: ReturnType<typeof workspaceStore.getSnapshot> }> => {
+    if (!codexRuntime) {
+      throw new Error("Account logout is only available in codex mode.");
+    }
+
+    codexAccount = {
+      id: null,
+      email: null,
+      name: null,
+      planType: null,
+      isAuthenticated: false,
+    };
+    return {
+      snapshot: await codexRuntime.logoutAccount(),
+    };
   };
 
   const applyRuntimeSelection = async (preferredTarget: RuntimeTarget) => {
@@ -856,6 +912,20 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     };
   };
 
+  const applySteerRequest = async (body: Partial<BridgeTurnInput>) => {
+    if (!codexRuntime) {
+      throw new Error("Steer is only available in codex mode.");
+    }
+
+    if (!body.threadId) {
+      throw new Error("Steer rejected. Missing thread.");
+    }
+
+    return {
+      snapshot: await codexRuntime.steerTurn(body.threadId, body.body ?? "", body.inputs),
+    };
+  };
+
   const applyApprovalRequest = async (body: {
     approvalId?: string;
     approve?: boolean;
@@ -902,6 +972,47 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
 
     return {
       inventory: await codexRuntime.writeConfigValue(body.keyPath, body.value, body.filePath ?? null),
+    };
+  };
+
+  const writeRuntimeConfigBatch = async (body: {
+    edits?: Array<{ keyPath?: string; value?: unknown }>;
+    filePath?: string | null;
+  }): Promise<{ inventory: OffdexWorkbenchInventory }> => {
+    if (!codexRuntime) {
+      throw new Error("Config updates are only available in codex mode.");
+    }
+
+    const edits = body.edits ?? [];
+    if (edits.length === 0 || edits.some((edit) => !edit.keyPath?.trim())) {
+      throw new Error("Batch config update rejected. Missing key path.");
+    }
+
+    return {
+      inventory: await codexRuntime.writeConfigValues(
+        edits.map((edit) => ({
+          keyPath: edit.keyPath?.trim() ?? "",
+          value: edit.value,
+        })),
+        body.filePath ?? null
+      ),
+    };
+  };
+
+  const setExperimentalFeature = async (body: {
+    name?: string | null;
+    enabled?: boolean;
+  }): Promise<{ inventory: OffdexWorkbenchInventory }> => {
+    if (!codexRuntime) {
+      throw new Error("Experimental feature updates are only available in codex mode.");
+    }
+
+    if (!body.name?.trim()) {
+      throw new Error("Experimental feature update rejected. Missing feature name.");
+    }
+
+    return {
+      inventory: await codexRuntime.setExperimentalFeatureEnabled(body.name.trim(), body.enabled === true),
     };
   };
 
@@ -976,6 +1087,14 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
     };
   };
 
+  const readGitDiffToRemote = async (cwd?: string | null): Promise<OffdexRemoteDiff> => {
+    if (!codexRuntime) {
+      throw new Error("Git remote diff is only available in codex mode.");
+    }
+
+    return codexRuntime.readGitDiffToRemote(cwd?.trim() || process.cwd());
+  };
+
   const renameThread = async (threadId: string, name: string) => {
     if (!codexRuntime) {
       throw new Error("Thread rename is only available in codex mode.");
@@ -1023,6 +1142,16 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
 
     return {
       snapshot: await codexRuntime.compactThread(threadId),
+    };
+  };
+
+  const rollbackThread = async (threadId: string, numTurns: number) => {
+    if (!codexRuntime) {
+      throw new Error("Thread rewind is only available in codex mode.");
+    }
+
+    return {
+      snapshot: await codexRuntime.rollbackThread(threadId, numTurns),
     };
   };
 
@@ -1181,11 +1310,36 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
           case "inventory":
             response = await readInventory();
             break;
+          case "account/login/start":
+            response = await startAccountLogin({
+              type: request.type ?? "chatgpt",
+            });
+            break;
+          case "account/login/cancel":
+            response = await cancelAccountLogin({
+              loginId: request.loginId,
+            });
+            break;
+          case "account/logout":
+            response = await logoutAccount();
+            break;
           case "config/write":
             response = await writeRuntimeConfig({
               keyPath: request.keyPath,
               value: request.value,
               filePath: request.filePath ?? null,
+            });
+            break;
+          case "config/batchWrite":
+            response = await writeRuntimeConfigBatch({
+              edits: request.edits,
+              filePath: request.filePath ?? null,
+            });
+            break;
+          case "experimental-feature/set":
+            response = await setExperimentalFeature({
+              name: request.name,
+              enabled: request.enabled,
             });
             break;
           case "skills/config/write":
@@ -1206,6 +1360,9 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
               pluginId: request.pluginId,
             });
             break;
+          case "git/diff-remote":
+            response = await readGitDiffToRemote(request.cwd ?? null);
+            break;
           case "files/list":
             response = await listRemoteFiles(request.path);
             break;
@@ -1217,6 +1374,13 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
             break;
           case "turn":
             response = await applyTurnRequest({
+              threadId: request.threadId,
+              body: request.body,
+              inputs: request.inputs,
+            });
+            break;
+          case "turn/steer":
+            response = await applySteerRequest({
               threadId: request.threadId,
               body: request.body,
               inputs: request.inputs,
@@ -1239,6 +1403,9 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
             break;
           case "thread/compact":
             response = await compactThread(request.threadId);
+            break;
+          case "thread/rollback":
+            response = await rollbackThread(request.threadId, request.numTurns);
             break;
           case "review/start":
             response = await startReview(request.threadId);
@@ -1357,6 +1524,63 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
           );
       }
 
+      if (url.pathname === "/account/login/start" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { type?: "chatgpt" };
+          try {
+            return withCors(Response.json(await startAccountLogin(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Account login failed.",
+                },
+                { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/account/login/cancel" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { loginId?: string | null };
+          try {
+            return withCors(Response.json(await cancelAccountLogin(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Account login cancel failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Account login cancel rejected. Missing login id."
+                      ? 400
+                      : 502,
+                }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/account/logout" && request.method === "POST") {
+        return logoutAccount()
+          .then((result) => withCors(Response.json(result)))
+          .catch((error) =>
+            withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Account logout failed.",
+                },
+                { status: 502 }
+              )
+            )
+          );
+      }
+
       if (url.pathname === "/config" && request.method === "POST") {
         return request.json().then(async (rawBody) => {
           const body = rawBody as {
@@ -1376,6 +1600,60 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
                   status:
                     error instanceof Error &&
                     error.message === "Config update rejected. Missing key path."
+                      ? 400
+                      : 502,
+                }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/config/batch" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as {
+            edits?: Array<{ keyPath?: string; value?: unknown }>;
+            filePath?: string | null;
+          };
+          try {
+            return withCors(Response.json(await writeRuntimeConfigBatch(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Batch config update failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Batch config update rejected. Missing key path."
+                      ? 400
+                      : 502,
+                }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/experimental-features" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as {
+            name?: string | null;
+            enabled?: boolean;
+          };
+          try {
+            return withCors(Response.json(await setExperimentalFeature(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Experimental feature update failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Experimental feature update rejected. Missing feature name."
                       ? 400
                       : 502,
                 }
@@ -1497,6 +1775,22 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
           );
       }
 
+      if (url.pathname === "/git/diff-remote") {
+        const cwd = url.searchParams.get("cwd")?.trim() || process.cwd();
+        return readGitDiffToRemote(cwd)
+          .then((result) => withCors(Response.json(result)))
+          .catch((error) =>
+            withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Git remote diff failed.",
+                },
+                { status: 502 }
+              )
+            )
+          );
+      }
+
       if (url.pathname === "/pairing.json") {
         return withCors(
           Response.json(
@@ -1580,6 +1874,31 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
                   status:
                     error instanceof Error &&
                     error.message === "Interrupt rejected. Missing thread."
+                      ? 400
+                      : 502,
+                }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/turn/steer" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as Partial<BridgeTurnInput>;
+          try {
+            return withCors(Response.json(await applySteerRequest(body)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Codex steer failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    (error.message === "Steer rejected. Missing thread." ||
+                      error.message === "No active turn is available to steer.")
                       ? 400
                       : 502,
                 }
@@ -1717,6 +2036,33 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
                   error: error instanceof Error ? error.message : "Thread compact failed.",
                 },
                 { status: 502 }
+              )
+            );
+          }
+        });
+      }
+
+      if (url.pathname === "/thread/rollback" && request.method === "POST") {
+        return request.json().then(async (rawBody) => {
+          const body = rawBody as { threadId?: string; numTurns?: number };
+          if (!body.threadId) {
+            return withCors(Response.json({ error: "Missing thread." }, { status: 400 }));
+          }
+          try {
+            return withCors(Response.json(await rollbackThread(body.threadId, body.numTurns ?? 0)));
+          } catch (error) {
+            return withCors(
+              Response.json(
+                {
+                  error: error instanceof Error ? error.message : "Thread rewind failed.",
+                },
+                {
+                  status:
+                    error instanceof Error &&
+                    error.message === "Thread rollback rejected. Missing turn count."
+                      ? 400
+                      : 502,
+                }
               )
             );
           }

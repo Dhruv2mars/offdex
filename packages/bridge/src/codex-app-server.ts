@@ -4,25 +4,32 @@ import { createServer } from "node:net";
 import {
   OFFDEX_NEW_THREAD_ID,
   type OffdexApprovalRequest,
+  type OffdexAccountLoginSession,
   type OffdexAppRecord,
   type OffdexConfigSummary,
+  type OffdexRemoteDiff,
   type OffdexGitInfo,
   type OffdexExperimentalFeatureRecord,
   type OffdexInputItem,
   type OffdexMcpServerRecord,
   type OffdexRateLimitsSummary,
   type OffdexRateLimitWindow,
+  type OffdexConfigRequirements,
   type OffdexModelRecord,
   type OffdexPermissionReview,
   type OffdexPluginRecord,
   type OffdexRemoteFileEntry,
   type OffdexRemoteFileMatch,
+  type OffdexRuntimeAuthStatus,
+  type OffdexRuntimeReadiness,
+  type OffdexRuntimeReadinessIssue,
   type OffdexSkillRecord,
   type OffdexTimelineItem,
   type OffdexRuntimeAccount,
   type OffdexTurn,
   type OffdexWorkbenchInventory,
   type OffdexThreadSummary,
+  normalizeOffdexRuntimeTimelineItem,
   summarizeOffdexThread,
   refreshSnapshotThreadSummaries,
   WorkspaceSnapshotStore,
@@ -292,6 +299,26 @@ type CodexConfig = {
   web_search?: string | null;
 };
 
+type CodexConfigRequirements = {
+  allowedApprovalPolicies?: unknown[] | null;
+  allowedSandboxModes?: unknown[] | null;
+  allowedWebSearchModes?: unknown[] | null;
+  featureRequirements?: Record<string, boolean> | null;
+  enforceResidency?: string | null;
+};
+
+type CodexAuthStatus = {
+  authMethod?: string | null;
+  authToken?: string | null;
+  requiresOpenaiAuth?: boolean | null;
+};
+
+type CodexConfigEdit = {
+  keyPath: string;
+  value: unknown;
+  mergeStrategy?: "upsert" | "replace" | "append" | string;
+};
+
 type CodexApprovalPolicy =
   | "untrusted"
   | "on-failure"
@@ -387,6 +414,167 @@ export function parseCodexAccountSummary(value: unknown): CodexAccountSummary {
     name,
     planType,
     isAuthenticated: authenticatedValue === true || Boolean(email || name || id),
+  };
+}
+
+function stringList(value: unknown[] | null | undefined) {
+  return Array.isArray(value)
+    ? value
+        .map((entry) =>
+          typeof entry === "string"
+            ? entry
+            : entry && typeof entry === "object"
+              ? JSON.stringify(entry)
+              : null
+        )
+        .filter((entry): entry is string => Boolean(entry?.trim()))
+    : null;
+}
+
+function normalizeConfigRequirements(value: CodexConfigRequirements | null | undefined): OffdexConfigRequirements | null {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    allowedApprovalPolicies: stringList(value.allowedApprovalPolicies),
+    allowedSandboxModes: stringList(value.allowedSandboxModes),
+    allowedWebSearchModes: stringList(value.allowedWebSearchModes),
+    featureRequirements: value.featureRequirements ?? null,
+    enforceResidency: value.enforceResidency ?? null,
+  };
+}
+
+function normalizeAuthStatus(value: CodexAuthStatus | null | undefined): OffdexRuntimeAuthStatus | null {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    authMethod: value.authMethod ?? null,
+    requiresOpenaiAuth: value.requiresOpenaiAuth ?? null,
+  };
+}
+
+function pushIssue(
+  issues: OffdexRuntimeReadinessIssue[],
+  issue: OffdexRuntimeReadinessIssue
+) {
+  if (!issues.some((entry) => entry.id === issue.id)) {
+    issues.push(issue);
+  }
+}
+
+function buildRuntimeReadiness(input: {
+  config: CodexConfig | null;
+  requirements: OffdexConfigRequirements | null;
+  authStatus: OffdexRuntimeAuthStatus | null;
+  account: OffdexRuntimeAccount | null;
+}): OffdexRuntimeReadiness {
+  const issues: OffdexRuntimeReadinessIssue[] = [];
+  const config = input.config;
+  const requirements = input.requirements;
+  const account = input.account;
+  const authStatus = input.authStatus;
+
+  if (authStatus?.requiresOpenaiAuth === true || (account && account.isAuthenticated === false)) {
+    pushIssue(issues, {
+      id: "credentials.openai",
+      severity: "blocker",
+      title: "OpenAI credentials missing",
+      detail: "Codex App Server reports that OpenAI authentication is required before turns can run normally.",
+      action: "Sign in to ChatGPT on the connected machine.",
+    });
+  }
+
+  if (config?.model_provider === "openai" && authStatus?.authMethod === null) {
+    pushIssue(issues, {
+      id: "provider.openai.auth",
+      severity: "blocker",
+      title: "OpenAI provider has no auth method",
+      detail: "The active model provider is OpenAI, but Codex did not report an API key, ChatGPT session, or managed identity.",
+      action: "Choose a configured provider or complete OpenAI sign-in.",
+    });
+  }
+
+  if (
+    config?.approval_policy &&
+    requirements?.allowedApprovalPolicies &&
+    !requirements.allowedApprovalPolicies.includes(config.approval_policy)
+  ) {
+    pushIssue(issues, {
+      id: "config.approval_policy",
+      severity: "blocker",
+      title: "Approval policy blocked by requirements",
+      detail: `Active approval policy '${config.approval_policy}' is not allowed. Allowed: ${requirements.allowedApprovalPolicies.join(", ")}.`,
+      action: "Change approval policy to an allowed value.",
+    });
+  }
+
+  if (
+    config?.sandbox_mode &&
+    requirements?.allowedSandboxModes &&
+    !requirements.allowedSandboxModes.includes(config.sandbox_mode)
+  ) {
+    pushIssue(issues, {
+      id: "config.sandbox_mode",
+      severity: "blocker",
+      title: "Sandbox mode blocked by requirements",
+      detail: `Active sandbox mode '${config.sandbox_mode}' is not allowed. Allowed: ${requirements.allowedSandboxModes.join(", ")}.`,
+      action: "Change sandbox mode to an allowed value.",
+    });
+  }
+
+  const webSearch = config?.web_search === "off" ? "disabled" : config?.web_search;
+  if (
+    webSearch &&
+    requirements?.allowedWebSearchModes &&
+    !requirements.allowedWebSearchModes.includes(webSearch)
+  ) {
+    pushIssue(issues, {
+      id: "config.web_search",
+      severity: "blocker",
+      title: "Web search mode blocked by requirements",
+      detail: `Active web search mode '${webSearch}' is not allowed. Allowed: ${requirements.allowedWebSearchModes.join(", ")}.`,
+      action: "Change web search to an allowed value.",
+    });
+  } else if (webSearch === "disabled") {
+    pushIssue(issues, {
+      id: "config.web_search.disabled",
+      severity: "warning",
+      title: "Web search disabled",
+      detail: "Codex will not browse unless web search is enabled by config and model capability.",
+      action: "Enable web search when tasks need current information.",
+    });
+  }
+
+  if (requirements?.enforceResidency) {
+    pushIssue(issues, {
+      id: "config.residency",
+      severity: "warning",
+      title: "Residency requirement active",
+      detail: `Runtime config enforces '${requirements.enforceResidency}' data residency.`,
+      action: "Use providers and workspaces compatible with this residency rule.",
+    });
+  }
+
+  for (const [name, required] of Object.entries(requirements?.featureRequirements ?? {})) {
+    pushIssue(issues, {
+      id: `config.feature.${name}`,
+      severity: required ? "blocker" : "warning",
+      title: `Feature requirement: ${name}`,
+      detail: `Codex requirements set '${name}' to ${String(required)}.`,
+      action: "Update Codex config only if this feature state blocks your workflow.",
+    });
+  }
+
+  const hasBlocker = issues.some((issue) => issue.severity === "blocker");
+  return {
+    status: hasBlocker ? "blocked" : issues.length > 0 ? "attention" : "ready",
+    updatedAt: new Date().toISOString(),
+    requirements,
+    authStatus,
+    issues,
   };
 }
 
@@ -650,116 +838,7 @@ function normalizeTimelineStatus(
 }
 
 function unknownItemToTimelineItem(item: CodexUnknownThreadItem): OffdexTimelineItem | null {
-  const record = item as Record<string, unknown>;
-  const itemType = item.type;
-
-  if (itemType === "task_started" || itemType === "task_complete") {
-    return {
-      type: "taskLifecycle",
-      id: item.id,
-      label: itemType === "task_started" ? "Task started" : "Task complete",
-      status: itemType === "task_started" ? "in_progress" : "completed",
-      detail:
-        firstText(record, ["last_agent_message", "message", "detail"]) ??
-        firstText(record, ["turn_id", "turnId", "started_at", "completed_at"]),
-    };
-  }
-
-  if (itemType === "token_count") {
-    const rateLimits =
-      record.rate_limits && typeof record.rate_limits === "object"
-        ? (record.rate_limits as Record<string, unknown>)
-        : null;
-    const info = record.info && typeof record.info === "object" ? (record.info as Record<string, unknown>) : null;
-    const totalUsage =
-      info?.total_token_usage && typeof info.total_token_usage === "object"
-        ? (info.total_token_usage as Record<string, unknown>)
-        : null;
-    const primary =
-      rateLimits?.primary && typeof rateLimits.primary === "object"
-        ? (rateLimits.primary as Record<string, unknown>)
-        : null;
-    const secondary =
-      rateLimits?.secondary && typeof rateLimits.secondary === "object"
-        ? (rateLimits.secondary as Record<string, unknown>)
-        : null;
-    const primaryPercent = firstNumber(primary ?? {}, ["used_percent"]);
-    const secondaryPercent = firstNumber(secondary ?? {}, ["used_percent"]);
-    const totalTokens = firstNumber(totalUsage ?? {}, ["total_tokens"]);
-    const parts = [
-      typeof totalTokens === "number" ? `${totalTokens.toLocaleString()} tokens` : null,
-      typeof primaryPercent === "number" ? `${primaryPercent}% primary` : null,
-      typeof secondaryPercent === "number" ? `${secondaryPercent}% weekly` : null,
-      extractScalarText(rateLimits?.plan_type) ? `${extractScalarText(rateLimits?.plan_type)} plan` : null,
-    ].filter((entry): entry is string => Boolean(entry));
-
-    return {
-      type: "tokenUsage",
-      id: item.id,
-      summary: parts.join(" · ") || "Token usage update",
-      planType: extractScalarText(rateLimits?.plan_type),
-      primaryPercent,
-      secondaryPercent,
-      totalTokens,
-    };
-  }
-
-  if (
-    itemType === "function_call" ||
-    itemType === "function_call_output" ||
-    itemType === "custom_tool_call" ||
-    itemType === "custom_tool_call_output" ||
-    itemType === "web_search_call" ||
-    itemType === "search" ||
-    itemType === "read" ||
-    itemType === "patch_apply_end"
-  ) {
-    const toolName =
-      firstText(record, ["name", "tool_name", "toolName", "title"]) ??
-      (itemType === "web_search_call"
-        ? "Web search"
-        : itemType === "search"
-          ? "Search"
-          : itemType === "read"
-            ? "Read file"
-            : itemType === "patch_apply_end"
-              ? "Apply patch"
-              : itemType === "custom_tool_call" || itemType === "custom_tool_call_output"
-                ? "Custom tool"
-                : "Tool call");
-    const source =
-      itemType === "web_search_call" || itemType === "search"
-        ? "search"
-        : itemType === "read" || itemType === "patch_apply_end"
-          ? "file"
-          : itemType.includes("mcp")
-            ? "mcp"
-            : "tool";
-
-    return {
-      type: "toolActivity",
-      id: item.id,
-      toolName,
-      status: normalizeTimelineStatus(
-        record.status,
-        itemType.endsWith("_output") || itemType.endsWith("_end") || itemType === "search" || itemType === "read"
-          ? "completed"
-          : "in_progress"
-      ),
-      source,
-      summary:
-        firstText(record, ["summary", "message", "title"]) ??
-        (itemType === "patch_apply_end"
-          ? "Patch application result"
-          : itemType.endsWith("_output")
-            ? "Tool result"
-            : "Tool activity"),
-      input: firstText(record, ["arguments", "args", "input", "query", "path", "command"]),
-      output: firstText(record, ["output", "result", "content", "text", "message", "diff"]),
-    };
-  }
-
-  return null;
+  return normalizeOffdexRuntimeTimelineItem(item);
 }
 
 function userInputToText(input: CodexUserInput) {
@@ -2042,6 +2121,34 @@ export class CodexAppServerClient {
     return response;
   }
 
+  async writeConfigValues(edits: CodexConfigEdit[], filePath?: string | null) {
+    const response = (await this.request("config/batchWrite", {
+      edits: edits.map((edit) => ({
+        keyPath: edit.keyPath,
+        mergeStrategy: edit.mergeStrategy ?? "upsert",
+        value: edit.value,
+      })),
+      filePath: filePath ?? null,
+      reloadUserConfig: true,
+    })) as { filePath: string; status: string; version: string };
+    return response;
+  }
+
+  async readConfigRequirements() {
+    const response = (await this.request("configRequirements/read", undefined)) as {
+      requirements?: CodexConfigRequirements | null;
+    };
+    return normalizeConfigRequirements(response.requirements ?? null);
+  }
+
+  async readAuthStatus() {
+    const response = (await this.request("getAuthStatus", {
+      includeToken: false,
+      refreshToken: false,
+    })) as CodexAuthStatus;
+    return normalizeAuthStatus(response);
+  }
+
   async readDirectory(path: string) {
     const response = (await this.request("fs/readDirectory", {
       path,
@@ -2150,8 +2257,43 @@ export class CodexAppServerClient {
     return this.request("thread/compact/start", { threadId });
   }
 
+  async steerTurn(threadId: string, expectedTurnId: string, input: OffdexInputItem[]) {
+    return this.request("turn/steer", {
+      threadId,
+      expectedTurnId,
+      input,
+    });
+  }
+
+  async rollbackThread(threadId: string, numTurns: number) {
+    const response = (await this.request("thread/rollback", {
+      threadId,
+      numTurns,
+    })) as { thread?: CodexThread };
+    return response.thread ?? null;
+  }
+
+  async startAccountLogin(type: "chatgpt" = "chatgpt"): Promise<OffdexAccountLoginSession> {
+    const response = (await this.request("account/login/start", {
+      type,
+    })) as { type?: string; loginId?: string; authUrl?: string };
+    return {
+      type: response.type ?? type,
+      loginId: response.loginId ?? "",
+      authUrl: response.authUrl ?? "",
+    };
+  }
+
+  async cancelAccountLogin(loginId: string) {
+    return this.request("account/login/cancel", { loginId });
+  }
+
+  async logoutAccount() {
+    return this.request("account/logout", undefined);
+  }
+
   async readAccount() {
-    return parseCodexAccountSummary(await this.request("account/read", {}));
+    return parseCodexAccountSummary(await this.request("account/read", { refreshToken: false }));
   }
 
   async readRateLimits() {
@@ -2163,6 +2305,20 @@ export class CodexAppServerClient {
       limit: 100,
     })) as { data?: CodexExperimentalFeature[] };
     return response.data ?? [];
+  }
+
+  async setExperimentalFeatureEnablement(enablement: Record<string, boolean>) {
+    return this.request("experimentalFeature/enablement/set", { enablement });
+  }
+
+  async readGitDiffToRemote(cwd: string): Promise<OffdexRemoteDiff> {
+    const response = (await this.request("gitDiffToRemote", {
+      cwd,
+    })) as { sha?: string | null; diff?: string | null };
+    return {
+      sha: typeof response.sha === "string" && response.sha.trim() ? response.sha : null,
+      diff: typeof response.diff === "string" ? response.diff : "",
+    };
   }
 
   async close() {
@@ -2445,6 +2601,29 @@ export class CodexBridgeRuntime {
     return account;
   }
 
+  async startAccountLogin(type: "chatgpt" = "chatgpt") {
+    await this.#ensureClient();
+    return this.client.startAccountLogin(type);
+  }
+
+  async cancelAccountLogin(loginId: string) {
+    await this.#ensureClient();
+    await this.client.cancelAccountLogin(loginId);
+  }
+
+  async logoutAccount() {
+    await this.#ensureClient();
+    await this.client.logoutAccount();
+    this.options.workspaceStore.updateAccount({
+      id: null,
+      email: null,
+      name: null,
+      planType: null,
+      isAuthenticated: false,
+    });
+    return this.options.workspaceStore.getSnapshot();
+  }
+
   async setRuntimeTarget(runtimeTarget: RuntimeTarget) {
     this.#runtimeTarget = runtimeTarget;
     const snapshot = this.options.workspaceStore.getSnapshot();
@@ -2505,6 +2684,35 @@ export class CodexBridgeRuntime {
     return nextSnapshot;
   }
 
+  async steerTurn(threadId: string, body: string, inputs?: OffdexInputItem[]) {
+    const trimmed = body.trim();
+    if (!trimmed && (!inputs || inputs.length === 0)) {
+      return this.options.workspaceStore.getSnapshot();
+    }
+
+    await this.#ensureClient();
+    const expectedTurnId =
+      this.#activeTurnIdByThread.get(threadId) ??
+      findActiveTurnId(await this.client.readThread(threadId));
+
+    if (!expectedTurnId) {
+      throw new Error("No active turn is available to steer.");
+    }
+
+    await this.client.steerTurn(threadId, expectedTurnId, [
+      ...(trimmed ? [{ type: "text", text: trimmed } satisfies OffdexInputItem] : []),
+      ...(inputs ?? []),
+    ]);
+
+    const snapshot = this.options.workspaceStore.getSnapshot();
+    const thread = ensureThread(snapshot, threadId, this.#runtimeTarget);
+    thread.state = "running";
+    thread.updatedAt = "Now";
+    upsertThread(snapshot, thread);
+    this.options.workspaceStore.replaceSnapshot(snapshot);
+    return snapshot;
+  }
+
   async interruptThread(threadId: string) {
     await this.#ensureClient();
     const activeTurnId =
@@ -2561,10 +2769,25 @@ export class CodexBridgeRuntime {
     await this.#ensureClient();
     const snapshot = this.options.workspaceStore.getSnapshot();
     const selectedThreadId = snapshot.threads.find((thread) => thread.id !== NEW_THREAD_ID)?.id ?? null;
-    const [apps, models, config, plugins, skills, mcpServers, rateLimits, experimentalFeatures] = await Promise.all([
+    const [
+      apps,
+      models,
+      config,
+      configRequirements,
+      authStatus,
+      account,
+      plugins,
+      skills,
+      mcpServers,
+      rateLimits,
+      experimentalFeatures,
+    ] = await Promise.all([
       this.client.listApps(selectedThreadId ?? undefined).catch(() => []),
       this.client.listModels().catch(() => []),
       this.client.readConfig(this.options.cwd).catch(() => null),
+      this.client.readConfigRequirements().catch(() => null),
+      this.client.readAuthStatus().catch(() => null),
+      this.client.readAccount().catch(() => snapshot.account),
       this.client.listPlugins(this.options.cwd).catch(() => []),
       this.client.listSkills(this.options.cwd).catch(() => []),
       this.client.listMcpServers().catch(() => []),
@@ -2657,6 +2880,15 @@ export class CodexBridgeRuntime {
             webSearch: config.web_search ?? null,
           } satisfies OffdexConfigSummary)
         : null,
+      runtimeReadiness:
+        config || configRequirements || authStatus || account
+          ? buildRuntimeReadiness({
+              config,
+              requirements: configRequirements,
+              authStatus,
+              account,
+            })
+          : null,
       rateLimits,
       experimentalFeatures: experimentalFeatures.map<OffdexExperimentalFeatureRecord>((feature) => ({
         name: feature.name,
@@ -2673,6 +2905,18 @@ export class CodexBridgeRuntime {
   async writeConfigValue(keyPath: string, value: unknown, filePath?: string | null) {
     await this.#ensureClient();
     await this.client.writeConfigValue(keyPath, value, filePath);
+    return this.readWorkbenchInventory();
+  }
+
+  async writeConfigValues(edits: Array<{ keyPath: string; value: unknown }>, filePath?: string | null) {
+    await this.#ensureClient();
+    await this.client.writeConfigValues(edits, filePath);
+    return this.readWorkbenchInventory();
+  }
+
+  async setExperimentalFeatureEnabled(name: string, enabled: boolean) {
+    await this.#ensureClient();
+    await this.client.setExperimentalFeatureEnablement({ [name]: enabled });
     return this.readWorkbenchInventory();
   }
 
@@ -2717,6 +2961,11 @@ export class CodexBridgeRuntime {
     }));
   }
 
+  async readGitDiffToRemote(cwd = this.options.cwd) {
+    await this.#ensureClient();
+    return this.client.readGitDiffToRemote(cwd);
+  }
+
   async renameThread(threadId: string, name: string) {
     await this.#ensureClient();
     await this.client.setThreadName(threadId, name);
@@ -2752,6 +3001,15 @@ export class CodexBridgeRuntime {
       await this.client.resumeThread(threadId);
       await this.client.compactThread(threadId);
     }
+    return this.refreshSnapshot();
+  }
+
+  async rollbackThread(threadId: string, numTurns: number) {
+    await this.#ensureClient();
+    if (numTurns < 1) {
+      throw new Error("Thread rollback rejected. Missing turn count.");
+    }
+    await this.client.rollbackThread(threadId, numTurns);
     return this.refreshSnapshot();
   }
 
