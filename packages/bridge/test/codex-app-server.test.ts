@@ -1128,6 +1128,28 @@ describe("codex snapshot adapter", () => {
     });
   });
 
+  test("starts MCP OAuth login through the runtime", async () => {
+    const store = new WorkspaceSnapshotStore(makeDemoWorkspaceSnapshot("cli", { state: "paired" }));
+    const runtime = new CodexBridgeRuntime({
+      runtimeTarget: "cli",
+      workspaceStore: store,
+      cwd: "/Users/dhruv2mars/dev/github/offdex",
+    });
+    const calls: string[] = [];
+
+    runtime.client.ensureConnected = async () => {};
+    runtime.client.subscribe = () => () => {};
+    runtime.client.startMcpOauthLogin = async (name: string) => {
+      calls.push(name);
+      return "https://connectors.example.com/oauth/github";
+    };
+
+    await expect(runtime.startMcpOauthLogin("github")).resolves.toBe(
+      "https://connectors.example.com/oauth/github"
+    );
+    expect(calls).toEqual(["github"]);
+  });
+
   test("writes runtime config values and skill toggles through codex", async () => {
     const store = new WorkspaceSnapshotStore(
       makeDemoWorkspaceSnapshot("cli", {
