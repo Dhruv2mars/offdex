@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.6.0",
+  "checkpoint_id": "67cecf40023a",
+  "strategy": "manual-commit",
+  "branch": "feat/issue-78-runtime-readiness",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/67/cecf40023a/0/metadata.json",
+      "transcript": "/67/cecf40023a/0/full.jsonl",
+      "content_hash": "/67/cecf40023a/0/content_hash.txt",
+      "prompt": "/67/cecf40023a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 436320,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21381248,
+    "output_tokens": 32102,
+    "api_call_count": 159
+  }
+}
