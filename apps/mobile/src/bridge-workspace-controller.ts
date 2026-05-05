@@ -1,4 +1,5 @@
 import {
+  type OffdexAccountLoginSession,
   decodePairingUri,
   type OffdexMachineRecord,
   type OffdexPairingPayload,
@@ -10,6 +11,7 @@ import {
 } from "@offdex/protocol";
 import {
   archiveBridgeThread,
+  cancelBridgeAccountLogin,
   claimManagedPairing,
   compactBridgeThread,
   decodeRelayConnectionTarget,
@@ -25,8 +27,10 @@ import {
   rollbackBridgeThread,
   sendBridgeTurn,
   selectBridgeRuntime,
+  startBridgeAccountLogin,
   subscribeToBridgeSnapshots,
   unarchiveBridgeThread,
+  logoutBridgeAccount,
   type BridgeHealth,
   type ManagedBridgeSession,
 } from "./bridge-client";
@@ -46,6 +50,12 @@ export interface BridgeClient {
   fetchBridgeHealth(baseUrl: string): Promise<BridgeHealth>;
   fetchBridgeSnapshot(baseUrl: string): Promise<OffdexWorkspaceSnapshot>;
   fetchBridgeInventory(baseUrl: string): Promise<OffdexWorkbenchInventory>;
+  startBridgeAccountLogin(
+    baseUrl: string,
+    type?: "chatgpt"
+  ): Promise<{ session: OffdexAccountLoginSession }>;
+  cancelBridgeAccountLogin(baseUrl: string, loginId: string): Promise<{ ok: true }>;
+  logoutBridgeAccount(baseUrl: string): Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
   selectBridgeRuntime(
     baseUrl: string,
     preferredTarget: RuntimeTarget
@@ -120,6 +130,7 @@ export interface BridgeWorkspaceState {
   machines: OffdexMachineRecord[];
   managedSession: ManagedBridgeSession | null;
   codexAccount: OffdexRuntimeAccount | null;
+  accountLoginSession: OffdexAccountLoginSession | null;
   inventory: OffdexWorkbenchInventory | null;
 }
 
@@ -127,6 +138,9 @@ const defaultClient: BridgeClient = {
   fetchBridgeHealth,
   fetchBridgeSnapshot,
   fetchBridgeInventory,
+  startBridgeAccountLogin,
+  cancelBridgeAccountLogin,
+  logoutBridgeAccount,
   selectBridgeRuntime,
   sendBridgeTurn,
   interruptBridgeTurn,
@@ -223,6 +237,7 @@ export class BridgeWorkspaceController {
       machines: [],
       managedSession: null,
       codexAccount: null,
+      accountLoginSession: null,
       inventory: null,
     };
     this.#demoController.subscribe((snapshotUpdate) => {
@@ -422,6 +437,7 @@ export class BridgeWorkspaceController {
       machines: [],
       managedSession: null,
       codexAccount: null,
+      accountLoginSession: null,
       inventory: null,
       });
   }
@@ -654,6 +670,66 @@ export class BridgeWorkspaceController {
       return inventory;
     } catch (error) {
       this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Runtime inventory failed.") });
+      throw error;
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async startAccountLogin() {
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Starting Codex login..." });
+    try {
+      const result = await this.#client.startBridgeAccountLogin(connectionTarget, "chatgpt");
+      this.#setState({
+        accountLoginSession: result.session,
+        bridgeStatus: "Codex login started.",
+      });
+      return result.session;
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Account login failed.") });
+      throw error;
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async cancelAccountLogin() {
+    const connectionTarget = this.#requireConnectionTarget();
+    const loginId = this.#state.accountLoginSession?.loginId;
+    if (!loginId) {
+      return this.getState();
+    }
+
+    this.#setState({ isBusy: true, bridgeStatus: "Canceling Codex login..." });
+    try {
+      await this.#client.cancelBridgeAccountLogin(connectionTarget, loginId);
+      this.#setState({
+        accountLoginSession: null,
+        bridgeStatus: "Codex login canceled.",
+      });
+      return this.getState();
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Account login cancel failed.") });
+      throw error;
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async logoutAccount() {
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Logging out Codex account..." });
+    try {
+      const result = await this.#client.logoutBridgeAccount(connectionTarget);
+      this.#applyBridgeSnapshot(result.snapshot, "Codex account logged out.");
+      this.#setState({
+        codexAccount: result.snapshot.account ?? null,
+        accountLoginSession: null,
+      });
+      return this.getState();
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Account logout failed.") });
       throw error;
     } finally {
       this.#setState({ isBusy: false });
