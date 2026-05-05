@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.6.0",
+  "checkpoint_id": "a2b8fa0a975f",
+  "session_id": "019df725-7fe3-7f22-99af-5c3d2324a2f3",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-05T08:03:52.468226Z",
+  "branch": "feat/issue-79-connector-resource-explorer",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/protocol/test/index.test.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "apps/web/test/webui-composer.test.ts",
+    "packages/protocol/src/index.ts",
+    "packages/bridge/src/codex-app-server.ts",
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/web/app/(app)/webui/web-transport.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "50c666d9076c",
+  "checkpoint_transcript_start": 139,
+  "transcript_lines_at_start": 139,
+  "token_usage": {
+    "input_tokens": 29307,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1727616,
+    "output_tokens": 8893,
+    "api_call_count": 27
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-05T08:03:52.452181Z",
+    "agent_lines": 493,
+    "agent_removed": 17,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 493,
+    "total_lines_changed": 510,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
