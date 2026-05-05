@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.6.0",
+  "checkpoint_id": "a2b8fa0a975f",
+  "strategy": "manual-commit",
+  "branch": "feat/issue-79-connector-resource-explorer",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/protocol/src/index.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a2/b8fa0a975f/0/metadata.json",
+      "transcript": "/a2/b8fa0a975f/0/full.jsonl",
+      "content_hash": "/a2/b8fa0a975f/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 41942,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5333248,
+    "output_tokens": 6192,
+    "api_call_count": 38
+  }
+}
