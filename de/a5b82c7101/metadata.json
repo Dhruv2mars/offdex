@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.6.0",
+  "checkpoint_id": "dea5b82c7101",
+  "strategy": "manual-commit",
+  "branch": "feat/issue-78-runtime-readiness",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/web/app/(app)/webui/web-transport.ts",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/protocol/src/index.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/de/a5b82c7101/0/metadata.json",
+      "transcript": "/de/a5b82c7101/0/full.jsonl",
+      "content_hash": "/de/a5b82c7101/0/content_hash.txt",
+      "prompt": "/de/a5b82c7101/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 6151600,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 140085632,
+    "output_tokens": 345315,
+    "api_call_count": 1031
+  }
+}
