@@ -1,0 +1,5 @@
+AFK repo task. Work in your forked workspace from current context if available. You are not alone in codebase; do not revert edits by others. Use bun. Issue #79 Connector resource explorer. It may depend on #76 changes. Implement a focused bridge/WebUI/protocol slice for connector MCP resources/templates/tools/OAuth state with tests. Avoid landing page changes. Edit files directly in your workspace. Final: summary, tests, files changed, blockers.
+
+---
+
+AFK repo task. Work in your forked workspace from current context if available. You are not alone in codebase; do not revert edits by others. Use bun. Issue #79 Connector resource explorer. It may depend on #76 changes. Implement a focused bridge/WebUI/protocol slice for connector MCP resources/templates/tools/OAuth state with tests. Avoid landing page changes. Edit files directly in your workspace. Final: summary, tests, files changed, blockers.
