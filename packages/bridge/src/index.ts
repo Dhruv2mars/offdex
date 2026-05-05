@@ -804,6 +804,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       throw new Error("Account logout is only available in codex mode.");
     }
 
+    const snapshot = await codexRuntime.logoutAccount();
     codexAccount = {
       id: null,
       email: null,
@@ -812,7 +813,7 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
       isAuthenticated: false,
     };
     return {
-      snapshot: await codexRuntime.logoutAccount(),
+      snapshot,
     };
   };
 
@@ -1148,6 +1149,9 @@ export function startBridgeServer(options: BridgeServerOptions = {}) {
   const rollbackThread = async (threadId: string, numTurns: number) => {
     if (!codexRuntime) {
       throw new Error("Thread rewind is only available in codex mode.");
+    }
+    if (!Number.isInteger(numTurns) || numTurns < 1) {
+      throw new Error("Thread rollback rejected. Missing turn count.");
     }
 
     return {

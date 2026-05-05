@@ -269,7 +269,16 @@ export function decodePairingPayload(value: string): PairingPayload | null {
 
 async function fetchJson<T>(url: string, init?: RequestInit) {
   const response = await fetch(url, init);
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`.trim());
+  if (!response.ok) {
+    let message = `${response.status} ${response.statusText}`.trim();
+    try {
+      const payload = (await response.json()) as { error?: unknown };
+      if (typeof payload.error === "string" && payload.error.trim()) {
+        message = payload.error.trim();
+      }
+    } catch {}
+    throw new Error(message);
+  }
   return response.json() as Promise<T>;
 }
 

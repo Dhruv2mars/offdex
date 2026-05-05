@@ -799,6 +799,16 @@ describe("codex snapshot adapter", () => {
     ]);
   });
 
+  test("rejects unusable account login sessions from codex", async () => {
+    const client = new CodexAppServerClient();
+    client.ensureConnected = async () => {};
+    client.request = async () => ({ type: "chatgpt", loginId: "", authUrl: "" });
+
+    await expect(client.startAccountLogin()).rejects.toThrow(
+      "Account login start returned an unusable session"
+    );
+  });
+
   test("clears the stored account state when runtime logout succeeds", async () => {
     const store = new WorkspaceSnapshotStore(
       makeDemoWorkspaceSnapshot("cli", {

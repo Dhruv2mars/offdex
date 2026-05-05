@@ -59,6 +59,7 @@ describe("webui composer skill mentions", () => {
     ]);
     expect(getComposerSkillSuggestions(skills, "")).toHaveLength(2);
     expect(getComposerSkillSuggestions(skills, "disabled")).toEqual([]);
+    expect(getComposerSkillSuggestions(skills, null)).toEqual([]);
   });
 
   test("removes the active token after attaching a structured skill chip", () => {

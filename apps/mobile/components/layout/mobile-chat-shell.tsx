@@ -120,6 +120,7 @@ export function MobileChatShell() {
   const threadGroups = useMemo(() => groupThreads(threads, projectName), [threads, projectName]);
   const messages = activeThread?.messages ?? [];
   const isDraft = activeThread?.id === OFFDEX_NEW_THREAD_ID || selectedThreadId === OFFDEX_NEW_THREAD_ID;
+  const canUseThreadActions = !isDraft && isConnected && codexAccount?.isAuthenticated === true;
   const selectedTitle = isDraft ? "New thread" : activeThread?.title ?? "New thread";
 
   useEffect(() => {
@@ -201,7 +202,7 @@ export function MobileChatShell() {
 
   const handleThreadAction = useCallback(
     (kind: "archive" | "compact" | "rollback") => {
-      if (!activeThread || isDraft) return;
+      if (!activeThread || !canUseThreadActions) return;
 
       const copy = {
         archive: {
@@ -236,11 +237,11 @@ export function MobileChatShell() {
         },
       ]);
     },
-    [activeThread, archiveThread, compactThread, isDraft, rollbackThread]
+    [activeThread, archiveThread, canUseThreadActions, compactThread, rollbackThread]
   );
 
   const handleRemoteDiff = useCallback(() => {
-    if (!activeThread || isDraft) return;
+    if (!activeThread || !canUseThreadActions) return;
 
     void feedbackSelection();
     loadRemoteDiff(activeThread.cwd)
@@ -254,7 +255,7 @@ export function MobileChatShell() {
         void feedbackSuccess();
       })
       .catch(feedbackError);
-  }, [activeThread, isDraft, loadRemoteDiff]);
+  }, [activeThread, canUseThreadActions, loadRemoteDiff]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
@@ -320,7 +321,7 @@ export function MobileChatShell() {
               {messages.map((message) => (
                 <MessageCard key={message.id} message={message} />
               ))}
-              {!isDraft && (
+              {canUseThreadActions && (
                 <View className="mx-4 mb-4 flex-row gap-2">
                   {([
                     [GitCompare, "Diff", handleRemoteDiff],

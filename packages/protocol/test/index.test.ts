@@ -229,7 +229,7 @@ describe("runtime timeline normalization", () => {
       call_id: "call-1",
       server: "github",
       name: "create_issue",
-      arguments: { title: "Bug", api_token: "secret-token" },
+      arguments: { issueTitle: "Bug", api_token: "secret-token" },
       status: "running",
     });
     const connectorResult = normalizeOffdexRuntimeTimelineItem({
@@ -275,9 +275,11 @@ describe("runtime timeline normalization", () => {
       },
     });
     expect(toolCall?.type === "toolActivity" ? toolCall.rawMetadata?.raw.arguments : null).toEqual({
-      title: "Bug",
+      issueTitle: "Bug",
       api_token: "[redacted]",
     });
+    expect(toolCall?.type === "toolActivity" ? toolCall.input : null).toContain('"api_token": "[redacted]"');
+    expect(toolCall?.type === "toolActivity" ? toolCall.input : null).not.toContain("secret-token");
     expect(connectorResult).toMatchObject({
       type: "toolActivity",
       source: "tool",

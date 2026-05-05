@@ -212,6 +212,20 @@ describe("bridge cli copy", () => {
         },
       })
     ).toContain("Codex    demo mode");
+    expect(
+      formatBridgeStatus({
+        baseUrl: "http://127.0.0.1:42420",
+        state: null,
+        health: {
+          bridgeMode: "demo",
+          codexConnected: false,
+          liveClientCount: 0,
+          relayConnected: false,
+        },
+      })
+    ).toContain(
+      "Web UI   https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420"
+    );
   });
 
   test("offline status gives the next command", () => {

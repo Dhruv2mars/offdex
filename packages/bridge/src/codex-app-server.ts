@@ -477,7 +477,8 @@ function buildRuntimeReadiness(input: {
   const account = input.account;
   const authStatus = input.authStatus;
 
-  if (authStatus?.requiresOpenaiAuth === true || (account && account.isAuthenticated === false)) {
+  const usesOpenaiProvider = config?.model_provider === "openai" || authStatus?.requiresOpenaiAuth === true;
+  if (usesOpenaiProvider && (authStatus?.requiresOpenaiAuth === true || (account && account.isAuthenticated === false))) {
     pushIssue(issues, {
       id: "credentials.openai",
       severity: "blocker",
@@ -749,6 +750,26 @@ function extractScalarText(value: unknown): string | null {
   return null;
 }
 
+const SENSITIVE_TEXT_KEY_PATTERN =
+  /(^|_)(api[_-]?key|api[_-]?token|access[_-]?token|auth|authorization|bearer|client[_-]?secret|password|secret|token|key)(_|$)/i;
+
+function sanitizeTextValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeTextValue);
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
+      key,
+      SENSITIVE_TEXT_KEY_PATTERN.test(key) ? "[redacted]" : sanitizeTextValue(nestedValue),
+    ])
+  );
+}
+
 function extractText(value: unknown): string | null {
   const scalar = extractScalarText(value);
   if (scalar) {
@@ -789,7 +810,7 @@ function extractText(value: unknown): string | null {
     }
   }
 
-  return JSON.stringify(value, null, 2);
+  return JSON.stringify(sanitizeTextValue(value), null, 2);
 }
 
 function firstText(record: Record<string, unknown>, keys: string[]) {
@@ -2277,10 +2298,19 @@ export class CodexAppServerClient {
     const response = (await this.request("account/login/start", {
       type,
     })) as { type?: string; loginId?: string; authUrl?: string };
+    if (!response.loginId || !response.authUrl) {
+      throw new Error(
+        `Account login start returned an unusable session: ${JSON.stringify({
+          type: response.type ?? type,
+          loginId: response.loginId ?? null,
+          authUrl: response.authUrl ?? null,
+        })}`
+      );
+    }
     return {
       type: response.type ?? type,
-      loginId: response.loginId ?? "",
-      authUrl: response.authUrl ?? "",
+      loginId: response.loginId,
+      authUrl: response.authUrl,
     };
   }
 

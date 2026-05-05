@@ -559,6 +559,9 @@ export class BridgeWorkspaceController {
       const response = await this.#client.archiveBridgeThread(connectionTarget, threadId);
       this.#applyBridgeSnapshot(response.snapshot, "Thread archived.");
       return this.getState();
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Thread archive failed.") });
+      throw error;
     } finally {
       this.#setState({ isBusy: false });
     }
@@ -571,6 +574,9 @@ export class BridgeWorkspaceController {
       const response = await this.#client.unarchiveBridgeThread(connectionTarget, threadId);
       this.#applyBridgeSnapshot(response.snapshot, "Thread restored.");
       return this.getState();
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Thread restore failed.") });
+      throw error;
     } finally {
       this.#setState({ isBusy: false });
     }
@@ -583,6 +589,9 @@ export class BridgeWorkspaceController {
       const response = await this.#client.compactBridgeThread(connectionTarget, threadId);
       this.#applyBridgeSnapshot(response.snapshot, "Thread compact requested.");
       return this.getState();
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Thread compact failed.") });
+      throw error;
     } finally {
       this.#setState({ isBusy: false });
     }
@@ -603,6 +612,9 @@ export class BridgeWorkspaceController {
       );
       this.#applyBridgeSnapshot(response.snapshot, "Thread rollback requested.");
       return this.getState();
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Thread rollback failed.") });
+      throw error;
     } finally {
       this.#setState({ isBusy: false });
     }
@@ -615,6 +627,9 @@ export class BridgeWorkspaceController {
       const diff = await this.#client.fetchRemoteDiff(connectionTarget, cwd);
       this.#setState({ bridgeStatus: diff.diff.trim() ? "Remote diff loaded." : "No remote diff." });
       return diff;
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Remote diff failed.") });
+      throw error;
     } finally {
       this.#setState({ isBusy: false });
     }
@@ -922,6 +937,10 @@ export class BridgeWorkspaceController {
     }
 
     return this.#connectionTarget;
+  }
+
+  #bridgeErrorMessage(error: unknown, fallback: string) {
+    return error instanceof Error && error.message ? error.message : fallback;
   }
 
   #patchPairingProfile(

@@ -3,6 +3,7 @@ import {
   decodePairingPayload,
   extractPairingUri,
   parseManagedSession,
+  sendBridgeAccountLoginCancel,
   serializeManagedSession,
 } from "../app/(app)/webui/web-transport";
 
@@ -53,5 +54,22 @@ describe("web transport", () => {
       deviceId: "web-1",
     });
     expect(parseManagedSession(JSON.stringify({ token: "missing fields" }))).toBeNull();
+  });
+
+  test("preserves bridge error bodies for direct HTTP requests", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: "Account login cancel rejected. Missing login id." }), {
+        status: 400,
+        statusText: "Bad Request",
+      })) as unknown as typeof fetch;
+
+    try {
+      await expect(
+        sendBridgeAccountLoginCancel("http://127.0.0.1:42420", "")
+      ).rejects.toThrow("Account login cancel rejected. Missing login id.");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

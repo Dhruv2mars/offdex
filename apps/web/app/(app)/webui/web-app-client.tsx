@@ -1106,6 +1106,11 @@ export function WebAppClient() {
     runtimeReadiness?.requirements?.allowedSandboxModes?.length
       ? runtimeReadiness.requirements.allowedSandboxModes
       : [...SANDBOX_MODE_OPTIONS];
+
+  useEffect(() => {
+    setRemoteDiff(null);
+    setDiffSurface("turn");
+  }, [selectedThreadId, workspaceRoot]);
   const webSearchOptions =
     runtimeReadiness?.requirements?.allowedWebSearchModes?.length
       ? runtimeReadiness.requirements.allowedWebSearchModes

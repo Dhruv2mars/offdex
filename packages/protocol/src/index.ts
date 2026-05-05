@@ -345,7 +345,7 @@ function extractText(value: unknown): string | null {
     }
   }
 
-  return JSON.stringify(value, null, 2);
+  return JSON.stringify(sanitizeTimelineMetadataValue(value), null, 2);
 }
 
 function firstText(record: Record<string, unknown>, keys: string[]) {

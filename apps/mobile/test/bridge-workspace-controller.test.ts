@@ -98,6 +98,7 @@ function createFakeClient() {
   let managedListRequestCount = 0;
   let failHealthRequests = 0;
   let failManagedListRequests = 0;
+  let failArchiveRequests = 0;
   let liveHandlers:
     | {
         onSnapshot: (nextSnapshot: typeof snapshot) => void;
@@ -230,6 +231,10 @@ function createFakeClient() {
     },
     async archiveBridgeThread(_baseUrl, threadId) {
       archivedThreadId = threadId;
+      if (failArchiveRequests > 0) {
+        failArchiveRequests -= 1;
+        throw new Error("Archive denied");
+      }
       return {
         snapshot: {
           ...snapshot,
@@ -343,6 +348,9 @@ function createFakeClient() {
     },
     failNextManagedListRequests(count = 1) {
       failManagedListRequests = count;
+    },
+    failNextArchiveRequests(count = 1) {
+      failArchiveRequests = count;
     },
   };
 }
@@ -830,6 +838,21 @@ describe("bridge workspace controller", () => {
     });
     expect(fakeClient.getDiffCwd()).toBe("/Users/dhruv2mars/dev/github/offdex");
     expect(diff.diff).toContain("+mobile parity");
+  });
+
+  test("surfaces bridge action failures in controller status", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    fakeClient.failNextArchiveRequests();
+
+    await expect(controller.archiveThread("thread-foundation")).rejects.toThrow("Archive denied");
+    expect(controller.getState().bridgeStatus).toBe("Archive denied");
+    expect(controller.getState().isBusy).toBe(false);
   });
 
   test("switches runtime through the connected bridge", async () => {
