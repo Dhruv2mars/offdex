@@ -4,6 +4,7 @@ import {
   type OffdexPairingPayload,
   type OffdexRemoteDiff,
   type OffdexRuntimeAccount,
+  type OffdexWorkbenchInventory,
   type OffdexWorkspaceSnapshot,
   type RuntimeTarget,
 } from "@offdex/protocol";
@@ -14,6 +15,7 @@ import {
   decodeRelayConnectionTarget,
   encodeRelayConnectionTarget,
   fetchBridgeHealth,
+  fetchBridgeInventory,
   fetchBridgeSnapshot,
   fetchRemoteDiff,
   interruptBridgeTurn,
@@ -43,6 +45,7 @@ export interface BridgePreferencesStore {
 export interface BridgeClient {
   fetchBridgeHealth(baseUrl: string): Promise<BridgeHealth>;
   fetchBridgeSnapshot(baseUrl: string): Promise<OffdexWorkspaceSnapshot>;
+  fetchBridgeInventory(baseUrl: string): Promise<OffdexWorkbenchInventory>;
   selectBridgeRuntime(
     baseUrl: string,
     preferredTarget: RuntimeTarget
@@ -117,11 +120,13 @@ export interface BridgeWorkspaceState {
   machines: OffdexMachineRecord[];
   managedSession: ManagedBridgeSession | null;
   codexAccount: OffdexRuntimeAccount | null;
+  inventory: OffdexWorkbenchInventory | null;
 }
 
 const defaultClient: BridgeClient = {
   fetchBridgeHealth,
   fetchBridgeSnapshot,
+  fetchBridgeInventory,
   selectBridgeRuntime,
   sendBridgeTurn,
   interruptBridgeTurn,
@@ -218,6 +223,7 @@ export class BridgeWorkspaceController {
       machines: [],
       managedSession: null,
       codexAccount: null,
+      inventory: null,
     };
     this.#demoController.subscribe((snapshotUpdate) => {
       this.#setState({
@@ -412,10 +418,11 @@ export class BridgeWorkspaceController {
       bridgeStatus: "Disconnected",
       isBusy: false,
       relayUrl: null,
-        trustedPairing: false,
-        machines: [],
-        managedSession: null,
-        codexAccount: null,
+      trustedPairing: false,
+      machines: [],
+      managedSession: null,
+      codexAccount: null,
+      inventory: null,
       });
   }
 
@@ -629,6 +636,24 @@ export class BridgeWorkspaceController {
       return diff;
     } catch (error) {
       this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Remote diff failed.") });
+      throw error;
+    } finally {
+      this.#setState({ isBusy: false });
+    }
+  }
+
+  async refreshInventory() {
+    const connectionTarget = this.#requireConnectionTarget();
+    this.#setState({ isBusy: true, bridgeStatus: "Loading runtime inventory..." });
+    try {
+      const inventory = await this.#client.fetchBridgeInventory(connectionTarget);
+      this.#setState({
+        inventory,
+        bridgeStatus: "Runtime inventory loaded.",
+      });
+      return inventory;
+    } catch (error) {
+      this.#setState({ bridgeStatus: this.#bridgeErrorMessage(error, "Runtime inventory failed.") });
       throw error;
     } finally {
       this.#setState({ isBusy: false });

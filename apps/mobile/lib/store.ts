@@ -41,6 +41,7 @@ export interface WorkspaceStore extends BridgeWorkspaceState {
   compactThread: (threadId?: string) => Promise<void>;
   rollbackThread: (threadId?: string, numTurns?: number) => Promise<void>;
   loadRemoteDiff: (cwd?: string | null) => Promise<OffdexRemoteDiff>;
+  refreshInventory: () => Promise<void>;
   startNewThread: () => void;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -265,6 +266,10 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => {
 
     loadRemoteDiff: async (cwd) => {
       return controller.fetchRemoteDiff(cwd);
+    },
+
+    refreshInventory: async () => {
+      await controller.refreshInventory();
     },
 
     startNewThread: () => {

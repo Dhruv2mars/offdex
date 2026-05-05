@@ -105,10 +105,12 @@ export function MobileChatShell() {
   const isConnected = useWorkspaceStore((s) => s.isConnected);
   const isBusy = useWorkspaceStore((s) => s.isBusy);
   const codexAccount = useWorkspaceStore((s) => s.codexAccount);
+  const inventory = useWorkspaceStore((s) => s.inventory);
   const startNewThread = useWorkspaceStore((s) => s.startNewThread);
   const selectThread = useWorkspaceStore((s) => s.selectThread);
   const refresh = useWorkspaceStore((s) => s.refresh);
   const refreshMachines = useWorkspaceStore((s) => s.refreshMachines);
+  const refreshInventory = useWorkspaceStore((s) => s.refreshInventory);
   const setRuntimeTarget = useWorkspaceStore((s) => s.setRuntimeTarget);
   const disconnect = useWorkspaceStore((s) => s.disconnect);
   const archiveThread = useWorkspaceStore((s) => s.archiveThread);
@@ -122,6 +124,17 @@ export function MobileChatShell() {
   const isDraft = activeThread?.id === OFFDEX_NEW_THREAD_ID || selectedThreadId === OFFDEX_NEW_THREAD_ID;
   const canUseThreadActions = !isDraft && isConnected && codexAccount?.isAuthenticated === true;
   const selectedTitle = isDraft ? "New thread" : activeThread?.title ?? "New thread";
+  const inventorySummary = inventory
+    ? `${inventory.skills.length} skills / ${inventory.plugins.length} plugins / ${inventory.mcpServers.length} connectors`
+    : "No runtime inventory loaded";
+  const inventoryConfig = inventory?.config?.model
+    ? `${inventory.config.model} / ${inventory.config.approvalPolicy ?? "approval default"}`
+    : "Runtime config unavailable";
+  const primaryLimit = inventory?.rateLimits?.primary?.usedPercent;
+  const inventoryLimits =
+    typeof primaryLimit === "number"
+      ? `${primaryLimit}% primary limit used`
+      : "Rate limits unavailable";
 
   useEffect(() => {
     if (messages.length === 0) return undefined;
@@ -159,6 +172,16 @@ export function MobileChatShell() {
       void feedbackError();
     }
   }, [refresh, refreshMachines]);
+
+  const handleInventoryRefresh = useCallback(async () => {
+    void feedbackSelection();
+    try {
+      await refreshInventory();
+      void feedbackSuccess();
+    } catch {
+      void feedbackError();
+    }
+  }, [refreshInventory]);
 
   const handleScan = useCallback(() => {
     void feedbackSelection();
@@ -503,6 +526,21 @@ export function MobileChatShell() {
               ))}
             </View>
 
+            <View className="mb-3 rounded-lg bg-background p-3 shadow-border">
+              <View className="flex-row items-center gap-2">
+                <Cpu size={16} color="#666666" />
+                <Text className="font-mono text-[10px] uppercase text-muted-foreground">
+                  Runtime inventory
+                </Text>
+              </View>
+              <Text className="mt-2 text-sm font-semibold text-foreground" numberOfLines={2}>
+                {inventorySummary}
+              </Text>
+              <Text className="mt-1 text-xs leading-5 text-muted-foreground" numberOfLines={2}>
+                {inventoryConfig} / {inventoryLimits}
+              </Text>
+            </View>
+
             <View className="gap-2">
               <Button onPress={handleScan} variant="primary">
                 <QrCode size={18} color="#ffffff" />
@@ -541,6 +579,17 @@ export function MobileChatShell() {
                 <RefreshCw size={17} color="#171717" />
                 <Text className="flex-1 text-sm font-semibold text-foreground">
                   Refresh bridge
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleInventoryRefresh}
+                disabled={isBusy || !isConnected}
+                className="flex-row items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-border active:bg-muted disabled:opacity-50"
+              >
+                <RefreshCw size={17} color="#171717" />
+                <Text className="flex-1 text-sm font-semibold text-foreground">
+                  Refresh runtime inventory
                 </Text>
               </Pressable>
 
