@@ -370,6 +370,131 @@ function firstNumber(record: Record<string, unknown>, keys: string[]) {
   return null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mcpOauthStateForAuthStatus(authStatus: string): OffdexMcpServerRecord["oauthState"] {
+  const normalized = authStatus.toLowerCase();
+  if (normalized === "unsupported") return "unsupported";
+  if (normalized === "notloggedin" || normalized === "not_logged_in" || normalized === "loggedout") {
+    return "disconnected";
+  }
+  if (
+    normalized === "bearertoken" ||
+    normalized === "bearer_token" ||
+    normalized === "oauth" ||
+    normalized === "connected" ||
+    normalized === "loggedin" ||
+    normalized === "authenticated"
+  ) {
+    return "connected";
+  }
+  if (normalized.includes("permission") || normalized.includes("blocked") || normalized.includes("denied")) {
+    return "permissionBlocked";
+  }
+  return "unknown";
+}
+
+function mcpUnavailableReasonForOauthState(
+  oauthState: OffdexMcpServerRecord["oauthState"]
+): OffdexMcpServerRecord["unavailableReason"] {
+  if (oauthState === "disconnected") return "loginRequired";
+  if (oauthState === "unsupported") return "unsupported";
+  if (oauthState === "permissionBlocked") return "permissionBlocked";
+  if (oauthState === "unknown") return "unavailable";
+  return null;
+}
+
+function isBrowserSafeMcpResourceUri(uri: string) {
+  const trimmed = uri.trim();
+  if (!trimmed || trimmed.length > 2048) return false;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.username || parsed.password) return false;
+    return ["mcp:", "http:", "https:", "file:"].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
+function normalizeMcpTool(name: string, value: unknown): OffdexMcpToolRecord {
+  const record = isRecord(value) ? value : {};
+  return {
+    name,
+    title: firstText(record, ["title", "displayName"]) ?? null,
+    description: firstText(record, ["description", "summary"]) ?? null,
+    inputSchema: record.inputSchema ?? record.input_schema ?? null,
+    annotations: record.annotations ?? null,
+  };
+}
+
+function normalizeMcpResource(serverName: string, value: unknown, index: number): OffdexMcpResourceRecord {
+  const record = isRecord(value) ? value : {};
+  const uri = firstText(record, ["uri", "url", "href"]) ?? "";
+  const name = firstText(record, ["name", "title"]) ?? uri.split("/").filter(Boolean).at(-1) ?? `Resource ${index + 1}`;
+  const canAttachAsContext = isBrowserSafeMcpResourceUri(uri);
+
+  return {
+    uri,
+    name,
+    title: firstText(record, ["title", "displayName"]) ?? null,
+    mimeType: firstText(record, ["mimeType", "mime_type"]) ?? null,
+    description: firstText(record, ["description", "summary"]) ?? null,
+    canAttachAsContext,
+    attachText: canAttachAsContext ? `MCP resource ${serverName}/${name}: ${uri}` : null,
+  };
+}
+
+function normalizeMcpResourceTemplate(value: unknown, index: number): OffdexMcpResourceTemplateRecord {
+  const record = isRecord(value) ? value : {};
+  const uriTemplate = firstText(record, ["uriTemplate", "uri_template", "template"]) ?? "";
+  return {
+    uriTemplate,
+    name: firstText(record, ["name", "title"]) ?? uriTemplate.split("/").filter(Boolean).at(-1) ?? `Template ${index + 1}`,
+    title: firstText(record, ["title", "displayName"]) ?? null,
+    mimeType: firstText(record, ["mimeType", "mime_type"]) ?? null,
+    description: firstText(record, ["description", "summary"]) ?? null,
+    canAttachAsContext: false,
+  };
+}
+
+export function normalizeOffdexMcpServerRecord(input: {
+  name?: unknown;
+  authStatus?: unknown;
+  tools?: unknown;
+  resources?: unknown;
+  resourceTemplates?: unknown;
+}): OffdexMcpServerRecord {
+  const name = typeof input.name === "string" && input.name.trim() ? input.name : "unknown";
+  const authStatus = typeof input.authStatus === "string" && input.authStatus.trim() ? input.authStatus : "unsupported";
+  const oauthState = mcpOauthStateForAuthStatus(authStatus);
+  const tools = isRecord(input.tools)
+    ? Object.entries(input.tools).map(([toolName, value]) => normalizeMcpTool(toolName, value))
+    : [];
+  const resources = Array.isArray(input.resources)
+    ? input.resources.map((resource, index) => normalizeMcpResource(name, resource, index))
+    : [];
+  const resourceTemplates = Array.isArray(input.resourceTemplates)
+    ? input.resourceTemplates.map((template, index) => normalizeMcpResourceTemplate(template, index))
+    : [];
+
+  return {
+    name,
+    authStatus,
+    oauthState,
+    canStartOauth: oauthState === "disconnected",
+    unavailableReason: mcpUnavailableReasonForOauthState(oauthState),
+    toolCount: tools.length,
+    resourceCount: resources.length,
+    resourceTemplateCount: resourceTemplates.length,
+    tools,
+    resources,
+    resourceTemplates,
+  };
+}
+
 function sanitizeTimelineMetadataValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sanitizeTimelineMetadataValue);
@@ -704,9 +829,42 @@ export interface OffdexSkillRecord {
 export interface OffdexMcpServerRecord {
   name: string;
   authStatus: "unsupported" | "notLoggedIn" | "bearerToken" | "oAuth" | string;
+  oauthState: "connected" | "disconnected" | "unsupported" | "permissionBlocked" | "unknown";
+  canStartOauth: boolean;
+  unavailableReason: "loginRequired" | "unsupported" | "permissionBlocked" | "unavailable" | null;
   toolCount: number;
   resourceCount: number;
   resourceTemplateCount: number;
+  tools: OffdexMcpToolRecord[];
+  resources: OffdexMcpResourceRecord[];
+  resourceTemplates: OffdexMcpResourceTemplateRecord[];
+}
+
+export interface OffdexMcpToolRecord {
+  name: string;
+  title: string | null;
+  description: string | null;
+  inputSchema: unknown | null;
+  annotations: unknown | null;
+}
+
+export interface OffdexMcpResourceRecord {
+  uri: string;
+  name: string;
+  title: string | null;
+  mimeType: string | null;
+  description: string | null;
+  canAttachAsContext: boolean;
+  attachText: string | null;
+}
+
+export interface OffdexMcpResourceTemplateRecord {
+  uriTemplate: string;
+  name: string;
+  title: string | null;
+  mimeType: string | null;
+  description: string | null;
+  canAttachAsContext: boolean;
 }
 
 export interface OffdexAutomationRecord {

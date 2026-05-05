@@ -33,6 +33,7 @@ import {
   sendBridgeThreadUnarchive,
   type OffdexAccountLoginSession,
   type OffdexInputItem,
+  type OffdexMcpResourceRecord,
   type OffdexRemoteDiff,
   type OffdexRemoteFileEntry,
   type OffdexRemoteFileMatch,
@@ -63,7 +64,7 @@ type DiffSurface = "turn" | "remote";
 type ComposerAttachment = {
   id: string;
   name: string;
-  kind: "text" | "image" | "workspace" | "skill";
+  kind: "text" | "image" | "workspace" | "skill" | "connector";
   preview: string;
   input: OffdexInputItem;
 };
@@ -636,6 +637,25 @@ export function getComposerSkillSuggestions(
       return leftStarts - rightStarts || left.name.localeCompare(right.name);
     })
     .slice(0, limit);
+}
+
+export function createConnectorResourceAttachment(
+  resource: OffdexMcpResourceRecord & { serverName: string }
+): ComposerAttachment | null {
+  if (!resource.canAttachAsContext || !resource.attachText) {
+    return null;
+  }
+
+  return {
+    id: `mcp-resource:${resource.serverName}:${resource.uri}`,
+    name: resource.title ?? resource.name,
+    kind: "connector",
+    preview: `${resource.serverName} · ${resource.uri}`,
+    input: {
+      type: "text",
+      text: resource.attachText,
+    } satisfies OffdexInputItem,
+  };
 }
 
 function threadMetrics(thread: OffdexThread | null) {
@@ -1790,6 +1810,16 @@ export function WebAppClient() {
     setDraft((current) => removeTrailingSkillMentionToken(current));
   }
 
+  function attachConnectorResource(resource: OffdexMcpResourceRecord, serverName: string) {
+    const attachment = createConnectorResourceAttachment({ ...resource, serverName });
+    if (!attachment) {
+      setError("This connector resource cannot be attached as browser-safe context.");
+      return;
+    }
+    setAttachments((current) => [...current, attachment]);
+    setPanel(null);
+  }
+
   async function appendFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList);
     if (files.length === 0) {
@@ -2535,7 +2565,9 @@ export function WebAppClient() {
                             ? "Workspace"
                             : attachment.kind === "skill"
                               ? "Skill"
-                              : "File"} · {attachment.preview}
+                              : attachment.kind === "connector"
+                                ? "Connector"
+                                : "File"} · {attachment.preview}
                       </button>
                     ))}
                   </div>
@@ -2925,13 +2957,30 @@ export function WebAppClient() {
                               <div className="flex items-center justify-between gap-3">
                                 <p className="text-sm font-semibold text-foreground">{server.name}</p>
                                 <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
-                                  {server.authStatus}
+                                  {server.oauthState === "connected"
+                                    ? "connected"
+                                    : server.oauthState === "disconnected"
+                                      ? "login needed"
+                                      : server.oauthState === "permissionBlocked"
+                                        ? "permission blocked"
+                                        : server.authStatus}
                                 </span>
                               </div>
                               <p className="mt-2 text-xs text-muted-foreground">
                                 {server.toolCount} tools · {server.resourceCount} resources · {server.resourceTemplateCount} templates
                               </p>
-                              {server.authStatus === "notLoggedIn" ? (
+                              {server.unavailableReason ? (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                  {server.unavailableReason === "loginRequired"
+                                    ? "Log in before Codex can use this connector."
+                                    : server.unavailableReason === "permissionBlocked"
+                                      ? "Connector status was returned, but access is blocked by current permissions."
+                                      : server.unavailableReason === "unsupported"
+                                        ? "This connector does not support OAuth inspection in this runtime."
+                                        : "Codex did not return enough status to mark this connector available."}
+                                </p>
+                              ) : null}
+                              {server.canStartOauth ? (
                                 <button
                                   className="focus-ring mt-3 rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background"
                                   onClick={() => void loginMcpServer(server.name)}
@@ -2940,6 +2989,86 @@ export function WebAppClient() {
                                   Log in
                                 </button>
                               ) : null}
+                              <div className="mt-3 space-y-3">
+                                <div>
+                                  <p className="text-[11px] font-semibold uppercase text-muted-foreground">Tools</p>
+                                  {server.tools.length > 0 ? (
+                                    <div className="mt-2 space-y-2">
+                                      {server.tools.map((tool) => (
+                                        <div className="rounded-xl bg-background p-3 shadow-border" key={tool.name}>
+                                          <p className="text-xs font-semibold text-foreground">{tool.title ?? tool.name}</p>
+                                          {tool.description ? (
+                                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{tool.description}</p>
+                                          ) : null}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                      {server.unavailableReason ? "Tools unavailable until connector state changes." : "No MCP tools returned."}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <p className="text-[11px] font-semibold uppercase text-muted-foreground">Resources</p>
+                                  {server.resources.length > 0 ? (
+                                    <div className="mt-2 space-y-2">
+                                      {server.resources.map((resource) => (
+                                        <div className="rounded-xl bg-background p-3 shadow-border" key={resource.uri || resource.name}>
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                              <p className="truncate text-xs font-semibold text-foreground">{resource.title ?? resource.name}</p>
+                                              <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">{resource.uri || "No URI returned"}</p>
+                                            </div>
+                                            {resource.canAttachAsContext ? (
+                                              <button
+                                                className="focus-ring shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-medium text-background"
+                                                onClick={() => attachConnectorResource(resource, server.name)}
+                                                type="button"
+                                              >
+                                                Attach
+                                              </button>
+                                            ) : (
+                                              <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                                                unsupported
+                                              </span>
+                                            )}
+                                          </div>
+                                          {resource.description ? (
+                                            <p className="mt-2 text-xs leading-5 text-muted-foreground">{resource.description}</p>
+                                          ) : null}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                      {server.unavailableReason ? "Resources unavailable until connector state changes." : "No MCP resources returned."}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <p className="text-[11px] font-semibold uppercase text-muted-foreground">Resource templates</p>
+                                  {server.resourceTemplates.length > 0 ? (
+                                    <div className="mt-2 space-y-2">
+                                      {server.resourceTemplates.map((template) => (
+                                        <div className="rounded-xl bg-background p-3 shadow-border" key={template.uriTemplate || template.name}>
+                                          <p className="text-xs font-semibold text-foreground">{template.title ?? template.name}</p>
+                                          <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
+                                            {template.uriTemplate || "No template URI returned"}
+                                          </p>
+                                          {template.description ? (
+                                            <p className="mt-2 text-xs leading-5 text-muted-foreground">{template.description}</p>
+                                          ) : null}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-2 text-xs text-muted-foreground">No MCP resource templates returned.</p>
+                                  )}
+                                </div>
+                              </div>
                             </article>
                           ))
                         ) : (

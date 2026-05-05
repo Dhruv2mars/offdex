@@ -12,6 +12,7 @@ import {
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   makeMessage,
+  normalizeOffdexMcpServerRecord,
   normalizeOffdexRuntimeTimelineItem,
   summarizeOffdexThread,
 } from "../src";
@@ -42,6 +43,101 @@ describe("protocol demo snapshot", () => {
 
     expect(snapshot.pairing.runtimeTarget).toBe("desktop");
     expect(snapshot.threads[0]?.runtimeTarget).toBe("desktop");
+  });
+});
+
+describe("mcp connector inventory", () => {
+  test("normalizes tools, resources, templates, and login state for inspection", () => {
+    expect(
+      normalizeOffdexMcpServerRecord({
+        name: "github",
+        authStatus: "notLoggedIn",
+        tools: {
+          create_issue: {
+            description: "Create a GitHub issue.",
+            inputSchema: { type: "object" },
+          },
+        },
+        resources: [
+          {
+            uri: "mcp://github/repositories/offdex/issues/79",
+            name: "Issue 79",
+            mimeType: "text/markdown",
+            description: "Connector resource explorer.",
+          },
+        ],
+        resourceTemplates: [
+          {
+            uriTemplate: "mcp://github/repositories/{owner}/{repo}/issues/{number}",
+            name: "Issue",
+            description: "Issue by number.",
+          },
+        ],
+      })
+    ).toEqual({
+      name: "github",
+      authStatus: "notLoggedIn",
+      oauthState: "disconnected",
+      canStartOauth: true,
+      unavailableReason: "loginRequired",
+      toolCount: 1,
+      resourceCount: 1,
+      resourceTemplateCount: 1,
+      tools: [
+        {
+          name: "create_issue",
+          title: null,
+          description: "Create a GitHub issue.",
+          inputSchema: { type: "object" },
+          annotations: null,
+        },
+      ],
+      resources: [
+        {
+          uri: "mcp://github/repositories/offdex/issues/79",
+          name: "Issue 79",
+          title: null,
+          mimeType: "text/markdown",
+          description: "Connector resource explorer.",
+          canAttachAsContext: true,
+          attachText: "MCP resource github/Issue 79: mcp://github/repositories/offdex/issues/79",
+        },
+      ],
+      resourceTemplates: [
+        {
+          uriTemplate: "mcp://github/repositories/{owner}/{repo}/issues/{number}",
+          name: "Issue",
+          title: null,
+          mimeType: null,
+          description: "Issue by number.",
+          canAttachAsContext: false,
+        },
+      ],
+    });
+  });
+
+  test("marks missing tool lists and unsafe resources explicitly", () => {
+    expect(
+      normalizeOffdexMcpServerRecord({
+        name: "blocked",
+        authStatus: "unsupported",
+        resources: [{ uri: "javascript:alert(1)", name: "Unsafe" }],
+      })
+    ).toMatchObject({
+      name: "blocked",
+      oauthState: "unsupported",
+      canStartOauth: false,
+      unavailableReason: "unsupported",
+      toolCount: 0,
+      tools: [],
+      resources: [
+        {
+          uri: "javascript:alert(1)",
+          canAttachAsContext: false,
+          attachText: null,
+        },
+      ],
+    });
   });
 });
 
