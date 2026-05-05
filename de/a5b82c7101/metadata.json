@@ -3,7 +3,7 @@
   "checkpoint_id": "dea5b82c7101",
   "strategy": "manual-commit",
   "branch": "feat/issue-78-runtime-readiness",
-  "checkpoints_count": 6,
+  "checkpoints_count": 7,
   "files_touched": [
     "apps/mobile/components/layout/mobile-chat-shell.tsx",
     "apps/mobile/lib/icons.ts",
@@ -38,13 +38,19 @@
       "transcript": "/de/a5b82c7101/2/full.jsonl",
       "content_hash": "/de/a5b82c7101/2/content_hash.txt",
       "prompt": "/de/a5b82c7101/2/prompt.txt"
+    },
+    {
+      "metadata": "/de/a5b82c7101/3/metadata.json",
+      "transcript": "/de/a5b82c7101/3/full.jsonl",
+      "content_hash": "/de/a5b82c7101/3/content_hash.txt",
+      "prompt": "/de/a5b82c7101/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 6863963,
+    "input_tokens": 6964269,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 148037888,
-    "output_tokens": 372215,
-    "api_call_count": 1134
+    "cache_read_tokens": 149612800,
+    "output_tokens": 384963,
+    "api_call_count": 1162
   }
 }
