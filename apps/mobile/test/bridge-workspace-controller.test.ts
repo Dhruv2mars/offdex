@@ -94,6 +94,8 @@ function createFakeClient() {
   let archivedThreadId: string | null = null;
   let compactedThreadId: string | null = null;
   let rollbackRequest: { threadId: string; numTurns: number } | null = null;
+  let canceledLoginId: string | null = null;
+  let logoutRequestCount = 0;
   let diffCwd: string | null | undefined;
   let inventoryRequestCount = 0;
   let healthRequestCount = 0;
@@ -189,6 +191,28 @@ function createFakeClient() {
           credits: null,
         },
       } satisfies OffdexWorkbenchInventory;
+    },
+    async startBridgeAccountLogin() {
+      return {
+        session: {
+          type: "chatgpt",
+          loginId: "login-123",
+          authUrl: "https://auth.openai.com/login-123",
+        },
+      };
+    },
+    async cancelBridgeAccountLogin(_baseUrl, loginId) {
+      canceledLoginId = loginId;
+      return { ok: true };
+    },
+    async logoutBridgeAccount() {
+      logoutRequestCount += 1;
+      return {
+        snapshot: {
+          ...snapshot,
+          account: null,
+        },
+      };
     },
     async selectBridgeRuntime(_baseUrl, preferredTarget) {
       return {
@@ -383,6 +407,12 @@ function createFakeClient() {
     },
     getRollbackRequest() {
       return rollbackRequest;
+    },
+    getCanceledLoginId() {
+      return canceledLoginId;
+    },
+    getLogoutRequestCount() {
+      return logoutRequestCount;
     },
     getDiffCwd() {
       return diffCwd;
@@ -913,6 +943,31 @@ describe("bridge workspace controller", () => {
     expect(inventory.skills[0]?.name).toBe("tdd");
     expect(controller.getState().inventory?.config?.model).toBe("gpt-5.2");
     expect(controller.getState().bridgeStatus).toBe("Runtime inventory loaded.");
+  });
+
+  test("starts, cancels, and logs out Codex account sessions through the bridge", async () => {
+    const fakeClient = createFakeClient();
+    const controller = new BridgeWorkspaceController({
+      preferences: createFakePreferences(),
+      client: fakeClient.client,
+    });
+
+    await controller.connect("http://127.0.0.1:42420");
+    const session = await controller.startAccountLogin();
+
+    expect(session.authUrl).toBe("https://auth.openai.com/login-123");
+    expect(controller.getState().accountLoginSession?.loginId).toBe("login-123");
+
+    await controller.cancelAccountLogin();
+
+    expect(fakeClient.getCanceledLoginId()).toBe("login-123");
+    expect(controller.getState().accountLoginSession).toBeNull();
+
+    await controller.logoutAccount();
+
+    expect(fakeClient.getLogoutRequestCount()).toBe(1);
+    expect(controller.getState().codexAccount).toBeNull();
+    expect(controller.getState().bridgeStatus).toBe("Codex account logged out.");
   });
 
   test("surfaces bridge action failures in controller status", async () => {

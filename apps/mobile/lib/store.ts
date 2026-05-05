@@ -40,6 +40,9 @@ export interface WorkspaceStore extends BridgeWorkspaceState {
   unarchiveThread: (threadId: string) => Promise<void>;
   compactThread: (threadId?: string) => Promise<void>;
   rollbackThread: (threadId?: string, numTurns?: number) => Promise<void>;
+  startAccountLogin: () => Promise<string>;
+  cancelAccountLogin: () => Promise<void>;
+  logoutAccount: () => Promise<void>;
   loadRemoteDiff: (cwd?: string | null) => Promise<OffdexRemoteDiff>;
   refreshInventory: () => Promise<void>;
   startNewThread: () => void;
@@ -262,6 +265,19 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => {
       const targetThreadId = threadId ?? state.activeThread?.id;
       if (!targetThreadId || targetThreadId === OFFDEX_NEW_THREAD_ID) return;
       await controller.rollbackThread(targetThreadId, numTurns);
+    },
+
+    startAccountLogin: async () => {
+      const session = await controller.startAccountLogin();
+      return session.authUrl;
+    },
+
+    cancelAccountLogin: async () => {
+      await controller.cancelAccountLogin();
+    },
+
+    logoutAccount: async () => {
+      await controller.logoutAccount();
     },
 
     loadRemoteDiff: async (cwd) => {

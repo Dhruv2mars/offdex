@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Keyboard, Platform } from "react-native";
+import { Alert, Keyboard, Linking, Platform } from "react-native";
 import type { ScrollView as NativeScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -105,6 +105,7 @@ export function MobileChatShell() {
   const isConnected = useWorkspaceStore((s) => s.isConnected);
   const isBusy = useWorkspaceStore((s) => s.isBusy);
   const codexAccount = useWorkspaceStore((s) => s.codexAccount);
+  const accountLoginSession = useWorkspaceStore((s) => s.accountLoginSession);
   const inventory = useWorkspaceStore((s) => s.inventory);
   const startNewThread = useWorkspaceStore((s) => s.startNewThread);
   const selectThread = useWorkspaceStore((s) => s.selectThread);
@@ -116,6 +117,9 @@ export function MobileChatShell() {
   const archiveThread = useWorkspaceStore((s) => s.archiveThread);
   const compactThread = useWorkspaceStore((s) => s.compactThread);
   const rollbackThread = useWorkspaceStore((s) => s.rollbackThread);
+  const startAccountLogin = useWorkspaceStore((s) => s.startAccountLogin);
+  const cancelAccountLogin = useWorkspaceStore((s) => s.cancelAccountLogin);
+  const logoutAccount = useWorkspaceStore((s) => s.logoutAccount);
   const loadRemoteDiff = useWorkspaceStore((s) => s.loadRemoteDiff);
 
   const projectName = snapshot.pairing.macName || "offdex";
@@ -182,6 +186,47 @@ export function MobileChatShell() {
       void feedbackError();
     }
   }, [refreshInventory]);
+
+  const handleAccountLogin = useCallback(async () => {
+    void feedbackSelection();
+    try {
+      const authUrl = await startAccountLogin();
+      await Linking.openURL(authUrl);
+      void feedbackSuccess();
+    } catch {
+      void feedbackError();
+    }
+  }, [startAccountLogin]);
+
+  const handleAccountLoginCancel = useCallback(async () => {
+    void feedbackSelection();
+    try {
+      await cancelAccountLogin();
+      void feedbackSuccess();
+    } catch {
+      void feedbackError();
+    }
+  }, [cancelAccountLogin]);
+
+  const handleAccountLogout = useCallback(() => {
+    void feedbackWarning();
+    Alert.alert(
+      "Log out Codex",
+      "Log out of the Codex account on the connected Mac?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Log out",
+          style: "destructive",
+          onPress: () => {
+            void logoutAccount()
+              .then(() => feedbackSuccess())
+              .catch(() => feedbackError());
+          },
+        },
+      ]
+    );
+  }, [logoutAccount]);
 
   const handleScan = useCallback(() => {
     void feedbackSelection();
@@ -541,6 +586,25 @@ export function MobileChatShell() {
               </Text>
             </View>
 
+            <View className="mb-3 rounded-lg bg-background p-3 shadow-border">
+              <View className="flex-row items-center gap-2">
+                <Shield size={16} color="#666666" />
+                <Text className="font-mono text-[10px] uppercase text-muted-foreground">
+                  Codex account
+                </Text>
+              </View>
+              <Text className="mt-2 text-sm font-semibold text-foreground" numberOfLines={1}>
+                {codexAccount?.email ?? codexAccount?.name ?? "Not signed in"}
+              </Text>
+              <Text className="mt-1 text-xs leading-5 text-muted-foreground" numberOfLines={2}>
+                {accountLoginSession
+                  ? `Pending login ${accountLoginSession.loginId}`
+                  : codexAccount?.isAuthenticated
+                    ? codexAccount.planType ?? "Signed in"
+                    : "Mac-side Codex sign-in required"}
+              </Text>
+            </View>
+
             <View className="gap-2">
               <Button onPress={handleScan} variant="primary">
                 <QrCode size={18} color="#ffffff" />
@@ -592,6 +656,41 @@ export function MobileChatShell() {
                   Refresh runtime inventory
                 </Text>
               </Pressable>
+
+              {accountLoginSession ? (
+                <Pressable
+                  onPress={handleAccountLoginCancel}
+                  disabled={isBusy || !isConnected}
+                  className="flex-row items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-border active:bg-muted disabled:opacity-50"
+                >
+                  <Shield size={17} color="#171717" />
+                  <Text className="flex-1 text-sm font-semibold text-foreground">
+                    Cancel Codex login
+                  </Text>
+                </Pressable>
+              ) : codexAccount?.isAuthenticated ? (
+                <Pressable
+                  onPress={handleAccountLogout}
+                  disabled={isBusy || !isConnected}
+                  className="flex-row items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-border active:bg-muted disabled:opacity-50"
+                >
+                  <Shield size={17} color="#171717" />
+                  <Text className="flex-1 text-sm font-semibold text-foreground">
+                    Log out Codex account
+                  </Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={handleAccountLogin}
+                  disabled={isBusy || !isConnected}
+                  className="flex-row items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-border active:bg-muted disabled:opacity-50"
+                >
+                  <Shield size={17} color="#171717" />
+                  <Text className="flex-1 text-sm font-semibold text-foreground">
+                    Sign in to Codex
+                  </Text>
+                </Pressable>
+              )}
 
               <Pressable
                 onPress={handleClearTrust}

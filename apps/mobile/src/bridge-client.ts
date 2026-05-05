@@ -1,4 +1,5 @@
 import {
+  type OffdexAccountLoginSession,
   type OffdexAccountSession,
   type OffdexConnectionTicket,
   type OffdexMachineRecord,
@@ -52,6 +53,9 @@ interface RelayBridgeRequest {
   id: string;
   action:
     | "health"
+    | "account/login/cancel"
+    | "account/login/start"
+    | "account/logout"
     | "inventory"
     | "snapshot"
     | "runtime"
@@ -67,6 +71,8 @@ interface RelayBridgeRequest {
   body?: string;
   cwd?: string | null;
   numTurns?: number;
+  loginId?: string;
+  type?: "chatgpt";
 }
 
 const relaySubscribers = new Map<string, RelayLiveSubscription>();
@@ -475,6 +481,82 @@ export async function fetchBridgeInventory(baseUrl: string) {
   }
 
   return response.json() as Promise<OffdexWorkbenchInventory>;
+}
+
+export async function startBridgeAccountLogin(baseUrl: string, type: "chatgpt" = "chatgpt") {
+  const relayTarget = decodeRelayConnectionTarget(baseUrl);
+  if (relayTarget) {
+    return sendRelayProxyRequest<{ session: OffdexAccountLoginSession }>(relayTarget, {
+      id: nextRequestId("account-login-start"),
+      action: "account/login/start",
+      type,
+    });
+  }
+
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/account/login/start`, {
+    method: "POST",
+    headers: {
+      ...request.headers,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ type }),
+  });
+  if (!response.ok) {
+    throw new Error(`Account login failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<{ session: OffdexAccountLoginSession }>;
+}
+
+export async function cancelBridgeAccountLogin(baseUrl: string, loginId: string) {
+  const relayTarget = decodeRelayConnectionTarget(baseUrl);
+  if (relayTarget) {
+    return sendRelayProxyRequest<{ ok: true }>(relayTarget, {
+      id: nextRequestId("account-login-cancel"),
+      action: "account/login/cancel",
+      loginId,
+    });
+  }
+
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/account/login/cancel`, {
+    method: "POST",
+    headers: {
+      ...request.headers,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ loginId }),
+  });
+  if (!response.ok) {
+    throw new Error(`Account login cancel failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<{ ok: true }>;
+}
+
+export async function logoutBridgeAccount(baseUrl: string) {
+  const relayTarget = decodeRelayConnectionTarget(baseUrl);
+  if (relayTarget) {
+    return sendRelayProxyRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: nextRequestId("account-logout"),
+      action: "account/logout",
+    });
+  }
+
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/account/logout`, {
+    method: "POST",
+    headers: {
+      ...request.headers,
+      "content-type": "application/json",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Account logout failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
 }
 
 export async function selectBridgeRuntime(

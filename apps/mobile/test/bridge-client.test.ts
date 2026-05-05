@@ -5,9 +5,12 @@ import {
   decodeRelayConnectionTarget,
   encodeDirectConnectionTarget,
   encodeRelayConnectionTarget,
+  cancelBridgeAccountLogin,
   fetchBridgeInventory,
+  logoutBridgeAccount,
   resolveManagedConnection,
   normalizeBridgeBaseUrl,
+  startBridgeAccountLogin,
 } from "../src/bridge-client";
 
 describe("bridge client", () => {
@@ -125,6 +128,74 @@ describe("bridge client", () => {
 
       expect(requests).toEqual(["http://127.0.0.1:42420/inventory"]);
       expect(inventory.skills[0]?.name).toBe("tdd");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("posts Codex account controls to a direct bridge", async () => {
+    const originalFetch = globalThis.fetch;
+    const requests: Array<{ url: string; body: string | null }> = [];
+
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      requests.push({
+        url,
+        body: typeof init?.body === "string" ? init.body : null,
+      });
+
+      if (url.endsWith("/account/login/start")) {
+        return new Response(
+          JSON.stringify({
+            session: {
+              type: "chatgpt",
+              loginId: "login-123",
+              authUrl: "https://auth.openai.com/login-123",
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      if (url.endsWith("/account/login/cancel")) {
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      }
+
+      if (url.endsWith("/account/logout")) {
+        return new Response(
+          JSON.stringify({
+            snapshot: {
+              account: null,
+            },
+          }),
+          { status: 200 }
+        );
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    }) as typeof fetch;
+
+    try {
+      const login = await startBridgeAccountLogin("127.0.0.1:42420");
+      await cancelBridgeAccountLogin("127.0.0.1:42420", login.session.loginId);
+      const logout = await logoutBridgeAccount("127.0.0.1:42420");
+
+      expect(login.session.loginId).toBe("login-123");
+      expect(logout.snapshot.account).toBeNull();
+      expect(requests).toEqual([
+        {
+          url: "http://127.0.0.1:42420/account/login/start",
+          body: JSON.stringify({ type: "chatgpt" }),
+        },
+        {
+          url: "http://127.0.0.1:42420/account/login/cancel",
+          body: JSON.stringify({ loginId: "login-123" }),
+        },
+        {
+          url: "http://127.0.0.1:42420/account/logout",
+          body: null,
+        },
+      ]);
     } finally {
       globalThis.fetch = originalFetch;
     }
