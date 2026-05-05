@@ -68,6 +68,20 @@ type ComposerAttachment = {
   input: OffdexInputItem;
 };
 
+export type ApprovalPresentation = {
+  tone: "standard" | "warning" | "danger" | "connector";
+  label: string;
+  approveLabel: string;
+  declineLabel: string;
+  requiresConfirm: boolean;
+};
+
+export type ApprovalAnswerField = {
+  id: string;
+  label: string;
+  placeholder: string;
+};
+
 export type ComposerSkillSuggestion = {
   id: string;
   name: string;
@@ -91,6 +105,57 @@ const STORED_SESSION_KEY = "offdex:web:machine-session";
 const APPROVAL_POLICY_OPTIONS = ["never", "on-request"] as const;
 const SANDBOX_MODE_OPTIONS = ["read-only", "workspace-write", "danger-full-access"] as const;
 const WEB_SEARCH_OPTIONS = ["live", "cached", "disabled"] as const;
+const APPROVAL_PRESENTATION: Record<string, ApprovalPresentation> = {
+  "item/commandExecution/requestApproval": {
+    tone: "danger",
+    label: "Command permission",
+    approveLabel: "Run command",
+    declineLabel: "Do not run",
+    requiresConfirm: true,
+  },
+  execCommandApproval: {
+    tone: "danger",
+    label: "Command permission",
+    approveLabel: "Run command",
+    declineLabel: "Do not run",
+    requiresConfirm: true,
+  },
+  "item/fileChange/requestApproval": {
+    tone: "danger",
+    label: "File change permission",
+    approveLabel: "Allow change",
+    declineLabel: "Block change",
+    requiresConfirm: true,
+  },
+  applyPatchApproval: {
+    tone: "danger",
+    label: "File change permission",
+    approveLabel: "Apply patch",
+    declineLabel: "Block patch",
+    requiresConfirm: true,
+  },
+  "item/permissions/requestApproval": {
+    tone: "warning",
+    label: "Workspace permission",
+    approveLabel: "Allow",
+    declineLabel: "Deny",
+    requiresConfirm: true,
+  },
+  "item/tool/requestUserInput": {
+    tone: "standard",
+    label: "Codex needs input",
+    approveLabel: "Submit answers",
+    declineLabel: "Cancel request",
+    requiresConfirm: false,
+  },
+  "mcpServer/elicitation/request": {
+    tone: "connector",
+    label: "Connector needs input",
+    approveLabel: "Submit to connector",
+    declineLabel: "Cancel connector",
+    requiresConfirm: false,
+  },
+};
 
 type IconName =
   | "collapse"
@@ -167,6 +232,81 @@ function Icon({ name, className = "h-4 w-4" }: { name: IconName; className?: str
     case "archive":
       return <svg aria-hidden="true" {...common}><path d="M4 7h16" /><path d="M6 7v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7" /><path d="M9 11h6" /><path d="M10 4h4" /></svg>;
   }
+}
+
+export function getApprovalPresentation(approval: Pick<OffdexApprovalRequest, "method" | "title">): ApprovalPresentation {
+  return APPROVAL_PRESENTATION[approval.method] ?? {
+    tone: "warning",
+    label: approval.title || "Action required",
+    approveLabel: "Allow",
+    declineLabel: "Deny",
+    requiresConfirm: true,
+  };
+}
+
+function parseApprovalParams(approval: Pick<OffdexApprovalRequest, "rawParams">) {
+  try {
+    const parsed = JSON.parse(approval.rawParams) as unknown;
+    return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getApprovalAnswerFields(approval: Pick<OffdexApprovalRequest, "inputSchema" | "method" | "rawParams">): ApprovalAnswerField[] {
+  if (approval.inputSchema !== "answers") {
+    return [];
+  }
+
+  const params = parseApprovalParams(approval);
+  if (approval.method === "item/tool/requestUserInput" && Array.isArray(params.questions)) {
+    return params.questions.flatMap((question, index) => {
+      if (!question || typeof question !== "object") return [];
+      const record = question as Record<string, unknown>;
+      const id = typeof record.id === "string" && record.id.trim() ? record.id.trim() : `answer_${index + 1}`;
+      const label =
+        typeof record.question === "string" && record.question.trim()
+          ? record.question.trim()
+          : typeof record.header === "string" && record.header.trim()
+            ? record.header.trim()
+            : id;
+      return [{ id, label, placeholder: "Answer" }];
+    });
+  }
+
+  const requestedSchema = params.requestedSchema && typeof params.requestedSchema === "object"
+    ? params.requestedSchema as Record<string, unknown>
+    : null;
+  const properties = requestedSchema?.properties && typeof requestedSchema.properties === "object"
+    ? requestedSchema.properties as Record<string, unknown>
+    : null;
+
+  if (properties) {
+    return Object.entries(properties).map(([id, value]) => {
+      const record = value && typeof value === "object" ? value as Record<string, unknown> : {};
+      return {
+        id,
+        label: typeof record.title === "string" && record.title.trim() ? record.title.trim() : id,
+        placeholder: typeof record.description === "string" && record.description.trim() ? record.description.trim() : "Value",
+      };
+    });
+  }
+
+  return [{ id: "answer", label: "Answer", placeholder: "Value" }];
+}
+
+export function updateApprovalAnswerJson(currentValue: string, fieldId: string, nextValue: string) {
+  let current: Record<string, string> = {};
+  try {
+    const parsed = JSON.parse(currentValue || "{}") as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      current = Object.fromEntries(
+        Object.entries(parsed as Record<string, unknown>).map(([key, value]) => [key, String(value ?? "")])
+      );
+    }
+  } catch {}
+
+  return JSON.stringify({ ...current, [fieldId]: nextValue });
 }
 
 function roleLabel(item: OffdexTimelineItem) {
@@ -721,26 +861,59 @@ function ApprovalCard({
   disabled: boolean;
 }) {
   const isAnswerInput = approval.inputSchema === "answers";
-  const approveLabel = approval.method === "mcpServer/elicitation/request" ? "Submit" : "Allow";
-  const declineLabel = approval.method === "mcpServer/elicitation/request" ? "Cancel" : "Deny";
+  const presentation = getApprovalPresentation(approval);
+  const answerFields = getApprovalAnswerFields(approval);
+  const parsedValue = (() => {
+    try {
+      const parsed = JSON.parse(value || "{}") as unknown;
+      return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+    } catch {
+      return {};
+    }
+  })();
+  const toneClass =
+    presentation.tone === "danger"
+      ? "bg-[#fff1f0] text-destructive"
+      : presentation.tone === "connector"
+        ? "bg-[#eef6ff] text-[#075985]"
+        : "bg-muted text-foreground";
 
   return (
     <article className="rounded-2xl bg-background p-4 shadow-card">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-full bg-[#fff1f0] p-2 text-destructive">
+        <div className={`mt-0.5 rounded-full p-2 ${toneClass}`}>
           <Icon name="warning" className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-foreground">{approval.title}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">{approval.title}</h3>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-border">
+              {presentation.label}
+            </span>
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">{approval.method}</p>
           <pre className="mt-3 max-h-48 overflow-auto rounded-xl bg-muted px-3 py-2 font-mono text-[11px] leading-5 text-muted-foreground whitespace-pre-wrap">
             {approval.detail}
           </pre>
-          {isAnswerInput ? (
+          {isAnswerInput && answerFields.length > 0 ? (
+            <div className="mt-3 space-y-3">
+              {answerFields.map((field) => (
+                <label className="block" key={field.id}>
+                  <span className="text-[11px] font-medium text-muted-foreground">{field.label}</span>
+                  <input
+                    className="focus-ring mt-1 w-full rounded-xl bg-background px-3 py-2 text-sm text-foreground shadow-border"
+                    onChange={(event) => onValueChange(updateApprovalAnswerJson(value, field.id, event.target.value))}
+                    placeholder={field.placeholder}
+                    value={String(parsedValue[field.id] ?? "")}
+                  />
+                </label>
+              ))}
+            </div>
+          ) : isAnswerInput ? (
             <textarea
               className="focus-ring mt-3 min-h-24 w-full rounded-xl bg-background px-3 py-2 font-mono text-xs text-foreground shadow-border"
               onChange={(event) => onValueChange(event.target.value)}
-              placeholder={approval.method === "mcpServer/elicitation/request" ? '{"field":"value"}' : '{"answer":"..."}'}
+              placeholder='{"answer":"..."}'
               value={value}
             />
           ) : null}
@@ -751,7 +924,7 @@ function ApprovalCard({
               onClick={onApprove}
               type="button"
             >
-              {approveLabel}
+              {presentation.approveLabel}
             </button>
             <button
               className="focus-ring rounded-full bg-muted px-4 py-2 text-xs font-medium text-foreground shadow-border disabled:opacity-40"
@@ -759,7 +932,7 @@ function ApprovalCard({
               onClick={onDecline}
               type="button"
             >
-              {declineLabel}
+              {presentation.declineLabel}
             </button>
           </div>
         </div>
@@ -1740,6 +1913,17 @@ export function WebAppClient() {
   }
 
   async function answerApproval(approval: OffdexApprovalRequest, approve: boolean) {
+    if (approval.status !== "pending") {
+      setError("This permission request was already resolved.");
+      return;
+    }
+
+    const presentation = getApprovalPresentation(approval);
+    if (approve && presentation.requiresConfirm) {
+      const confirmed = window.confirm(`${presentation.approveLabel}?\n\n${approval.title}`);
+      if (!confirmed) return;
+    }
+
     try {
       const parsedAnswers =
         approval.inputSchema === "answers"
