@@ -1,0 +1,111 @@
+{
+  "cli_version": "0.6.0",
+  "checkpoint_id": "dea5b82c7101",
+  "session_id": "019df6ae-b26a-75f2-ab40-62e0c4a46166",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-05T07:58:08.919782Z",
+  "branch": "feat/issue-78-runtime-readiness",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "apps/web/app/(app)/webui/web-app-client.tsx",
+    "apps/web/app/(app)/webui/web-transport.ts",
+    "packages/bridge/src/codex-app-server.ts",
+    "packages/bridge/src/index.ts",
+    "packages/bridge/test/codex-app-server.test.ts",
+    "packages/protocol/src/index.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "b37fe9c9e8e6",
+  "token_usage": {
+    "input_tokens": 518580,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5363072,
+    "output_tokens": 16767,
+    "api_call_count": 61
+  },
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-05T07:58:08.846772Z",
+    "agent_lines": 1124,
+    "agent_removed": 120,
+    "human_added": 454,
+    "human_modified": 24,
+    "human_removed": 0,
+    "total_committed": 1602,
+    "total_lines_changed": 1724,
+    "agent_percentage": 72.15777262180974,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1688,
+      "user_lines_removed": 24,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "AGENTS.md": 14,
+        "CONTEXT.md": 350,
+        "DESIGN.md": 63,
+        "PRODUCT.md": 42,
+        "apps/web/app/(app)/webui/web-app-client.tsx": 266,
+        "apps/web/app/(app)/webui/web-transport.ts": 128,
+        "docs/adr/0001-use-codex-app-server-as-engine-interface.md": 3,
+        "docs/adr/0002-cli-owns-codex-app-server-lifecycle.md": 3,
+        "docs/adr/0003-share-codex-client-layer-across-mobile-and-webui.md": 3,
+        "docs/adr/0004-separate-codex-engine-parity-from-companion-capabilities.md": 3,
+        "docs/adr/0005-use-expo-first-native-mobile-policy.md": 3,
+        "docs/adr/0006-use-ai-elements-for-ai-ui-foundation.md": 3,
+        "docs/adr/0007-use-codex-first-decision-rule.md": 3,
+        "docs/adr/0008-use-trusted-reconnect-with-local-first-relay-fallback.md": 3,
+        "docs/adr/0009-require-real-time-shared-session-parity.md": 3,
+        "docs/agents/domain.md": 51,
+        "docs/agents/issue-tracker.md": 22,
+        "docs/agents/triage-labels.md": 15,
+        "docs/parity/codex-app-server.md": 32,
+        "docs/prd/offdex-completion.md": 144,
+        "packages/bridge/src/codex-app-server.ts": 124,
+        "packages/bridge/src/index.ts": 289,
+        "packages/bridge/test/codex-app-server.test.ts": 110,
+        "packages/protocol/src/index.ts": 11
+      },
+      "user_removed_per_file": {
+        "apps/web/app/(app)/webui/web-app-client.tsx": 21,
+        "apps/web/app/(app)/webui/web-transport.ts": 1,
+        "packages/bridge/src/codex-app-server.ts": 1,
+        "packages/bridge/src/index.ts": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1688,
+      "agent_lines_removed": 24
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1689,
+      "agent_lines_removed": 25
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1915,
+      "agent_lines_removed": 25
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1915,
+      "agent_lines_removed": 25
+    }
+  ]
+}
