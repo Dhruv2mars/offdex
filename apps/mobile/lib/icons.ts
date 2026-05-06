@@ -7,6 +7,7 @@ export type LucideIcon = ComponentType<{
 }>;
 
 export {
+  Archive,
   Bug,
   Camera,
   Check,
@@ -19,6 +20,7 @@ export {
   FlashlightOff,
   Folder,
   Globe,
+  GitCompare,
   Laptop,
   Menu,
   MessageCircle,
@@ -28,6 +30,7 @@ export {
   Plus,
   QrCode,
   RefreshCw,
+  RotateCcw,
   Send,
   Settings,
   Shield,

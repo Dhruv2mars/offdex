@@ -6,6 +6,7 @@ import {
   OFFDEX_NEW_THREAD_ID,
   claimPairing,
   extractPairingUri,
+  fetchBridgeGitDiffRemote,
   fetchBridgeFiles,
   fetchBridgeHealth,
   fetchBridgeInventory,
@@ -13,18 +14,26 @@ import {
   liveUrlForConnection,
   normalizeBridgeUrl,
   searchBridgeFiles,
+  sendBridgeAccountLoginCancel,
+  sendBridgeAccountLoginStart,
+  sendBridgeAccountLogout,
   sendBridgeConfigWrite,
+  sendBridgeExperimentalFeatureSet,
   sendBridgeMcpOauthLogin,
   sendBridgePluginInstall,
   sendBridgePluginUninstall,
   sendBridgeSkillConfigWrite,
   sendBridgeReview,
+  sendBridgeSteer,
   sendBridgeThreadArchive,
   sendBridgeThreadCompact,
   sendBridgeThreadFork,
   sendBridgeThreadRename,
+  sendBridgeThreadRollback,
   sendBridgeThreadUnarchive,
+  type OffdexAccountLoginSession,
   type OffdexInputItem,
+  type OffdexRemoteDiff,
   type OffdexRemoteFileEntry,
   type OffdexRemoteFileMatch,
   type OffdexWorkbenchInventory,
@@ -50,12 +59,21 @@ import {
 
 type ConnectionState = "idle" | "connecting" | "live" | "offline";
 type WorkbenchPanel = "search" | "history" | "plugins" | "apps" | "automations" | "settings" | "files" | "diff" | null;
+type DiffSurface = "turn" | "remote";
 type ComposerAttachment = {
   id: string;
   name: string;
-  kind: "text" | "image" | "workspace";
+  kind: "text" | "image" | "workspace" | "skill";
   preview: string;
   input: OffdexInputItem;
+};
+
+export type ComposerSkillSuggestion = {
+  id: string;
+  name: string;
+  path: string;
+  scope: string | null;
+  description: string | null;
 };
 
 export type ParsedDiffFile = {
@@ -72,7 +90,7 @@ const STORED_BRIDGE_KEY = "offdex:web:bridge";
 const STORED_SESSION_KEY = "offdex:web:machine-session";
 const APPROVAL_POLICY_OPTIONS = ["never", "on-request"] as const;
 const SANDBOX_MODE_OPTIONS = ["read-only", "workspace-write", "danger-full-access"] as const;
-const WEB_SEARCH_OPTIONS = ["live", "off"] as const;
+const WEB_SEARCH_OPTIONS = ["live", "cached", "disabled"] as const;
 
 type IconName =
   | "collapse"
@@ -157,9 +175,11 @@ function roleLabel(item: OffdexTimelineItem) {
   if (item.type === "plan") return "Plan";
   if (item.type === "reasoning") return "Reasoning";
   if (item.type === "taskLifecycle") return "Task";
+  if (item.type === "progressUpdate") return item.label;
   if (item.type === "toolActivity") return "Tool";
   if (item.type === "tokenUsage") return "Usage";
   if (item.type === "commandExecution") return "Command";
+  if (item.type === "runtimeError") return item.title;
   return item.label;
 }
 
@@ -225,9 +245,11 @@ function itemBody(item: OffdexTimelineItem) {
   if (item.type === "plan") return item.text;
   if (item.type === "reasoning") return [...item.summary, ...item.content].join("\n");
   if (item.type === "taskLifecycle") return [item.label, item.detail].filter(Boolean).join("\n");
+  if (item.type === "progressUpdate") return [item.label, item.detail].filter(Boolean).join("\n");
   if (item.type === "toolActivity") return [item.summary, item.input, item.output].filter(Boolean).join("\n");
   if (item.type === "tokenUsage") return item.summary;
   if (item.type === "commandExecution") return item.aggregatedOutput || item.command;
+  if (item.type === "runtimeError") return [item.title, item.message].filter(Boolean).join("\n");
   return item.data;
 }
 
@@ -428,6 +450,52 @@ function threadMatchesFilter(thread: OffdexThread, query: string) {
     .join("\n")
     .toLowerCase();
   return haystack.includes(query.trim().toLowerCase());
+}
+
+export function getComposerSkillMentionQuery(draft: string) {
+  const match = /(?:^|\s)\$([A-Za-z0-9_-]*)$/.exec(draft);
+  return match ? match[1] ?? "" : null;
+}
+
+export function removeTrailingSkillMentionToken(draft: string) {
+  return draft.replace(/\s*\$[A-Za-z0-9_-]*$/, "").trimEnd();
+}
+
+export function getComposerSkillSuggestions(
+  skills: OffdexWorkbenchInventory["skills"] | null | undefined,
+  query: string | null,
+  limit = 8
+): ComposerSkillSuggestion[] {
+  if (query === null) {
+    return [];
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+  return [...(skills ?? [])]
+    .filter((skill) => skill.enabled !== false)
+    .map<ComposerSkillSuggestion>((skill) => ({
+      id: skill.id,
+      name: skill.name,
+      path: skill.path,
+      scope: skill.scope ?? null,
+      description: skill.shortDescription ?? skill.description ?? null,
+    }))
+    .filter((skill) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+      return [skill.name, skill.path, skill.scope, skill.description]
+        .filter(Boolean)
+        .join("\n")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    })
+    .sort((left, right) => {
+      const leftStarts = normalizedQuery && left.name.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+      const rightStarts = normalizedQuery && right.name.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+      return leftStarts - rightStarts || left.name.localeCompare(right.name);
+    })
+    .slice(0, limit);
 }
 
 function threadMetrics(thread: OffdexThread | null) {
@@ -981,6 +1049,9 @@ export function WebAppClient() {
   const [remoteEntries, setRemoteEntries] = useState<OffdexRemoteFileEntry[]>([]);
   const [remoteFileQuery, setRemoteFileQuery] = useState("");
   const [remoteFileMatches, setRemoteFileMatches] = useState<OffdexRemoteFileMatch[]>([]);
+  const [accountLoginSession, setAccountLoginSession] = useState<OffdexAccountLoginSession | null>(null);
+  const [remoteDiff, setRemoteDiff] = useState<OffdexRemoteDiff | null>(null);
+  const [diffSurface, setDiffSurface] = useState<DiffSurface>("turn");
   const [remoteFilesLoading, setRemoteFilesLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const socketRef = useRef<WebSocket | null>(null);
@@ -1005,7 +1076,11 @@ export function WebAppClient() {
   const canSend = (draft.trim().length > 0 || attachments.length > 0) && isLive && codexReady && !isPending;
   const workspaceRoot = selectedThread?.cwd ?? threads[0]?.cwd ?? "";
   const activeDiffTurn = latestTurnWithDiff(selectedThread);
-  const parsedDiffFiles = activeDiffTurn?.diff ? parseUnifiedDiff(activeDiffTurn.diff) : [];
+  const activeDiffText =
+    diffSurface === "remote"
+      ? remoteDiff?.diff ?? ""
+      : activeDiffTurn?.diff ?? "";
+  const parsedDiffFiles = activeDiffText ? parseUnifiedDiff(activeDiffText) : [];
   const diffTotals = parsedDiffFiles.reduce(
     (totals, file) => ({
       additions: totals.additions + file.additions,
@@ -1013,12 +1088,37 @@ export function WebAppClient() {
     }),
     { additions: 0, deletions: 0 }
   );
+  const remoteDiffSummary = remoteDiff?.sha ? `remote ${remoteDiff.sha.slice(0, 12)}` : "remote diff";
   const visibleModels = (inventory?.models ?? []).filter((model) => !model.hidden);
   const activeModel =
     visibleModels.find((model) => model.model === inventory?.config?.model) ??
     visibleModels.find((model) => model.isDefault) ??
     null;
   const reasoningOptions = activeModel?.reasoningEfforts ?? [];
+  const runtimeReadiness = inventory?.runtimeReadiness ?? null;
+  const runtimeBlockers = runtimeReadiness?.issues.filter((issue) => issue.severity === "blocker") ?? [];
+  const runtimeWarnings = runtimeReadiness?.issues.filter((issue) => issue.severity === "warning") ?? [];
+  const approvalPolicyOptions =
+    runtimeReadiness?.requirements?.allowedApprovalPolicies?.length
+      ? runtimeReadiness.requirements.allowedApprovalPolicies
+      : [...APPROVAL_POLICY_OPTIONS];
+  const sandboxModeOptions =
+    runtimeReadiness?.requirements?.allowedSandboxModes?.length
+      ? runtimeReadiness.requirements.allowedSandboxModes
+      : [...SANDBOX_MODE_OPTIONS];
+
+  useEffect(() => {
+    setRemoteDiff(null);
+    setDiffSurface("turn");
+  }, [selectedThreadId, workspaceRoot]);
+  const webSearchOptions =
+    runtimeReadiness?.requirements?.allowedWebSearchModes?.length
+      ? runtimeReadiness.requirements.allowedWebSearchModes
+      : [...WEB_SEARCH_OPTIONS];
+  const activeWebSearch =
+    inventory?.config?.webSearch === "off"
+      ? "disabled"
+      : inventory?.config?.webSearch ?? WEB_SEARCH_OPTIONS[0];
   const searchResults =
     searchQuery.trim().length === 0
       ? []
@@ -1041,12 +1141,23 @@ export function WebAppClient() {
   );
   const archivedCountLabel =
     archivedQuery.trim().length === 0 ? `${archivedThreads.length} archived threads` : `${archivedResults.length} matches`;
+  const skillMentionQuery = getComposerSkillMentionQuery(draft);
+  const skillSuggestions = useMemo(
+    () => getComposerSkillSuggestions(inventory?.skills, skillMentionQuery),
+    [inventory?.skills, skillMentionQuery]
+  );
 
   useEffect(() => {
     if (!isDraftThread && !selectedThread && threads.length > 0) {
       setSelectedThreadId(threads[0]!.id);
     }
   }, [isDraftThread, selectedThread, threads]);
+
+  useEffect(() => {
+    if (snapshot?.account?.isAuthenticated) {
+      setAccountLoginSession(null);
+    }
+  }, [snapshot?.account?.isAuthenticated]);
 
   useEffect(() => {
     if (panel !== "files" || !workspaceRoot || !isLive) {
@@ -1181,6 +1292,9 @@ export function WebAppClient() {
         setHealth(nextHealth);
         setSnapshot(nextSnapshot);
         setInventory(nextInventory);
+        setAccountLoginSession(null);
+        setRemoteDiff(null);
+        setDiffSurface("turn");
         setSelectedThreadId(nextSnapshot.threads[0]?.id ?? OFFDEX_NEW_THREAD_ID);
         setConnectionState("live");
       });
@@ -1244,6 +1358,59 @@ export function WebAppClient() {
     }
   }
 
+  async function startAccountLogin() {
+    try {
+      const result = await sendBridgeAccountLoginStart(connectionTarget || bridgeUrl);
+      setAccountLoginSession(result.session);
+      window.open(result.session.authUrl, "_blank", "noopener,noreferrer");
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error
+          ? `Could not start account login: ${loginError.message}`
+          : "Could not start account login."
+      );
+    }
+  }
+
+  async function cancelAccountLogin() {
+    if (!accountLoginSession) {
+      return;
+    }
+
+    try {
+      await sendBridgeAccountLoginCancel(connectionTarget || bridgeUrl, accountLoginSession.loginId);
+      setAccountLoginSession(null);
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error
+          ? `Could not cancel account login: ${loginError.message}`
+          : "Could not cancel account login."
+      );
+    }
+  }
+
+  async function logoutAccount() {
+    if (!window.confirm("Log out of this Codex account on the connected machine?")) {
+      return;
+    }
+
+    try {
+      const result = await sendBridgeAccountLogout(connectionTarget || bridgeUrl);
+      startTransition(() => {
+        setSnapshot(result.snapshot);
+        setAccountLoginSession(null);
+      });
+      void refreshInventory();
+      void refreshSnapshot();
+    } catch (logoutError) {
+      setError(
+        logoutError instanceof Error
+          ? `Could not log out: ${logoutError.message}`
+          : "Could not log out."
+      );
+    }
+  }
+
   async function changeRuntime(preferredTarget: "cli" | "desktop") {
     try {
       const result = await sendBridgeRuntime(connectionTarget || bridgeUrl, preferredTarget);
@@ -1273,6 +1440,21 @@ export function WebAppClient() {
         configError instanceof Error
           ? `Could not update settings: ${configError.message}`
           : "Could not update settings."
+      );
+    }
+  }
+
+  async function setExperimentalFeature(name: string, enabled: boolean) {
+    try {
+      const result = await sendBridgeExperimentalFeatureSet(connectionTarget || bridgeUrl, name, enabled);
+      startTransition(() => {
+        setInventory(result.inventory);
+      });
+    } catch (featureError) {
+      setError(
+        featureError instanceof Error
+          ? `Could not update this feature: ${featureError.message}`
+          : "Could not update this feature."
       );
     }
   }
@@ -1378,6 +1560,27 @@ export function WebAppClient() {
     }
   }
 
+  async function openRemoteDiff() {
+    if (!workspaceRoot) {
+      return;
+    }
+
+    try {
+      const result = await fetchBridgeGitDiffRemote(connectionTarget || bridgeUrl, workspaceRoot);
+      startTransition(() => {
+        setRemoteDiff(result);
+        setDiffSurface("remote");
+        setPanel("diff");
+      });
+    } catch (diffError) {
+      setError(
+        diffError instanceof Error
+          ? `Could not load diff to remote: ${diffError.message}`
+          : "Could not load diff to remote."
+      );
+    }
+  }
+
   function attachWorkspacePath(path: string) {
     const name = path.split("/").pop() || path;
     const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(name);
@@ -1394,6 +1597,24 @@ export function WebAppClient() {
       },
     ]);
     setPanel(null);
+  }
+
+  function attachSkillMention(skill: ComposerSkillSuggestion) {
+    setAttachments((current) => [
+      ...current,
+      {
+        id: `${skill.path}-${Date.now()}`,
+        name: skill.name,
+        kind: "skill",
+        preview: `$${skill.name}`,
+        input: {
+          type: "skill",
+          name: skill.name,
+          path: skill.path,
+        } satisfies OffdexInputItem,
+      },
+    ]);
+    setDraft((current) => removeTrailingSkillMentionToken(current));
   }
 
   async function appendFiles(fileList: FileList | File[]) {
@@ -1479,12 +1700,10 @@ export function WebAppClient() {
     setError("");
 
     try {
-      const result = await sendBridgeTurn(
-        connectionTarget || bridgeUrl,
-        activeThreadId,
-        body,
-        nextInputs
-      );
+      const result =
+        selectedThread?.state === "running" && activeThreadId !== OFFDEX_NEW_THREAD_ID
+          ? await sendBridgeSteer(connectionTarget || bridgeUrl, activeThreadId, body, nextInputs)
+          : await sendBridgeTurn(connectionTarget || bridgeUrl, activeThreadId, body, nextInputs);
       const createdThread =
         activeThreadId === OFFDEX_NEW_THREAD_ID
           ? result.snapshot.threads.find((thread) => !previousThreadIds.has(thread.id))
@@ -1637,6 +1856,31 @@ export function WebAppClient() {
     }
   }
 
+  async function rollbackSelectedThread() {
+    if (!selectedThread || !isLive) return;
+    const value = window.prompt(
+      "Drop how many turns from this thread history? This rewinds conversation history only and does not revert local files.",
+      "1"
+    );
+    const numTurns = Number(value);
+    if (!value || !Number.isInteger(numTurns) || numTurns < 1) {
+      return;
+    }
+
+    try {
+      const result = await sendBridgeThreadRollback(connectionTarget || bridgeUrl, selectedThread.id, numTurns);
+      startTransition(() => {
+        setSnapshot(result.snapshot);
+      });
+    } catch (threadError) {
+      setError(
+        threadError instanceof Error
+          ? `Could not rewind this thread: ${threadError.message}`
+          : "Could not rewind this thread."
+      );
+    }
+  }
+
   async function reviewSelectedThread() {
     if (!selectedThread || !isLive) return;
 
@@ -1649,6 +1893,7 @@ export function WebAppClient() {
           result.snapshot.threads.find((thread) => thread.id !== selectedThread.id)?.id ??
           selectedThread.id;
         setSelectedThreadId(reviewThreadId);
+        setDiffSurface("turn");
         setPanel("diff");
       });
     } catch (reviewError) {
@@ -1878,7 +2123,10 @@ export function WebAppClient() {
               {activeDiffTurn?.diff ? (
                 <button
                   className="focus-ring rounded-full bg-muted px-3 py-1.5 text-foreground shadow-border"
-                  onClick={() => setPanel("diff")}
+                  onClick={() => {
+                    setDiffSurface("turn");
+                    setPanel("diff");
+                  }}
                   type="button"
                 >
                   Diff
@@ -1892,6 +2140,16 @@ export function WebAppClient() {
                   type="button"
                 >
                   Compact
+                </button>
+              ) : null}
+              {selectedThread ? (
+                <button
+                  className="focus-ring rounded-full bg-muted px-3 py-1.5 text-foreground shadow-border"
+                  disabled={selectedThread.state === "running"}
+                  onClick={() => void rollbackSelectedThread()}
+                  type="button"
+                >
+                  Rewind
                 </button>
               ) : null}
               {selectedThread ? (
@@ -2026,7 +2284,10 @@ export function WebAppClient() {
                         {activeDiffTurn?.diff ? (
                           <button
                             className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
-                            onClick={() => setPanel("diff")}
+                            onClick={() => {
+                              setDiffSurface("turn");
+                              setPanel("diff");
+                            }}
                             type="button"
                           >
                             Open latest diff
@@ -2084,9 +2345,49 @@ export function WebAppClient() {
                         }
                         type="button"
                       >
-                        {attachment.kind === "image" ? "Image" : attachment.kind === "workspace" ? "Workspace" : "File"} · {attachment.preview}
+                        {attachment.kind === "image"
+                          ? "Image"
+                          : attachment.kind === "workspace"
+                            ? "Workspace"
+                            : attachment.kind === "skill"
+                              ? "Skill"
+                              : "File"} · {attachment.preview}
                       </button>
                     ))}
+                  </div>
+                ) : null}
+                {skillMentionQuery !== null ? (
+                  <div className="border-b border-border/60 px-3 pt-3">
+                    <div className="max-h-56 overflow-y-auto rounded-2xl bg-muted p-2 shadow-border">
+                      {skillSuggestions.length > 0 ? (
+                        skillSuggestions.map((skill) => (
+                          <button
+                            className="focus-ring w-full rounded-xl px-3 py-2 text-left hover:bg-background"
+                            key={skill.id}
+                            onClick={() => attachSkillMention(skill)}
+                            type="button"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="truncate text-sm font-semibold text-foreground">${skill.name}</span>
+                              {skill.scope ? (
+                                <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground shadow-border">
+                                  {skill.scope}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                              {skill.description ?? skill.path}
+                            </p>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">
+                          {inventory?.skills?.length
+                            ? "No matching enabled skills."
+                            : "No skills found in the connected inventory."}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ) : null}
                 <textarea
@@ -2133,11 +2434,12 @@ export function WebAppClient() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
-                      aria-label="Send message"
+                      aria-label={selectedThread?.state === "running" ? "Steer turn" : "Send message"}
                       className="focus-ring grid h-10 w-10 place-items-center rounded-full bg-foreground text-background disabled:cursor-not-allowed disabled:opacity-30"
                       disabled={!canSend}
                       onClick={() => void sendTurn()}
                       type="button"
+                      title={selectedThread?.state === "running" ? "Steer active turn" : "Send message"}
                     >
                       <Icon name="arrow-up" className="h-4 w-4" />
                     </button>
@@ -2167,7 +2469,9 @@ export function WebAppClient() {
             <section className="flex h-full w-full max-w-[420px] flex-col bg-background p-5 shadow-card">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">{panelTitle(panel)}</h2>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {panel === "diff" ? (diffSurface === "remote" ? "Diff to remote" : "Turn diff") : panelTitle(panel)}
+                  </h2>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {panel === "search"
                       ? "Find threads and transcript history already loaded into this session."
@@ -2182,7 +2486,9 @@ export function WebAppClient() {
                           : panel === "files"
                             ? "Browse or search your Mac workspace and attach files as Codex context."
                             : panel === "diff"
-                              ? "Inspect the latest unified diff streamed for this turn."
+                              ? diffSurface === "remote"
+                                ? "Inspect the current diff between this workspace and its tracked remote."
+                                : "Inspect the latest unified diff streamed for this turn."
                           : "Bridge, runtime, and account controls for this machine."}
                   </p>
                 </div>
@@ -2635,7 +2941,7 @@ export function WebAppClient() {
 
               {panel === "diff" ? (
                 <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
-                  {activeDiffTurn?.diff ? (
+                  {activeDiffText ? (
                     <div className="space-y-3">
                       <div className="rounded-2xl bg-muted p-4 shadow-border">
                         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Review summary</p>
@@ -2650,7 +2956,7 @@ export function WebAppClient() {
                             -{diffTotals.deletions}
                           </span>
                           <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
-                            turn {activeDiffTurn.id}
+                            {diffSurface === "remote" ? remoteDiffSummary : `turn ${activeDiffTurn?.id ?? "unknown"}`}
                           </span>
                         </div>
                       </div>
@@ -2681,13 +2987,15 @@ export function WebAppClient() {
                         ))
                       ) : (
                         <pre className="max-h-full overflow-auto rounded-2xl bg-muted p-4 font-mono text-[12px] leading-6 text-foreground shadow-border whitespace-pre-wrap">
-                          {activeDiffTurn.diff}
+                          {activeDiffText}
                         </pre>
                       )}
                     </div>
                   ) : (
                     <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground shadow-border">
-                      No unified diff has been streamed for the selected thread yet.
+                      {diffSurface === "remote"
+                        ? "No diff to remote was returned for this workspace."
+                        : "No unified diff has been streamed for the selected thread yet."}
                     </div>
                   )}
                 </div>
@@ -2744,8 +3052,57 @@ export function WebAppClient() {
                     </div>
                     <div className="rounded-2xl bg-muted p-4 shadow-border">
                       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Account</p>
-                      <p className="mt-2 text-sm font-semibold text-foreground">{snapshot?.account?.email ?? "Not signed in"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{health?.bridgeMode ?? "bridge"}</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">
+                        {snapshot?.account?.email ?? snapshot?.account?.name ?? "Not signed in"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {snapshot?.account?.planType ?? health?.bridgeMode ?? "bridge"}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {!snapshot?.account?.isAuthenticated ? (
+                          <>
+                            <button
+                              className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                              disabled={isPending}
+                              onClick={() => void startAccountLogin()}
+                              type="button"
+                            >
+                              Sign in
+                            </button>
+                            {accountLoginSession ? (
+                              <>
+                                <button
+                                  className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                                  onClick={() => window.open(accountLoginSession.authUrl, "_blank", "noopener,noreferrer")}
+                                  type="button"
+                                >
+                                  Open sign-in page
+                                </button>
+                                <button
+                                  className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                                  onClick={() => void cancelAccountLogin()}
+                                  type="button"
+                                >
+                                  Cancel sign-in
+                                </button>
+                              </>
+                            ) : null}
+                          </>
+                        ) : (
+                          <button
+                            className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                            onClick={() => void logoutAccount()}
+                            type="button"
+                          >
+                            Log out
+                          </button>
+                        )}
+                      </div>
+                      {accountLoginSession ? (
+                        <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+                          Pending login {accountLoginSession.loginId}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="mt-4 rounded-2xl bg-muted p-4 shadow-border">
@@ -2839,7 +3196,96 @@ export function WebAppClient() {
                   <div className="mt-4 rounded-2xl bg-muted p-4 shadow-border">
                     <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Workspace</p>
                     <p className="mt-2 text-sm text-foreground">{selectedThread?.cwd ?? health?.bridgeUrl ?? bridgeUrl}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{selectedThread?.gitInfo?.branch ?? "main"}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {selectedThread?.gitInfo?.branch ?? "main"}
+                      {selectedThread?.gitInfo?.sha ? ` · ${selectedThread.gitInfo.sha.slice(0, 12)}` : ""}
+                    </p>
+                    {selectedThread?.gitInfo?.originUrl ? (
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{selectedThread.gitInfo.originUrl}</p>
+                    ) : null}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                        disabled={isPending || !workspaceRoot}
+                        onClick={() => void openRemoteDiff()}
+                        type="button"
+                      >
+                        Diff to remote
+                      </button>
+                      <button
+                        className="focus-ring rounded-full bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-border"
+                        onClick={() => setPanel("files")}
+                        type="button"
+                      >
+                        Browse workspace
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-2xl bg-muted p-4 shadow-border">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Runtime readiness</p>
+                      <span
+                        className={`rounded-full px-3 py-1 text-[11px] font-medium shadow-border ${
+                          runtimeReadiness?.status === "blocked"
+                            ? "bg-[#fff1f0] text-[#b42318]"
+                            : runtimeReadiness?.status === "attention"
+                              ? "bg-[#fff7ed] text-[#b54708]"
+                              : runtimeReadiness?.status === "ready"
+                                ? "bg-[#ecfdf3] text-[#067647]"
+                                : "bg-background text-muted-foreground"
+                        }`}
+                      >
+                        {runtimeReadiness?.status ?? "unknown"}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-xl bg-background p-3 shadow-border">
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Credentials</p>
+                        <p className="mt-2 text-sm text-foreground">
+                          {runtimeReadiness?.authStatus?.authMethod ?? (snapshot?.account?.isAuthenticated ? "account" : "missing")}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {snapshot?.account?.email ?? (runtimeReadiness?.authStatus?.requiresOpenaiAuth ? "OpenAI auth required" : "No account detail")}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-background p-3 shadow-border">
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Provider</p>
+                        <p className="mt-2 text-sm text-foreground">{inventory?.config?.modelProvider ?? "provider auto"}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{inventory?.config?.model ?? activeModel?.model ?? "model auto"}</p>
+                      </div>
+                      <div className="rounded-xl bg-background p-3 shadow-border">
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Setup blockers</p>
+                        <p className="mt-2 text-sm text-foreground">{runtimeBlockers.length} blockers</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{runtimeWarnings.length} warnings</p>
+                      </div>
+                    </div>
+                    {runtimeReadiness?.issues.length ? (
+                      <div className="mt-3 space-y-2">
+                        {runtimeReadiness.issues.map((issue) => (
+                          <div
+                            className={`rounded-xl p-3 shadow-border ${
+                              issue.severity === "blocker"
+                                ? "bg-[#fff1f0] text-[#b42318]"
+                                : "bg-background text-foreground"
+                            }`}
+                            key={issue.id}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold">{issue.title}</p>
+                              <span className="rounded-full bg-background/70 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] shadow-border">
+                                {issue.severity}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs leading-5 opacity-80">{issue.detail}</p>
+                            <p className="mt-1 text-xs font-medium">{issue.action}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 rounded-xl bg-background p-3 text-sm text-muted-foreground shadow-border">
+                        No runtime setup blockers reported by Codex App Server.
+                      </p>
+                    )}
                   </div>
                   <div className="mt-4 rounded-2xl bg-muted p-4 shadow-border">
                     <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Active config</p>
@@ -2889,7 +3335,7 @@ export function WebAppClient() {
                           onChange={(event) => void writeConfigValue("approval_policy", event.target.value)}
                           value={inventory?.config?.approvalPolicy ?? APPROVAL_POLICY_OPTIONS[0]}
                         >
-                          {APPROVAL_POLICY_OPTIONS.map((option) => (
+                          {approvalPolicyOptions.map((option) => (
                             <option key={option} value={option}>
                               {option}
                             </option>
@@ -2905,7 +3351,7 @@ export function WebAppClient() {
                           onChange={(event) => void writeConfigValue("sandbox_mode", event.target.value)}
                           value={inventory?.config?.sandboxMode ?? SANDBOX_MODE_OPTIONS[1]}
                         >
-                          {SANDBOX_MODE_OPTIONS.map((option) => (
+                          {sandboxModeOptions.map((option) => (
                             <option key={option} value={option}>
                               {option}
                             </option>
@@ -2921,9 +3367,9 @@ export function WebAppClient() {
                           className="focus-ring mt-2 w-full rounded-xl bg-muted px-3 py-2 text-sm text-foreground shadow-border"
                           disabled={isPending}
                           onChange={(event) => void writeConfigValue("web_search", event.target.value)}
-                          value={inventory?.config?.webSearch ?? WEB_SEARCH_OPTIONS[0]}
+                          value={activeWebSearch}
                         >
-                          {WEB_SEARCH_OPTIONS.map((option) => (
+                          {webSearchOptions.map((option) => (
                             <option key={option} value={option}>
                               {option}
                             </option>
@@ -2973,9 +3419,19 @@ export function WebAppClient() {
                                   {feature.stage ?? "unknown"}
                                 </p>
                               </div>
-                              <span className="rounded-full bg-background px-3 py-1 text-[11px] text-muted-foreground shadow-border">
+                              <button
+                                aria-label={`${feature.enabled ? "Disable" : "Enable"} ${feature.displayName ?? feature.name}`}
+                                className={`focus-ring rounded-full px-3 py-1 text-[11px] shadow-border ${
+                                  feature.enabled
+                                    ? "bg-foreground text-background"
+                                    : "bg-background text-muted-foreground"
+                                }`}
+                                disabled={isPending}
+                                onClick={() => void setExperimentalFeature(feature.name, !feature.enabled)}
+                                type="button"
+                              >
                                 {feature.enabled ? "enabled" : feature.defaultEnabled ? "default on" : "off"}
-                              </span>
+                              </button>
                             </div>
                             {feature.description ? (
                               <p className="mt-2 text-sm leading-6 text-foreground">{feature.description}</p>

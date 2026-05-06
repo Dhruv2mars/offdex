@@ -7,6 +7,7 @@ import {
   decryptRelayPayload,
   encryptRelayPayload,
   type OffdexPairingPayload,
+  type OffdexRemoteDiff,
   type OffdexWorkspaceSnapshot,
   type RuntimeTarget,
 } from "@offdex/protocol";
@@ -48,10 +49,22 @@ interface DirectConnectionTarget {
 
 interface RelayBridgeRequest {
   id: string;
-  action: "health" | "snapshot" | "runtime" | "turn" | "interrupt";
+  action:
+    | "health"
+    | "snapshot"
+    | "runtime"
+    | "turn"
+    | "interrupt"
+    | "git/diff-remote"
+    | "thread/archive"
+    | "thread/unarchive"
+    | "thread/compact"
+    | "thread/rollback";
   preferredTarget?: RuntimeTarget;
   threadId?: string;
   body?: string;
+  cwd?: string | null;
+  numTurns?: number;
 }
 
 const relaySubscribers = new Map<string, RelayLiveSubscription>();
@@ -544,6 +557,85 @@ export async function interruptBridgeTurn(baseUrl: string, threadId: string) {
   return response.json() as Promise<{
     snapshot: OffdexWorkspaceSnapshot;
   }>;
+}
+
+export async function fetchRemoteDiff(baseUrl: string, cwd?: string | null) {
+  const relayTarget = decodeRelayConnectionTarget(baseUrl);
+  if (relayTarget) {
+    return sendRelayProxyRequest<OffdexRemoteDiff>(relayTarget, {
+      id: nextRequestId("diff"),
+      action: "git/diff-remote",
+      cwd,
+    });
+  }
+
+  const request = createDirectRequestInput(baseUrl);
+  const url = new URL(`${request.bridgeUrl}/git/diff-remote`);
+  if (cwd) {
+    url.searchParams.set("cwd", cwd);
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: request.headers,
+  });
+  if (!response.ok) {
+    throw new Error(`Remote diff failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<OffdexRemoteDiff>;
+}
+
+async function sendBridgeThreadAction(
+  baseUrl: string,
+  action:
+    | "thread/archive"
+    | "thread/unarchive"
+    | "thread/compact"
+    | "thread/rollback",
+  threadId: string,
+  body?: Record<string, unknown>
+) {
+  const relayTarget = decodeRelayConnectionTarget(baseUrl);
+  if (relayTarget) {
+    return sendRelayProxyRequest<{ snapshot: OffdexWorkspaceSnapshot }>(relayTarget, {
+      id: nextRequestId(action.replace("/", "-")),
+      action,
+      threadId,
+      numTurns: typeof body?.numTurns === "number" ? body.numTurns : undefined,
+    });
+  }
+
+  const request = createDirectRequestInput(baseUrl);
+  const response = await fetch(`${request.bridgeUrl}/${action}`, {
+    method: "POST",
+    headers: {
+      ...request.headers,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ threadId, ...body }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Bridge ${action} failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<{ snapshot: OffdexWorkspaceSnapshot }>;
+}
+
+export function archiveBridgeThread(baseUrl: string, threadId: string) {
+  return sendBridgeThreadAction(baseUrl, "thread/archive", threadId);
+}
+
+export function unarchiveBridgeThread(baseUrl: string, threadId: string) {
+  return sendBridgeThreadAction(baseUrl, "thread/unarchive", threadId);
+}
+
+export function compactBridgeThread(baseUrl: string, threadId: string) {
+  return sendBridgeThreadAction(baseUrl, "thread/compact", threadId);
+}
+
+export function rollbackBridgeThread(baseUrl: string, threadId: string, numTurns: number) {
+  return sendBridgeThreadAction(baseUrl, "thread/rollback", threadId, { numTurns });
 }
 
 export function subscribeToBridgeSnapshots(

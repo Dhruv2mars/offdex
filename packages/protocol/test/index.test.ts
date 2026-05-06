@@ -12,6 +12,7 @@ import {
   WorkspaceSnapshotStore,
   makeDemoWorkspaceSnapshot,
   makeMessage,
+  normalizeOffdexRuntimeTimelineItem,
   summarizeOffdexThread,
 } from "../src";
 
@@ -217,6 +218,100 @@ describe("thread summaries", () => {
     expect(summary.pendingApprovalCount).toBe(1);
     expect(summary.activePermissionReviewCount).toBe(1);
     expect(summary.failedTurnCount).toBe(1);
+  });
+});
+
+describe("runtime timeline normalization", () => {
+  test("normalizes tool calls, connector results, errors, plan, and progress with redacted metadata", () => {
+    const toolCall = normalizeOffdexRuntimeTimelineItem({
+      type: "mcp_tool_call",
+      id: "tool-call-1",
+      call_id: "call-1",
+      server: "github",
+      name: "create_issue",
+      arguments: { issueTitle: "Bug", api_token: "secret-token" },
+      status: "running",
+    });
+    const connectorResult = normalizeOffdexRuntimeTimelineItem({
+      type: "connector_call_output",
+      id: "tool-result-1",
+      call_id: "call-1",
+      connector_name: "github",
+      result: { url: "https://github.com/acme/repo/issues/1" },
+      status: "success",
+    });
+    const runtimeError = normalizeOffdexRuntimeTimelineItem({
+      type: "tool_error",
+      id: "error-1",
+      title: "GitHub failed",
+      error: "rate limited",
+      authorization: "Bearer secret",
+    });
+    const plan = normalizeOffdexRuntimeTimelineItem({
+      type: "plan_update",
+      id: "plan-1",
+      text: "Run tests",
+      status: "done",
+    });
+    const progress = normalizeOffdexRuntimeTimelineItem({
+      type: "operation_progress",
+      id: "progress-1",
+      label: "Installing",
+      completed: 2,
+      total: 3,
+    });
+
+    expect(toolCall).toMatchObject({
+      type: "toolActivity",
+      toolName: "create_issue",
+      source: "mcp",
+      phase: "call",
+      callId: "call-1",
+      status: "in_progress",
+      rawMetadata: {
+        eventType: "mcp_tool_call",
+        callId: "call-1",
+        mcpServer: "github",
+      },
+    });
+    expect(toolCall?.type === "toolActivity" ? toolCall.rawMetadata?.raw.arguments : null).toEqual({
+      issueTitle: "Bug",
+      api_token: "[redacted]",
+    });
+    expect(toolCall?.type === "toolActivity" ? toolCall.input : null).toContain('"api_token": "[redacted]"');
+    expect(toolCall?.type === "toolActivity" ? toolCall.input : null).not.toContain("secret-token");
+    expect(connectorResult).toMatchObject({
+      type: "toolActivity",
+      source: "tool",
+      phase: "result",
+      status: "completed",
+      rawMetadata: {
+        connectorName: "github",
+      },
+    });
+    expect(runtimeError).toMatchObject({
+      type: "runtimeError",
+      title: "GitHub failed",
+      message: "rate limited",
+      source: "tool",
+      rawMetadata: {
+        raw: {
+          authorization: "[redacted]",
+        },
+      },
+    });
+    expect(plan).toMatchObject({
+      type: "plan",
+      text: "Run tests",
+      status: "completed",
+    });
+    expect(progress).toMatchObject({
+      type: "progressUpdate",
+      label: "Installing",
+      status: "in_progress",
+      completed: 2,
+      total: 3,
+    });
   });
 });
 

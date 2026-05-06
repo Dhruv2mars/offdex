@@ -6,14 +6,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { OFFDEX_NEW_THREAD_ID, type OffdexMessage, type OffdexThread } from "@offdex/protocol";
 
 import {
+  Archive,
   ChevronLeft,
   Cpu,
   Folder,
+  GitCompare,
   Menu,
   MessageSquare,
   Plus,
   QrCode,
   RefreshCw,
+  RotateCcw,
   Settings,
   Shield,
   Terminal,
@@ -108,11 +111,16 @@ export function MobileChatShell() {
   const refreshMachines = useWorkspaceStore((s) => s.refreshMachines);
   const setRuntimeTarget = useWorkspaceStore((s) => s.setRuntimeTarget);
   const disconnect = useWorkspaceStore((s) => s.disconnect);
+  const archiveThread = useWorkspaceStore((s) => s.archiveThread);
+  const compactThread = useWorkspaceStore((s) => s.compactThread);
+  const rollbackThread = useWorkspaceStore((s) => s.rollbackThread);
+  const loadRemoteDiff = useWorkspaceStore((s) => s.loadRemoteDiff);
 
   const projectName = snapshot.pairing.macName || "offdex";
   const threadGroups = useMemo(() => groupThreads(threads, projectName), [threads, projectName]);
   const messages = activeThread?.messages ?? [];
   const isDraft = activeThread?.id === OFFDEX_NEW_THREAD_ID || selectedThreadId === OFFDEX_NEW_THREAD_ID;
+  const canUseThreadActions = !isDraft && isConnected && codexAccount?.isAuthenticated === true;
   const selectedTitle = isDraft ? "New thread" : activeThread?.title ?? "New thread";
 
   useEffect(() => {
@@ -192,6 +200,63 @@ export function MobileChatShell() {
     );
   }, [disconnect]);
 
+  const handleThreadAction = useCallback(
+    (kind: "archive" | "compact" | "rollback") => {
+      if (!activeThread || !canUseThreadActions) return;
+
+      const copy = {
+        archive: {
+          title: "Archive thread",
+          detail: "This removes the thread from the active drawer. You can restore it from archived threads later.",
+          confirm: "Archive",
+          run: () => archiveThread(activeThread.id),
+        },
+        compact: {
+          title: "Compact thread",
+          detail: "This asks Codex to compact the current thread context. Long-running work may change shape after compaction.",
+          confirm: "Compact",
+          run: () => compactThread(activeThread.id),
+        },
+        rollback: {
+          title: "Rollback last turn",
+          detail: "This asks Codex to roll back one turn in this thread. Review current work before continuing.",
+          confirm: "Rollback",
+          run: () => rollbackThread(activeThread.id, 1),
+        },
+      }[kind];
+
+      void feedbackWarning();
+      Alert.alert(copy.title, copy.detail, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: copy.confirm,
+          style: kind === "archive" || kind === "rollback" ? "destructive" : "default",
+          onPress: () => {
+            copy.run().then(feedbackSuccess).catch(feedbackError);
+          },
+        },
+      ]);
+    },
+    [activeThread, archiveThread, canUseThreadActions, compactThread, rollbackThread]
+  );
+
+  const handleRemoteDiff = useCallback(() => {
+    if (!activeThread || !canUseThreadActions) return;
+
+    void feedbackSelection();
+    loadRemoteDiff(activeThread.cwd)
+      .then((result) => {
+        Alert.alert(
+          result.diff.trim() ? "Remote diff loaded" : "No remote diff",
+          result.diff.trim()
+            ? `${result.diff.split("\n").slice(0, 12).join("\n")}`
+            : "Codex did not report remote workspace changes for this thread."
+        );
+        void feedbackSuccess();
+      })
+      .catch(feedbackError);
+  }, [activeThread, canUseThreadActions, loadRemoteDiff]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }} edges={["top"]}>
       <KeyboardAvoidingView
@@ -256,6 +321,28 @@ export function MobileChatShell() {
               {messages.map((message) => (
                 <MessageCard key={message.id} message={message} />
               ))}
+              {canUseThreadActions && (
+                <View className="mx-4 mb-4 flex-row gap-2">
+                  {([
+                    [GitCompare, "Diff", handleRemoteDiff],
+                    [Archive, "Archive", () => handleThreadAction("archive")],
+                    [RefreshCw, "Compact", () => handleThreadAction("compact")],
+                    [RotateCcw, "Rollback", () => handleThreadAction("rollback")],
+                  ] as const).map(([Icon, label, onPress]) => (
+                    <Pressable
+                      key={label}
+                      onPress={onPress}
+                      disabled={isBusy}
+                      className="h-11 flex-1 items-center justify-center rounded-md bg-card shadow-border active:bg-muted"
+                    >
+                      <Icon size={16} color="#171717" />
+                      <Text className="mt-1 text-[10px] font-semibold text-foreground">
+                        {label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
             <View className="px-4 pb-8">

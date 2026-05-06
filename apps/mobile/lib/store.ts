@@ -4,7 +4,7 @@ import {
   type BridgeWorkspaceState,
 } from "../src/bridge-workspace-controller";
 import { bridgePreferences } from "../src/bridge-preferences";
-import { OFFDEX_NEW_THREAD_ID, type OffdexThread } from "@offdex/protocol";
+import { OFFDEX_NEW_THREAD_ID, type OffdexRemoteDiff, type OffdexThread } from "@offdex/protocol";
 
 // ════════════════════════════════════════════════════════════════════════════
 // Types
@@ -36,6 +36,11 @@ export interface WorkspaceStore extends BridgeWorkspaceState {
   setDraft: (draft: string) => void;
   sendMessage: () => Promise<void>;
   stopThread: () => Promise<void>;
+  archiveThread: (threadId?: string) => Promise<void>;
+  unarchiveThread: (threadId: string) => Promise<void>;
+  compactThread: (threadId?: string) => Promise<void>;
+  rollbackThread: (threadId?: string, numTurns?: number) => Promise<void>;
+  loadRemoteDiff: (cwd?: string | null) => Promise<OffdexRemoteDiff>;
   startNewThread: () => void;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -231,6 +236,35 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => {
       const state = get();
       if (!state.activeThread) return;
       await controller.interruptThread(state.activeThread.id);
+    },
+
+    archiveThread: async (threadId) => {
+      const state = get();
+      const targetThreadId = threadId ?? state.activeThread?.id;
+      if (!targetThreadId || targetThreadId === OFFDEX_NEW_THREAD_ID) return;
+      await controller.archiveThread(targetThreadId);
+    },
+
+    unarchiveThread: async (threadId) => {
+      await controller.unarchiveThread(threadId);
+    },
+
+    compactThread: async (threadId) => {
+      const state = get();
+      const targetThreadId = threadId ?? state.activeThread?.id;
+      if (!targetThreadId || targetThreadId === OFFDEX_NEW_THREAD_ID) return;
+      await controller.compactThread(targetThreadId);
+    },
+
+    rollbackThread: async (threadId, numTurns = 1) => {
+      const state = get();
+      const targetThreadId = threadId ?? state.activeThread?.id;
+      if (!targetThreadId || targetThreadId === OFFDEX_NEW_THREAD_ID) return;
+      await controller.rollbackThread(targetThreadId, numTurns);
+    },
+
+    loadRemoteDiff: async (cwd) => {
+      return controller.fetchRemoteDiff(cwd);
     },
 
     startNewThread: () => {
