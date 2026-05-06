@@ -13,3 +13,11 @@ continue
 ---
 
 continue
+
+---
+
+now here is the thing. if everything is done. push things to main. cleanup the git. if you have any questions. ask me
+
+---
+
+now here is the thing. if everything is done. push things to main. cleanup the git. if you have any questions. ask me
