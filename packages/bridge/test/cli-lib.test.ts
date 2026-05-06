@@ -178,23 +178,31 @@ describe("bridge cli copy", () => {
   });
 
   test("status output reports runtime, codex, clients, and remote state", () => {
+    const runningStatus = formatBridgeStatus({
+      baseUrl: "http://127.0.0.1:42420",
+      webUiUrl:
+        "https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420",
+      state: { pid: 123, host: "0.0.0.0", port: 42420, startedAt: "2026-04-08T00:00:00.000Z" },
+      health: {
+        macName: "Studio Mac",
+        bridgeMode: "codex",
+        codexConnected: true,
+        codexAccount: { email: "user@example.com", plan: "Plus" },
+        liveClientCount: 2,
+        relayConnected: true,
+      },
+    });
+
+    expect(runningStatus).toContain("Clients  2 live");
+    expect(runningStatus).toContain(
+      "Web UI   https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420"
+    );
+    expect(runningStatus).toContain("Pair     scan QR with `offdex start`");
     expect(
       formatBridgeStatus({
         baseUrl: "http://127.0.0.1:42420",
-        state: { pid: 123, host: "0.0.0.0", port: 42420, startedAt: "2026-04-08T00:00:00.000Z" },
-        health: {
-          macName: "Studio Mac",
-          bridgeMode: "codex",
-          codexConnected: true,
-          codexAccount: { email: "user@example.com", plan: "Plus" },
-          liveClientCount: 2,
-          relayConnected: true,
-        },
-      })
-    ).toContain("Clients  2 live");
-    expect(
-      formatBridgeStatus({
-        baseUrl: "http://127.0.0.1:42420",
+        webUiUrl:
+          "https://offdexapp.vercel.app/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420",
         state: null,
         health: {
           bridgeMode: "demo",
@@ -209,6 +217,7 @@ describe("bridge cli copy", () => {
   test("offline status gives the next command", () => {
     expect(formatOfflineStatus()).toContain("OFFDEX IS NOT RUNNING");
     expect(formatOfflineStatus()).toContain("offdex start");
+    expect(formatOfflineStatus()).toContain("~/.offdex/bridge.log");
   });
 });
 

@@ -7,6 +7,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import {
   createDaemonLaunchPlan,
+  createWebUiUrl,
   formatBridgeStatus,
   formatOfflineStatus,
   formatStaleStatus,
@@ -228,7 +229,7 @@ async function printStatusAndExit(options: CliOptions): Promise<never> {
       relayConnected?: boolean;
       relayUrl?: string | null;
     };
-    console.log(formatBridgeStatus({ baseUrl, state, health }));
+    console.log(formatBridgeStatus({ baseUrl, webUiUrl: createWebUiUrl(baseUrl), state, health }));
     process.exit(0);
   } catch {
     if (state && !processIsRunning(state.pid)) {

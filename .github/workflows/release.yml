@@ -16,7 +16,7 @@ on:
       publish_android:
         description: "Build and upload the signed Android APK"
         required: false
-        default: false
+        default: true
         type: boolean
 
 concurrency: ${{ github.workflow }}-${{ github.ref_name }}
@@ -38,15 +38,15 @@ jobs:
           case "${GITHUB_EVENT_NAME}" in
             repository_dispatch)
               release_tag="$(jq -r '.client_payload.release_tag // empty' "$GITHUB_EVENT_PATH")"
-              publish_android="$(jq -r '.client_payload.publish_android // false' "$GITHUB_EVENT_PATH")"
+              publish_android="$(jq -r '.client_payload.publish_android // true' "$GITHUB_EVENT_PATH")"
               ;;
             workflow_dispatch)
               release_tag="$(jq -r '.inputs.release_tag // empty' "$GITHUB_EVENT_PATH")"
-              publish_android="$(jq -r '.inputs.publish_android // false' "$GITHUB_EVENT_PATH")"
+              publish_android="$(jq -r '.inputs.publish_android // true' "$GITHUB_EVENT_PATH")"
               ;;
             *)
               release_tag="${GITHUB_REF_NAME}"
-              publish_android="false"
+              publish_android="true"
               ;;
           esac
           [[ "${release_tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
@@ -250,6 +250,18 @@ jobs:
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/android-signing"
           printf '%s' "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > "${RUNNER_TEMP}/android-signing/offdex-release.keystore"
+          keytool -list \
+            -keystore "${RUNNER_TEMP}/android-signing/offdex-release.keystore" \
+            -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
+            -alias "${ANDROID_KEY_ALIAS}" \
+            >/dev/null
+          keytool -certreq \
+            -keystore "${RUNNER_TEMP}/android-signing/offdex-release.keystore" \
+            -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
+            -alias "${ANDROID_KEY_ALIAS}" \
+            -keypass "${ANDROID_KEY_PASSWORD}" \
+            -file "${RUNNER_TEMP}/android-signing/offdex-release.csr" \
+            >/dev/null
       - shell: bash
         working-directory: apps/mobile
         run: bunx expo prebuild --platform android --non-interactive --clean
