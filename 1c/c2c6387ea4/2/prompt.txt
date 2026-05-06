@@ -1,0 +1,50 @@
+you have to make sure that the user should still be able to perform and do all these things that he was able to do in the codex desktop app, in the webUI. i know that some will be fundamentally technically not possible, so leave those. but focus on making sure that all of the other ones (most) are implemented. 
+
+this is the goal. we are in middle of this. so now, i would like you to do the most critical self-verification work:
+
+you have to open the codex desktop app and our webui. then, checkout, get a feel, experience full codex desktop app. then try doing the same thing in webui. see if you are able to use the webui the same way you were using the codex desktop app. Note: i have my quota exhausted on codex desktop app, so you wont be able to send any prompts, but you will be able to do everything else.
+
+---
+
+# In app browser:
+- The user has the in-app browser open.
+- Current URL: http://localhost:3000/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420
+
+## My request for Codex:
+do it! use skills
+
+---
+
+# In app browser:
+- The user has the in-app browser open.
+- Current URL: http://localhost:3000/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420
+
+## My request for Codex:
+now what?
+
+---
+
+# In app browser:
+- The user has the in-app browser open.
+- Current URL: http://localhost:3000/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420
+
+## My request for Codex:
+now what?
+
+---
+
+# In app browser:
+- The user has the in-app browser open.
+- Current URL: http://localhost:3000/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420
+
+## My request for Codex:
+first. open the webui in browser, and keep it running
+
+---
+
+# In app browser:
+- The user has the in-app browser open.
+- Current URL: http://localhost:3000/webui?bridge=http%3A%2F%2F127.0.0.1%3A42420
+
+## My request for Codex:
+first. open the webui in browser, and keep it running
