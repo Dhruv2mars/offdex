@@ -32,3 +32,17 @@ History uses short conventional commits, especially `feat:`, `fix:`, `test:`, an
 ## Security & Configuration Tips
 
 Do not commit `.env*`, native build folders, `dist/`, `.next/`, or logs; these are ignored already. Treat release secrets, npm tokens, Android keystores, and relay URLs as private configuration. For local remote-pairing tests, prefer `OFFDEX_CONTROL_PLANE_URL` overrides instead of hardcoding endpoints.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for this repo using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+This repo uses the default engineering-skill triage labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repo uses a single-context domain documentation layout. See `docs/agents/domain.md`.
