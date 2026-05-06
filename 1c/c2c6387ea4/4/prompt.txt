@@ -1,0 +1,5 @@
+AFK repo task. Work in your forked workspace. You are not alone in codebase; do not revert edits by others, and adapt to existing changes. Use bun. Issue #76: Rich tool and connector timeline fidelity. Inspect existing protocol/bridge/web/mobile timeline code, implement a focused vertical slice that improves shared timeline normalization for commands/tool calls/tool results/errors/plan/progress with tests. Keep scope small but acceptance-relevant. Edit files directly in your workspace. Final: summary, tests run, files changed, any blockers.
+
+---
+
+AFK repo task. Work in your forked workspace. You are not alone in codebase; do not revert edits by others, and adapt to existing changes. Use bun. Issue #76: Rich tool and connector timeline fidelity. Inspect existing protocol/bridge/web/mobile timeline code, implement a focused vertical slice that improves shared timeline normalization for commands/tool calls/tool results/errors/plan/progress with tests. Keep scope small but acceptance-relevant. Edit files directly in your workspace. Final: summary, tests run, files changed, any blockers.
